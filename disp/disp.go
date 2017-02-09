@@ -1,3 +1,7 @@
+// Disp provides a simple Job Que and dispatching system. It is based on a blog post
+// (http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/)
+// The dispatching is kept (coudl be removed see https://gist.github.com/harlow/dbcd639cf8d396a2ab73)
+// but as we might move to more advanced cross entity dispatching its still here
 package disp
 
 import (
@@ -13,47 +17,51 @@ type Job struct {
 	Delay time.Duration
 }
 
+type Worker interface {
+	start()
+	stop()
+}
+
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan Job) Worker {
-	return Worker{
-		id:         id,
-		jobQueue:   make(chan Job),
-		workerPool: workerPool,
-		quitChan:   make(chan bool),
+func NewWorker(id int, workerPool chan chan Job) ExWorker {
+	return ExWorker{
+		Id:         id,
+		JobQueue:   make(chan Job),
+		WorkerPool: workerPool,
+		QuitChan:   make(chan bool),
 	}
 }
 
-type Worker struct {
-	id         int
-	jobQueue   chan Job
-	workerPool chan chan Job
-	quitChan   chan bool
+type ExWorker struct {
+	Id         int
+	JobQueue   chan Job
+	WorkerPool chan chan Job
+	QuitChan   chan bool
 }
 
-func (w Worker) start() {
+func (w ExWorker) start() {
 	go func() {
 		for {
 			// Add my jobQueue to the worker pool.
-			w.workerPool <- w.jobQueue
-
+			w.WorkerPool <- w.JobQueue
 			select {
-			case job := <-w.jobQueue:
+			case job := <-w.JobQueue:
 			// Dispatcher has added a job to my jobQueue.
-				fmt.Printf("worker%d: started %s, blocking for %f seconds\n", w.id, job.Name, job.Delay.Seconds())
+				fmt.Printf("worker%d: started %s, blocking for %f seconds\n", w.Id, job.Name, job.Delay.Seconds())
 				time.Sleep(job.Delay)
-				fmt.Printf("worker%d: completed %s!\n", w.id, job.Name)
-			case <-w.quitChan:
+				fmt.Printf("worker%d: completed %s!\n", w.Id, job.Name)
+			case <-w.QuitChan:
 			// We have been asked to stop.
-				fmt.Printf("worker%d stopping\n", w.id)
+				fmt.Printf("worker%d stopping\n", w.Id)
 				return
 			}
 		}
 	}()
 }
 
-func (w Worker) stop() {
+func (w ExWorker) stop() {
 	go func() {
-		w.quitChan <- true
+		w.QuitChan <- true
 	}()
 }
 
@@ -74,9 +82,9 @@ type Dispatcher struct {
 	jobQueue   chan Job
 }
 
-func (d *Dispatcher) Run() {
+func (d *Dispatcher) Run(makeWorker func(int, chan chan Job)Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
-		worker := NewWorker(i+1, d.workerPool)
+		worker := makeWorker(i+1, d.workerPool)
 		worker.start()
 	}
 
