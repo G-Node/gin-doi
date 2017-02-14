@@ -1,12 +1,14 @@
-package dsource
+package ginDoi
 
 import (
 	"testing"
 	"os"
 )
 
+
+
 func TestGet(t *testing.T) {
-	ds :=GinDataSource{uuid:"123"}
+	ds := GinDataSource{uuid:"123"}
 	out, err :=ds.Get("../test_data/test1")
 	defer os.RemoveAll("test1")
 	if err!=nil {

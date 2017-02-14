@@ -2,29 +2,27 @@
 // (http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/)
 // The dispatching is kept (coudl be removed see https://gist.github.com/harlow/dbcd639cf8d396a2ab73)
 // but as we might move to more advanced cross entity dispatching its still here
-package disp
+package ginDoi
 
 import (
-_ "expvar"
-"fmt"
-_ "net/http/pprof"
-"time"
+	_ "expvar"
+	"fmt"
+	_ "net/http/pprof"
+	"time"
 )
 
 // Job holds the attributes needed to perform unit of work.
 type Job struct {
 	Name  string
 	Delay time.Duration
-}
-
-type Worker interface {
-	start()
-	stop()
+	Source string
+	Storage LocalStorage
+	User DoiUser
 }
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan Job) ExWorker {
-	return ExWorker{
+func NewWorker(id int, workerPool chan chan Job) Worker {
+	return Worker{
 		Id:         id,
 		JobQueue:   make(chan Job),
 		WorkerPool: workerPool,
@@ -32,14 +30,14 @@ func NewWorker(id int, workerPool chan chan Job) ExWorker {
 	}
 }
 
-type ExWorker struct {
+type Worker struct {
 	Id         int
 	JobQueue   chan Job
 	WorkerPool chan chan Job
 	QuitChan   chan bool
 }
 
-func (w ExWorker) start() {
+func (w *Worker) start() {
 	go func() {
 		for {
 			// Add my jobQueue to the worker pool.
@@ -47,8 +45,6 @@ func (w ExWorker) start() {
 			select {
 			case job := <-w.JobQueue:
 			// Dispatcher has added a job to my jobQueue.
-				fmt.Printf("worker%d: started %s, blocking for %f seconds\n", w.Id, job.Name, job.Delay.Seconds())
-				time.Sleep(job.Delay)
 				fmt.Printf("worker%d: completed %s!\n", w.Id, job.Name)
 			case <-w.QuitChan:
 			// We have been asked to stop.
@@ -59,7 +55,7 @@ func (w ExWorker) start() {
 	}()
 }
 
-func (w ExWorker) stop() {
+func (w *Worker) stop() {
 	go func() {
 		w.QuitChan <- true
 	}()
