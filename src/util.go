@@ -2,8 +2,20 @@ package ginDoi
 
 import (
 	"net/http"
+	"html/template"
 	"fmt"
+	"log"
+	"io/ioutil"
 )
+
+// Job holds the attributes needed to perform unit of work.
+type Job struct {
+	Name  string
+	Source string
+	Storage LocalStorage
+	User DoiUser
+	DoiInfo DoiInfo
+}
 
 // Responsible for storing smth defined by source to a kind of Storage 
 // defined by target
@@ -51,10 +63,12 @@ func loggedInUser(r *http.Request , pr *OauthProvider) (*DoiUser, error){
 
 
 func readBody(r *http.Request) (*string, error){
-	return nil, nil
+	body, err := ioutil.ReadAll(r.Body)
+	x:= string(body)
+	return &x, err
 }
 
-func RequestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage) {
+func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -76,13 +90,43 @@ func RequestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job, s
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Print(doiInfo)
 		return 
+	}else{
+		job := Job{Source:*URI, Storage:storage, User: *user, DoiInfo:doiInfo}
+		jobQueue <- job
+		// Render success.
+		w.WriteHeader(http.StatusCreated)
 	}
-
-	// Create Job and push the work onto the jobQueue.
-	job := Job{Source:*URI, Storage:storage, User: *user}
-	jobQueue <- job
-
-	// Render success.
-	w.WriteHeader(http.StatusCreated)
 }
+func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource) {
+	URI, err := readBody(r)
+	log.Printf("Got Body text:%s",URI)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	t, err := template.ParseFiles("tmpl/initjob.html") // Parse template file.
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		doiI, err := ds.GetDoiFile(*URI)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if ok, doiInfo := validDoiFile(doiI); ok {
+			err := t.Execute(w, doiInfo)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 

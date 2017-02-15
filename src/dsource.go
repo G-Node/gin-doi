@@ -11,7 +11,7 @@ import (
 )
 
 type GinDataSource struct {
-	ginURL string
+	GinURL string
 }
 
 // Return true if the specifies URI "has" a doi File containing all nec. information
@@ -44,7 +44,7 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 		return nil,nil 
 	}
 	log.Printf("GinDatSource: Fetching Path: %s", fetchRepoPath)
-	resp, err  := http.Get(fmt.Sprintf("%s%s",s.ginURL, fetchRepoPath))
+	resp, err  := http.Get(fmt.Sprintf("%s%s",s.GinURL, fetchRepoPath))
 	if err != nil{
 		// todo Try to infer what went wrong
 		return nil, err

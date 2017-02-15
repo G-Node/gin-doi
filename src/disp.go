@@ -8,17 +8,9 @@ import (
 	_ "expvar"
 	"fmt"
 	_ "net/http/pprof"
-	"time"
 )
 
-// Job holds the attributes needed to perform unit of work.
-type Job struct {
-	Name  string
-	Delay time.Duration
-	Source string
-	Storage LocalStorage
-	User DoiUser
-}
+
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
 func NewWorker(id int, workerPool chan chan Job) Worker {

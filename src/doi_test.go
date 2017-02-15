@@ -5,8 +5,6 @@ import (
 	"reflect"
 )
 
-
-
 func TestDoiFileMarshalling(t *testing.T) {
 	var data = `
 title: test
@@ -23,11 +21,9 @@ authors: testme
 	t.Log("[OK] Unmarschaling doi files works")
 }
 
-
-
 func TestGinDataSource(t *testing.T) {
-	ds := GinDataSource{ginURL: "https://repo.gin.g-node.org"}
-	_,err := ds.GetDoiFile("git@gin.g-node.org:testi/test")
+	ds := GinDataSource{GinURL: "https://repo.gin.g-node.org"}
+		_,err := ds.GetDoiFile("git@gin.g-node.org:testi/test")
 	if err!=nil{
 		t.Log(err)
 		t.Fail()
