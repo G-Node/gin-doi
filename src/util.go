@@ -71,7 +71,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request, jobQueue chan Job, s
 	URI,err := readBody(r)
 	//ToDo Error checking
 	ds,_ := storage.GetDataSource()
-	df,_ := ds.GetDoiFile(URI)
+	df,_ := ds.GetDoiFile(*URI)
 	if ok,doiInfo := validDoiFile(df); !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Print(doiInfo)

@@ -8,7 +8,7 @@ import (
 
 
 func TestGet(t *testing.T) {
-	ds := GinDataSource{uuid:"123"}
+	ds := GinDataSource{}
 	out, err :=ds.Get("../test_data/test1")
 	defer os.RemoveAll("test1")
 	if err!=nil {

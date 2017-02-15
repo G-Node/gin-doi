@@ -7,14 +7,17 @@ import (
 	"net/http"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
+	"log"
 )
 
 type GinDataSource struct {
-	ginURl string
+	ginURL string
 }
 
 // Return true if the specifies URI "has" a doi File containing all nec. information
 func validDoiFile(in []byte) (bool, DoiInfo) {
+	//Workaround as long as repo does spit out object type and size
+	in =[]byte(strings.Split(string(in),"blob")[0])
 	doiInfo := DoiInfo{}
 	fmt.Println(string(in))
 	err :=yaml.Unmarshal(in, &doiInfo)
@@ -27,19 +30,21 @@ func validDoiFile(in []byte) (bool, DoiInfo) {
 }
 
 
-func (s *GinDataSource) GetDoiFile(URI *string) ([]byte, error){
+func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename 
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
 	fetchRepoPath := ""
-	if splUri:=strings.Split(*URI, "/");len(splUri)>1 {
+	log.Printf("GinDatSource: Got URI:%s", URI)
+	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
 		uname := strings.Split(splUri[0],":")[1]
 		repo := splUri[1]
-		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/{branch}/doifile.yaml",uname, repo)
+		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master/doifile.yaml",uname, repo)
 	} else {
 		return nil,nil 
 	}
-	resp, err  := http.Get(fmt.Sprintf("%s%s",s.ginURl, fetchRepoPath))
+	log.Printf("GinDatSource: Fetching Path: %s", fetchRepoPath)
+	resp, err  := http.Get(fmt.Sprintf("%s%s",s.ginURL, fetchRepoPath))
 	if err != nil{
 		// todo Try to infer what went wrong
 		return nil, err
@@ -50,7 +55,6 @@ func (s *GinDataSource) GetDoiFile(URI *string) ([]byte, error){
 	if err !=nil{
 		return nil, err
 	}
-	
 	return body, nil
 }
 
