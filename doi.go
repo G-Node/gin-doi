@@ -17,15 +17,19 @@ func main() {
 	flag.Parse()
 	ds := ginDoi.GinDataSource{GinURL: "https://repo.gin.g-node.org"}
 	// Create the job queue.
-	//jobQueue := make(chan ginDoi.Job, *maxQueueSize)
+	jobQueue := make(chan ginDoi.Job, *maxQueueSize)
 
+	storage := ginDoi.LocalStorage{Path:"./", Source:ds}
 	// Start the dispatcher.
-	//dispatcher := ginDoi.NewDispatcher(jobQueue, *maxWorkers)
-	//dispatcher.Run(ginDoi.NewWorker)
+	dispatcher := ginDoi.NewDispatcher(jobQueue, *maxWorkers)
+	dispatcher.Run(ginDoi.NewWorker)
 	//x := ginDoi.LocalStorage{}
 	// Start the HTTP handler.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ginDoi.InitDoiJob(w, r, &ds)
+	})
+	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
+		ginDoi.DoDoiJob(w,r,jobQueue, storage)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
