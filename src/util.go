@@ -8,6 +8,15 @@ import (
 	"io/ioutil"
 )
 
+var(
+	MS_NODOIFILE = 		"Could no locte a Doi File. Please visit http://... for a guide"
+	MS_INVALIDDOIFILE = 	"The doi File ws not Valid. Please visit http://... for a guide"
+	MS_URIINVALID =   	"Pleasde provide a valid repository URI"
+	MS_SERVERWORKS = 	"The Doi Server has started doifying you repository. " +
+				"Once finnished it will be availible under: %s. Please return to that location to check for " +
+				"availibility"
+)
+
 // Job holds the attributes needed to perform unit of work.
 type Job struct {
 	Name  string
@@ -56,6 +65,12 @@ type DoiInfo struct {
 	Addendum string
 }
 
+type DoiAnswer struct {
+	DoiInfo DoiInfo
+	Mess string
+	URI string
+}
+
 // Check the current user. Return a user if logged in
 func loggedInUser(r *http.Request , pr *OauthProvider) (*DoiUser, error){
 	return &DoiUser{}, nil
@@ -97,15 +112,10 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("The Doi Server has started doifying you repository. Once finnished it will be availible under: %s. Please return to that location to check for availibility"))
+		w.Write([]byte(MS_SERVERWORKS))
 	}
 }
 
-type DoiAnswer struct {
-	DoiInfo DoiInfo
-	Mess string
-	URI string
-}
 func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -122,22 +132,23 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource) {
 	if len(URI)>0 {
 		doiI, err := ds.GetDoiFile(URI)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			log.Println(err)
+			t.Execute(w, DoiAnswer{DoiInfo{}, MS_NODOIFILE, ""})
 			return
 		}
 		if ok, doiInfo := validDoiFile(doiI); ok {
-			err := t.Execute(w, DoiAnswer{doiInfo, "Hello",URI})
+			err := t.Execute(w, DoiAnswer{doiInfo, "",URI})
 			if err != nil {
 				log.Print(err)
 				return
 			}
 		} else {
 			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			t.Execute(w, DoiAnswer{DoiInfo{}, MS_INVALIDDOIFILE, ""})
 			return
 		}
 	} else{
-		err := t.Execute(w, DoiAnswer{DoiInfo{}, "Please provide a repository URI", ""})
+		err := t.Execute(w, DoiAnswer{DoiInfo{}, MS_URIINVALID, ""})
 		if err != nil {
 			log.Print(err)
 			return
