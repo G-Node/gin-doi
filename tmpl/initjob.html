@@ -12,15 +12,43 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script src="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/js/bootstrap.min.js"></script>
 <div id="main">
-    <nav class="navbar navbar-inverse navbar-fixed-top"></nav>>
+    <nav class="navbar navbar-inverse navbar-fixed-top"></nav>
         <div class="container main-container">
                 <h1>Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure) DOI service!</h1>
                 <hr>
-            <div class="alert alert-success">
-                <div><b>Well Done! </b> Your repository fullfills all neccessarry requirements! Hit the button to start the doification.</div>
-                <div class="btn btn-primary" role="button">Doify Me</div>
+            {{if .DoiInfo.Title}}
+            <div class="alert alert-success" id="info">
+                <div><b>Well Done! </b> Your repository {{.DoiInfo.Title}} fullfills all neccessarry requirements! Hit the button to start the doification.</div>
+                <div class="btn btn-primary" role="button" id="doify">Doify Now</div>
             </div>
+            {{else}}
+            <div class="alert alert-warning">
+                <div><b>This did not work. The Server seems to be angry with you and wont doify this request!</b> {{.Mess}}</div>
+            </div>
+            {{end}}
         </div>
 </div>
+<script>
+    $(document).ready(function() {
+        $ = jQuery.noConflict();
+        $.ajaxSetup({cache: false});
+        $("#main").on('click', "#doify", doify);
+    });
+    function doify(event) {
+        $(event.target).addClass("disabled");
+        $.ajax({
+            url:"/do/",
+            type:"POST",
+            contentType: "text/plain",
+            data:"{{.URI}}",
+            dataType:"text",
+            success: function (data) {
+                $("#info").text(data);
+                $("#info").toggleClass("alert-success");
+                $("#info").toggleClass("alert-info");
+            }
+        });
+    };
+</script>
 </body>
 </html>
