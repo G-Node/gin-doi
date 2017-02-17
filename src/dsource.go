@@ -30,7 +30,14 @@ func validDoiFile(in []byte) (bool, DoiInfo) {
 	return true, doiInfo
 }
 
-
+func (s *GinDataSource) GetDoiInfo(URI string) (DoiInfo, error){
+	if data, err := s.GetDoiFile(URI); err==nil{
+		_,info := validDoiFile(data)
+		return info,err
+	} else {
+		return DoiInfo{}, err
+	}
+}
 func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename 
 	//https://github.com/go-yaml/yaml.git
