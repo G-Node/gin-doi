@@ -87,12 +87,13 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	//ToDo Error checking
 	ds,_ := storage.GetDataSource()
 	df,_ := ds.GetDoiFile(*URI)
+	uuid, _ := ds.MakeUUID(*URI)
 	if ok,doiInfo := validDoiFile(df); !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Print(doiInfo)
 		return 
 	}else{
-		job := Job{Source:*URI, Storage:storage, User: *user, DoiInfo:doiInfo, Name:"fakeNAme"}
+		job := Job{Source:*URI, Storage:storage, User: *user, DoiInfo:doiInfo, Name:uuid}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)

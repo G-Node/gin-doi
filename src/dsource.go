@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
 	"log"
+	"crypto/md5"
+	"encoding/hex"
 )
 
 type GinDataSource struct {
@@ -19,7 +21,6 @@ func validDoiFile(in []byte) (bool, DoiInfo) {
 	//Workaround as long as repo does spit out object type and size
 	in =[]byte(strings.Split(string(in),"blob")[0])
 	doiInfo := DoiInfo{}
-	fmt.Println(string(in))
 	err :=yaml.Unmarshal(in, &doiInfo)
 	//ToDo check fields and catch error
 	if err!=nil{
@@ -66,4 +67,25 @@ func (s *GinDataSource)  Get(URI string, To string) (string, error) {
 		return string(out), err
 	}
 	return string(out), nil
+}
+
+func (s *GinDataSource)  MakeUUID(URI string) (string, error) {
+	fetchRepoPath := ""
+	log.Printf("GinDatSource: Got URI:%s", URI)
+	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
+		uname := strings.Split(splUri[0],":")[1]
+		repo := splUri[1]
+		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master",uname, repo)
+	}
+	log.Printf("GinDatSource: Fetching Path: %s", fetchRepoPath)
+	resp, err  := http.Get(fmt.Sprintf("%s%s",s.GinURL, fetchRepoPath))
+	if err != nil{
+		return "", err
+	}
+	if bd,err :=ioutil.ReadAll(resp.Body); err != nil{
+		return "", err
+	}else {
+		currMd5 :=  md5.Sum(bd)
+		return hex.EncodeToString(currMd5[:]), nil
+	}
 }
