@@ -9,7 +9,8 @@ import (
 
 func TestGet(t *testing.T) {
 	ds := GinDataSource{}
-	out, err :=ds.Get("../test_data/test1")
+	os.Mkdir("test1", os.ModePerm)
+	out, err :=ds.Get("../test_data/test1", "test1")
 	defer os.RemoveAll("test1")
 	if err!=nil {
 		t.Log(out)
@@ -17,7 +18,7 @@ func TestGet(t *testing.T) {
 	}
 	t.Log("[OK] Data source seems to clone")
 
-	out, err =ds.Get("../test_data/test21")
+	out, err =ds.Get("../test_data/test21","")
 	if err==nil {
 		t.Log(out)
 		t.Fail()

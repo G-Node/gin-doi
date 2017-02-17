@@ -58,8 +58,9 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	return body, nil
 }
 
-func (s *GinDataSource)  Get(URI string) (string, error) {
-	cmd := exec.Command("git","clone","--depth","1", URI)
+func (s *GinDataSource)  Get(URI string, To string) (string, error) {
+	log.Printf("GinDataSource: Will do a git clone now: %s to:%s", URI, To)
+	cmd := exec.Command("git","clone","--depth","1", URI, To)
 	out, err :=cmd.CombinedOutput()
 	if (err != nil) {
 		return string(out), err
