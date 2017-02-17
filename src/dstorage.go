@@ -9,6 +9,8 @@ import (
 type LocalStorage struct {
 	Path string
 	Source GinDataSource
+	DProvider DoiProvider
+	HttpBase string
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {

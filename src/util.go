@@ -122,6 +122,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource) {
 		return
 	}
 	URI := r.Form.Get("repo")
+	//Username := r.Form.Get("user")
 	log.Printf("Got Body text:%s",URI)
 	t, err := template.ParseFiles("tmpl/initjob.html") // Parse template file.
 	if err != nil {

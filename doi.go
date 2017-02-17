@@ -17,7 +17,9 @@ func main() {
 	)
 	flag.Parse()
 	ds := ginDoi.GinDataSource{GinURL: *source}
-	storage := ginDoi.LocalStorage{Path:*baseTarget, Source:ds}
+	dp := ginDoi.DoiProvider{ApiURI:""}
+	storage := ginDoi.LocalStorage{Path:*baseTarget, Source:ds, HttpBase:"https://dois.gin.g-node.org/",
+					DProvider:dp}
 
 	// Create the job queue.
 	jobQueue := make(chan ginDoi.Job, *maxQueueSize)
