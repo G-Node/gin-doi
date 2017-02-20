@@ -12,18 +12,39 @@ import (
 	"encoding/hex"
 )
 
+var (
+	MS_NOTITLE = "No Title provided"
+	MS_NOAUTHORS = "No Title provided"
+	MS_NODESC = "No Title provided"
+	MS_NOLIC = "No Title provided"
+)
+
 type GinDataSource struct {
 	GinURL string
 }
 
+func hasValues(s *DoiInfo) bool{
+	if s.Title==""{
+		s.Missing = append(s.Missing, MS_NOTITLE)
+	}
+	if s.Authors ==""{
+		s.Missing = append(s.Missing, MS_NOAUTHORS)
+	}
+	if s.Description ==""{
+		s.Missing = append(s.Missing, MS_NODESC)
+	}
+	if s.License ==""{
+		s.Missing = append(s.Missing, MS_NOLIC)
+	}
+	return len(s.Missing)>0
+}
 // Return true if the specifies URI "has" a doi File containing all nec. information
 func validDoiFile(in []byte) (bool, DoiInfo) {
 	//Workaround as long as repo does spit out object type and size
 	in =[]byte(strings.Split(string(in),"blob")[0])
 	doiInfo := DoiInfo{}
 	err :=yaml.Unmarshal(in, &doiInfo)
-	//ToDo check fields and catch error
-	if err!=nil{
+	if err!=nil || !hasValues(&doiInfo){
 		fmt.Println(err)
 		return false, doiInfo
 	}

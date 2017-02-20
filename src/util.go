@@ -63,6 +63,7 @@ type DoiInfo struct {
 	References string
 	License string
 	Addendum string
+	Missing []string
 }
 
 type DoiAnswer struct {
