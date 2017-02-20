@@ -16,8 +16,18 @@
         <div class="container main-container">
                 <h1>Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure) DOI service!</h1>
                 <hr>
-            <div class="alert alert-success" id="info">
-                <div><b>This is the home of {{.Title}}</b></div>
+            <div class="alert alert-info" id="info">
+                <div>This is the home of <b>{{.Title}}</b></div>
+                <div>This Dataset has been cretaed by:</div>
+                <div>{{.Authors}}</div>
+                <div>And licensed under the fellowing terms:</div>
+                <div>{{.License}}</div>
+                <div>Desription of the data</div>
+                <div>{{.Description}}</div>
+                <div>Addendum:</div>
+                <div>{{.Addendum}}</div>
+                <div>Keywords:</div>
+                <div>{{.Keywords}}</div>
             </div>
         </div>
 </div>
