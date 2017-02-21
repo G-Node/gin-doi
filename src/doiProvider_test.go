@@ -22,7 +22,7 @@ url=12345`
 	}))
 	defer srv.Close()
 	dp := DoiProvider{ApiURI: srv.URL}
-	re, err := dp.regDoi("12345")
+	re, err := dp.RegDoi("12345")
 	if err != nil{
 		t.Logf("[DoiP Err] Error was :%s",err)
 		t.Fail()

@@ -4,7 +4,6 @@ import (
 	"os"
 	"fmt"
 	"log"
-	"os/exec"
 	"html/template"
 )
 
@@ -19,14 +18,13 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 	return false, nil
 }
 
-func (ls *LocalStorage) tar(target string) ([]byte, error) {
-	//tar -cf archiv.tar daten/
-	//Whether the -C option is a good idea otr actually dangerous has to be seen
+func (ls *LocalStorage) tar(target string) error {
 	to := fmt.Sprintf("%s%s", ls.Path, target)
-	//todo check whether -C really changes directories. Would be dangerous here
-	cmd := exec.Command("tar","--remove-files","-C",to+"/tmp","-czf", to+"/all.tar.gz", "./")
-	out, err :=cmd.CombinedOutput()
-	return out, err
+	log.Printf("Will work on:%s", to)
+	fp,err := os.Create(to+"/data.tar.gz")
+	err = Tar(to+"/tmp", fp )
+
+	return err
 }
 
 func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
@@ -54,19 +52,21 @@ func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 	return nil
 }
 
-func (ls *LocalStorage) Put(source string , target string) (string, error){
+func (ls *LocalStorage) Put(source string , target string) error{
 	info, err := ls.Source.GetDoiInfo(source)
 	if err != nil{
-		log.Printf("Error when fetching doiinfo:%s", err)
+		log.Printf("Error when fetching doiInfo:%s", err)
 	}
 	ls.prepDir(target, info)
 	ds,_ := ls.GetDataSource()
 	to := fmt.Sprintf("%s%s", ls.Path, target)
 	if out, err := ds.Get(source, to+"/tmp"); err!=nil {
-		return string(out), err
+		return fmt.Errorf("Git said:%s, Error was: %v", out, err)
 	}
-	out,err := ls.tar(target)
-	return string(out), err
+	err = ls.tar(target)
+	err = os.RemoveAll(to+"/tmp")
+	ls.DProvider.RegDoi(target)
+	return  err
 }
 
 func (ls LocalStorage) GetDataSource() (*GinDataSource, error) {
