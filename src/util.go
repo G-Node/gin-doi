@@ -133,18 +133,19 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource) {
 	if len(URI)>0 {
 		doiI, err := ds.GetDoiFile(URI)
 		if err != nil {
-			log.Println(err)
+			log.Printf("InitDoiJob: Could not get Doi File %v", err)
 			t.Execute(w, DoiAnswer{DoiInfo{}, MS_NODOIFILE, ""})
 			return
 		}
 		if ok, doiInfo := validDoiFile(doiI); ok {
+			log.Printf("InitDoiJob: Received Doin information:%+v", doiInfo)
 			err := t.Execute(w, DoiAnswer{doiInfo, "",URI})
 			if err != nil {
-				log.Print(err)
+				log.Printf("InitDoiJob: Could not parse template %v", err)
 				return
 			}
 		} else {
-			log.Println(err)
+			log.Printf("InitDoiJob: Cloudberry File invalid %v", err)
 			t.Execute(w, DoiAnswer{DoiInfo{}, MS_INVALIDDOIFILE, ""})
 			return
 		}
