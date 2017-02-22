@@ -18,9 +18,46 @@
                 <hr>
             {{if .DoiInfo.Title}}
             <div class="alert alert-success" id="info">
-                <div><b>Well Done! </b> Your repository {{.DoiInfo.Title}} fullfills all neccessarry requirements! Hit the button to start the doification.</div>
-                <div class="btn btn-primary" role="button" id="doify">Doify Now</div>
+                <div>
+                    <b>Well Done! </b> Your repository "{{.DoiInfo.Title}}" fullfills all neccessarry requirements! Hit the button to start the doification.
+                    <div class="btn btn-primary" role="button" id="doify">Doify Now</div>
+                </div>
             </div>
+
+            <div id="infobox" class="alert alert-warning">The follwoing information will be registerd with you DOI request.
+                They will also be presented alongside the data.</div>
+            <table id="infotable" class="table table-condensed">
+
+                <tbody>
+                <tr>
+                    <td>Title</td>
+                    <td>{{.DoiInfo.Title}}</td>
+                </tr>
+                <tr>
+                    <td>Authors</td>
+                    <td>
+                        {{range $index, $auth := .DoiInfo.Authors}}
+                        {{ $auth }}
+                        <br>
+                        {{end}}
+                    </td>
+                </tr>
+                {{if .DoiInfo.Description}}
+                <tr>
+                    <td>Description</td>
+                    <td>{{.DoiInfo.Description}}
+                    </td>
+                </tr>
+                {{end}}
+                {{if .DoiInfo.License}}
+                <tr>
+                    <td>License</td>
+                    <td>{{.DoiInfo.License}}
+                    </td>
+                </tr>
+                {{end}}
+                </tbody>
+            </table>
             {{else}}
             <div class="alert alert-warning">
                 <div><b>This did not work. The Server seems to be angry with you and wont doify this request!</b> {{.Mess}}</div>
@@ -46,6 +83,8 @@
                 $("#info").text(data);
                 $("#info").toggleClass("alert-success");
                 $("#info").toggleClass("alert-info");
+                $("#infobox").hide();
+                $("#infotable").hide();
             }
         });
     };

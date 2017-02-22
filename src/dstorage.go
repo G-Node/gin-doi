@@ -35,10 +35,12 @@ func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 		return err
 	}
 	// Deny access per default
-	file, err := os.Create(target+"/.httaccess")
+	file, err := os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/.httaccess")
 	if err != nil{
 		log.Printf("Tried httaccess:%s", err)
+		return err
 	}
+	defer file.Close()
 	file.Write([]byte("deny from all"))
 
 	tmpl, err := template.ParseFiles("tmpl/doiInfo.html")
@@ -46,9 +48,18 @@ func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 		log.Printf("Trying building a template went wrong:%s", err)
 		return err
 	}
-	fp, _ :=os.Create(target+"/index.html")
-	tmpl.Execute(fp, info)
+	fp, err :=os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/index.html")
+	if err != nil{
+		log.Printf("Tried creating index.html:%s", err)
+		return err
+	}
+	defer fp.Close()
+	if err := tmpl.Execute(fp, info); err!=nil{
+		log.Printf("Could not execte template for index.html: %s",err)
+		return err
+	}
 	log.Printf("Got doifile:%+v",info)
+
 	return nil
 }
 

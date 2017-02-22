@@ -13,7 +13,7 @@ func main() {
 		maxQueueSize = flag.Int("max_queue_size", 100, "The size of job queue")
 		port         = flag.String("port", "8083", "The server port")
 		source       = flag.String("source", "https://repo.gin.g-node.org", "The default URI")
-		baseTarget   = flag.String("target", "", "The default base path for storgae")
+		baseTarget   = flag.String("target", "data/", "The default base path for storgae")
 	)
 	flag.Parse()
 	ds := ginDoi.GinDataSource{GinURL: *source}

@@ -24,10 +24,10 @@ type GinDataSource struct {
 }
 
 func hasValues(s *DoiInfo) bool{
-	if s.Title==""{
+	if s.Title == ""{
 		s.Missing = append(s.Missing, MS_NOTITLE)
 	}
-	if len(s.Authors)== 0 {
+	if len(s.Authors) == 0 {
 		s.Missing = append(s.Missing, MS_NOAUTHORS)
 	}
 	if s.Description == ""{
@@ -36,7 +36,7 @@ func hasValues(s *DoiInfo) bool{
 	if s.License ==""{
 		//s.Missing = append(s.Missing, MS_NOLIC)
 	}
-	return len(s.Missing)>0
+	return len(s.Missing)==0
 }
 // Return true if the specifies URI "has" a doi File containing all nec. information
 func validDoiFile(in []byte) (bool, DoiInfo) {
@@ -49,6 +49,7 @@ func validDoiFile(in []byte) (bool, DoiInfo) {
 		return false, DoiInfo{}
 	}
 	if !hasValues(&doiInfo) {
+		log.Printf("GinDatSource validDoiFile: Doi File misses entries: %+v", doiInfo)
 		return false, doiInfo
 	}
 	return true, doiInfo

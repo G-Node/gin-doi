@@ -14,21 +14,46 @@
 <div id="main">
     <nav class="navbar navbar-inverse navbar-fixed-top"></nav>
         <div class="container main-container">
-                <h1>Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure) DOI service!</h1>
-                <hr>
-            <div class="alert alert-info" id="info">
-                <div>This is the home of <b>{{.Title}}</b></div>
-                <div>This Dataset has been cretaed by:</div>
-                <div>{{.Authors}}</div>
-                <div>And licensed under the fellowing terms:</div>
-                <div>{{.License}}</div>
-                <div>Desription of the data</div>
-                <div>{{.Description}}</div>
-                <div>Addendum:</div>
-                <div>{{.Addendum}}</div>
-                <div>Keywords:</div>
-                <div>{{.Keywords}}</div>
-            </div>
+                <h1>This is the Landing Page for {{.Title}}. Please find mor information below:</h1>
+            <table class="table table-condensed">
+                <tbody>
+                <tr>
+                    <td>Title</td>
+                    <td>{{.Title}}</td>
+                </tr>
+                <tr>
+                    <td>Authors</td>
+                    <td>
+                        {{range $index, $auth := .Authors}}
+                        {{ $auth }}
+                        <br>
+                        {{end}}
+                    </td>
+                </tr>
+                {{if .Description}}
+                <tr>
+                    <td>Description</td>
+                    <td>{{.Description}}
+                    </td>
+                </tr>
+                {{end}}
+                {{if .License}}
+                <tr>
+                    <td>License</td>
+                    <td>{{.License}}
+                    </td>
+                </tr>
+                {{end}}
+                <tr>
+                    <td>Data</td>
+                    <td><a href="./data.tar.gz">Data</a></td>
+                </tr>
+                <tr>
+                    <td>DOI</td>
+                    <td><a href="#" class ="label label-default">10.12751/nncn.bc2016.0001</a></td>
+                </tr>
+                </tbody>
+            </table>
         </div>
 </div>
 </body>
