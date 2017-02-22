@@ -57,12 +57,11 @@ type DoiUser struct {
 type DoiInfo struct {
 	URI string
 	Title string
-	Authors string
+	Authors []string
 	Description string
 	Keywords string
 	References string
 	License string
-	Addendum string
 	Missing []string
 }
 

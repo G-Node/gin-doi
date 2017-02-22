@@ -1,21 +1,21 @@
 ## Required fields
 # The main researchers involved working on the data, or the authors of the publication in priority order. May be a corporate/institutional or personal name.
-Authors:
+authors:
   - LastName1, GivenName1
   - LastName2, GivenName2
 
 #A name or title by which a resource is known.
-Title: ExampleTitle
+title: ExampleTitle
 
 ## Optional Fields
 #All additional information. It is a best practice to supply a description.
-Description: Example Description
+description: Example Description
 
-Keywords: Bussword
+keywords: Bussword
 
-References: Me et.al.
+references: Me et.al.
 
 #Any rights information for this resource.
-License: BSD 3
+license: BSD 3
 
 

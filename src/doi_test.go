@@ -9,10 +9,12 @@ func TestDoiFileMarshalling(t *testing.T) {
 	var data = `
 title: test
 uri: test
-authors: testme
-
+authors:
+	- testme
+	- testme2
 `
-	mockstruc := DoiInfo{Title:"test",URI:"test",Authors:"testme"}
+	mockstruc := DoiInfo{Title:"test",URI:"test",
+		Authors:[]string{"testme","testme2"}}
 	val, info := validDoiFile([]byte(data))
 	if ! val && reflect.DeepEqual(info,mockstruc){
 		t.Logf("Did not properly unmarshal Doi data:%+v", info)
