@@ -22,5 +22,5 @@ WORKDIR /gin-doi
 RUN go build
 
 
-ENTRYPOINT ./gin-doi
+ENTRYPOINT ./gin-doi --target /data/doid/
 EXPOSE 8083
