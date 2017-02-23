@@ -29,7 +29,7 @@ func (ls *LocalStorage) tar(target string) error {
 
 func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 	log.Printf("Trying to create:%s",fmt.Sprintf("%s%s", ls.Path, target))
-	err := os.Mkdir(fmt.Sprintf("%s/%s", ls.Path, target), os.ModePerm)
+	err := os.Mkdir(fmt.Sprintf("%s%s", ls.Path, target), os.ModePerm)
 	if err != nil{
 		log.Print(err)
 		return err
