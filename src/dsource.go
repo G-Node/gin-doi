@@ -10,6 +10,8 @@ import (
 	"log"
 	"crypto/md5"
 	"encoding/hex"
+	"bytes"
+	 "regexp"
 )
 
 var (
@@ -40,8 +42,11 @@ func hasValues(s *DoiInfo) bool{
 }
 // Return true if the specifies URI "has" a doi File containing all nec. information
 func validDoiFile(in []byte) (bool, DoiInfo) {
-	//Workaround as long as repo does spit out object type and size
-	in =[]byte(strings.Split(string(in),"blob")[0])
+	//Workaround as long as repo does spits out object type and size (and a zero termination...)
+	in = bytes.Replace(in,[]byte("\x00"),[]byte(""),-1)
+	re := regexp.MustCompile(`blob\W\d+`)
+	in = re.ReplaceAll(in, []byte(""))
+
 	doiInfo := DoiInfo{}
 	err :=yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
