@@ -14,11 +14,12 @@ func main() {
 		port         = flag.String("port", "8083", "The server port")
 		source       = flag.String("source", "https://repo.gin.g-node.org", "The default URI")
 		baseTarget   = flag.String("target", "data/", "The default base path for storgae")
+		httpStorrage   = flag.String("store", "http://doid.gin.g-node.org/", "The default base path for the external data store")
 	)
 	flag.Parse()
 	ds := ginDoi.GinDataSource{GinURL: *source}
 	dp := ginDoi.DoiProvider{ApiURI:""}
-	storage := ginDoi.LocalStorage{Path:*baseTarget, Source:ds, HttpBase:"https://dois.gin.g-node.org/",
+	storage := ginDoi.LocalStorage{Path:*baseTarget, Source:ds, HttpBase:*httpStorrage,
 					DProvider:dp}
 
 	// Create the job queue.

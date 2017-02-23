@@ -80,7 +80,7 @@
             data:"{{.URI}}",
             dataType:"text",
             success: function (data) {
-                $("#info").text(data);
+                $("#info").html(data);
                 $("#info").toggleClass("alert-success");
                 $("#info").toggleClass("alert-info");
                 $("#infobox").hide();

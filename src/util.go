@@ -11,10 +11,12 @@ import (
 var(
 	MS_NODOIFILE = 		"Could no locte a Doi File. Please visit http://... for a guide"
 	MS_INVALIDDOIFILE = 	"The doi File ws not Valid. Please visit http://... for a guide"
-	MS_URIINVALID =   	"Pleasde provide a valid repository URI"
+	MS_URIINVALID =   	"Please provide a valid repository URI"
 	MS_SERVERWORKS = 	"The Doi Server has started doifying you repository. " +
-				"Once finnished it will be availible under: %s. Please return to that location to check for " +
-				"availibility"
+				"Once finnished it will be availible at the location below Please return to that location to check for " +
+				"availibility <br><br>"+
+				"<a href=\"%s\" class=\"label label-warning\">Your Landing Page</a>"
+
 )
 
 // Job holds the attributes needed to perform unit of work.
@@ -63,6 +65,8 @@ type DoiInfo struct {
 	References string
 	License string
 	Missing []string
+	DOI string
+	UUID string
 }
 
 type DoiAnswer struct {
@@ -112,7 +116,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(MS_SERVERWORKS))
+		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, storage.HttpBase+uuid)))
 	}
 }
 
