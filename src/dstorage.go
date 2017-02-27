@@ -7,6 +7,10 @@ import (
 	"html/template"
 )
 
+var(
+	STORLOGPREFIX = "Storage"
+
+)
 type LocalStorage struct {
 	Path string
 	Source GinDataSource
@@ -35,13 +39,13 @@ func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 		return err
 	}
 	// Deny access per default
-	file, err := os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/.httaccess")
+	file, err := os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/.htaccess")
 	if err != nil{
 		log.Printf("Tried httaccess:%s", err)
 		return err
 	}
 	defer file.Close()
-	file.Write([]byte("deny from all"))
+	file.Write([]byte("alow from all"))
 
 	tmpl, err := template.ParseFiles("tmpl/doiInfo.html")
 	if err != nil{
@@ -65,6 +69,8 @@ func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 
 func (ls *LocalStorage) Put(source string , target string) error{
 	info, err := ls.Source.GetDoiInfo(source)
+	//todo do this better
+	info.UUID = target
 	if err != nil{
 		log.Printf("Error when fetching doiInfo:%s", err)
 	}
@@ -76,8 +82,24 @@ func (ls *LocalStorage) Put(source string , target string) error{
 	}
 	err = ls.tar(target)
 	err = os.RemoveAll(to+"/tmp")
-	ls.DProvider.RegDoi(target)
-	return  err
+	fp,_ := os.Create(to+"/doi.xml")
+	if err != nil{
+		log.Printf("[%s] could not create metadata file:%s",STORLOGPREFIX, err)
+		return err
+	}
+	defer fp.Close()
+	// No registering. But the xml is provided with everything
+	data, err := ls.DProvider.GetXml(info)
+	if err != nil{
+		log.Printf("[%s] could not create metadata: %s",STORLOGPREFIX, err)
+		return err
+	}
+	_, err = fp.Write(data)
+	if err != nil{
+		log.Printf("[%s] could not write to metadata file: %s",STORLOGPREFIX, err)
+		return err
+	}
+	return err
 }
 
 func (ls LocalStorage) GetDataSource() (*GinDataSource, error) {
