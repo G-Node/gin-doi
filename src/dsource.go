@@ -15,10 +15,11 @@ import (
 )
 
 var (
-	MS_NOTITLE = "No Title provided"
-	MS_NOAUTHORS = "No Authors provided"
-	MS_NODESC = ""
-	MS_NOLIC = ""
+	MS_NOTITLE = "No Title provided."
+	MS_NOAUTHORS = "No Authors provided."
+	MS_NODESC = "No Description provided."
+	MS_NOLIC = "No Liecense provided."
+	DSOURCELOGPREFIX= "DSOURCE"
 )
 
 type GinDataSource struct {
@@ -33,10 +34,10 @@ func hasValues(s *DoiInfo) bool{
 		s.Missing = append(s.Missing, MS_NOAUTHORS)
 	}
 	if s.Description == ""{
-		//s.Missing = append(s.Missing, MS_NODESC)
+		s.Missing = append(s.Missing, MS_NODESC)
 	}
 	if s.License ==""{
-		//s.Missing = append(s.Missing, MS_NOLIC)
+		s.Missing = append(s.Missing, MS_NOLIC)
 	}
 	return len(s.Missing)==0
 }
@@ -104,14 +105,22 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 func (s *GinDataSource)  Get(URI string, To string) (string, error) {
 	log.Printf("GinDataSourceGet: Will do a git clone now: %s to:%s", URI, To)
 	cmd := exec.Command("git","clone","--depth","1", URI, To)
-	out, err :=cmd.CombinedOutput()
+	out, err := cmd.CombinedOutput()
 	if (err != nil) {
 		return string(out), err
+	}
+	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
+	out, err = cmd.CombinedOutput()
+	if (err != nil) {
+		// Workaround for uninitilaizes git annexes (-> return nil)
+		// todo
+		log.Printf("[%s] Repo was not annexed: %s",DSOURCELOGPREFIX,string(out))
+		return string(out), nil
 	}
 	return string(out), nil
 }
 
-func (s *GinDataSource)  MakeUUID(URI string) (string, error) {
+func (s *GinDataSource) MakeUUID(URI string) (string, error) {
 	fetchRepoPath := ""
 	log.Printf("GinDatSourceMakeUUID: Got URI:%s", URI)
 	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
