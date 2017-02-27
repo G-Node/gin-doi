@@ -7,15 +7,13 @@ authors:
 #A name or title by which a resource is known.
 title: ExampleTitle
 
-## Optional Fields
 #All additional information. It is a best practice to supply a description.
 description: Example Description
 
 keywords: Bussword
 
-references: Me et.al.
-
 #Any rights information for this resource.
 license: BSD 3
 
-
+## Optional Fields
+references: Me et.al.
