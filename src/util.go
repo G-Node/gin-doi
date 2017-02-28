@@ -67,6 +67,7 @@ type DoiInfo struct {
 	Missing []string
 	DOI string
 	UUID string
+	Subjects []string
 }
 
 type DoiAnswer struct {

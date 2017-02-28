@@ -44,6 +44,17 @@
                     </td>
                 </tr>
                 {{end}}
+                {{if .Subjects}}
+                <tr>
+                    <td>Subjects</td>
+                    <td>
+                        {{range $index, $sub := .Subjects}}
+                        {{ $sub }}
+                        <br>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
                 <tr>
                     <td>Data</td>
                     <td><a href="./data.tar.gz">Data</a></td>

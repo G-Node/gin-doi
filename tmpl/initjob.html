@@ -56,6 +56,17 @@
                     </td>
                 </tr>
                 {{end}}
+                {{if .DoiInfo.Subjects}}
+                <tr>
+                    <td>Subjects</td>
+                    <td>
+                        {{range $index, $sub := .DoiInfo.Subjects}}
+                        {{ $sub }}
+                        <br>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
                 </tbody>
             </table>
             {{else}}

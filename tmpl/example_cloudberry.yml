@@ -10,10 +10,14 @@ title: ExampleTitle
 #All additional information. It is a best practice to supply a description.
 description: Example Description
 
-keywords: Bussword
+keywords: Bussword1, Bussword2
 
 #Any rights information for this resource.
 license: BSD 3
 
 ## Optional Fields
 references: Me et.al.
+
+subjects:
+  - Neuroscience
+  - Pseudoscience
