@@ -17,6 +17,7 @@ var(
 				"Once finnished it will be availible at the location below Please return to that location to check for " +
 				"availibility <br><br>"+
 				"<a href=\"%s\" class=\"label label-warning\">Your Landing Page</a>"
+	MS_NOLOGIN =		"You are not logged in with the gin service. Login at: http://gin.g-node.org/"
 
 )
 
@@ -40,10 +41,10 @@ type StorageElement interface {
 }
 
 type OauthIdentity struct {
-	Name string
-	Mail string
-	Token string
-	EmailRaw json.RawMessage
+	FirstName string `json:"first_name"`
+        LastName string `json:"last_name"`
+        Token string
+        EmailRaw json.RawMessage `json:"email"`
 }
 
 type OauthProvider struct {
@@ -117,7 +118,8 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		fmt.Print(doiInfo)
 		return 
 	}else{
-		job := Job{Source:*URI, Storage:storage, User: *user, DoiInfo:doiInfo, Name:uuid}
+		doiInfo.UUID = uuid
+		job := Job{Source:*URI, Storage:storage, User: *user, DoiInfo:doiInfo, Name:doiInfo.UUID}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
@@ -125,20 +127,33 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	}
 }
 
-func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource) {
+func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *OauthProvider) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	URI := r.Form.Get("repo")
-	//Username := r.Form.Get("user")
-	log.Printf("Got Body text:%s",URI)
+	token := r.Form.Get("token")
+	username := r.Form.Get("user")
+	log.Printf("[Init] Repo: %s, user: %s, token:%s",URI, username, token)
+
 	t, err := template.ParseFiles("tmpl/initjob.html") // Parse template file.
 	if err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	user, err := op.getUser(username, token)
+	if err != nil{
+		log.Printf("InitDoiJob: Could not authenticate user %v", err)
+		t.Execute(w, DoiAnswer{DoiInfo{}, MS_NOLOGIN, ""})
+		return
+	}
+
+	log.Printf("[Init] User: %+v", user)
+
+
 	if len(URI)>0 {
 		doiI, err := ds.GetDoiFile(URI)
 		if err != nil {
