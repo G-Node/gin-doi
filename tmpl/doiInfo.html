@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//projects.g-node.org/assets/gnode-bootstrap-theme/1.1.0-snapshot/css/bootstrap.min.css">
     <link rel="shortcut icon" type="image/png" href="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/img/favicon.png">
     <title>G-Node GIN-Doi</title>
 </head>
@@ -12,7 +12,13 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script src="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/js/bootstrap.min.js"></script>
 <div id="main">
-    <nav class="navbar navbar-inverse navbar-fixed-top"></nav>
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a href="https://web.gin.g-node.org/" class="navbar-brand-gin"></a>
+                </div>
+            </div>
+        </nav>
         <div class="container main-container">
             <h1>This is the Landing Page for <b>{{.Title}}</b>. Please find more information below:</h1>
             <table class="table table-condensed">
@@ -66,6 +72,27 @@
                 </tbody>
             </table>
         </div>
+        <nav class="navbar navbar-fixed-bottom navbar-default">
+            <div class="container">
+                <div class="row display-table">
+                    <div class="col-sm-1 display-cell">
+                        <a href="http://www.g-node.org" class="navbar-footer-brand-gin"></a>
+                    </div>
+                    <div class="col-sm-6 display-cell">
+                        <ul class="list-inline">
+                            <li>© G-Node, 2016-2017</li>
+                            <li><a href="http://www.g-node.org/gin_terms">Terms of usage</a></li>
+                        </ul>
+                    </div> <div class="col-sm-6 display-cell">
+                    <ul class="list-inline pull-right">
+                        <li><a href="https://web.gin.g-node.org/info/about" class="">About</a></li>
+                        <li><a href="https://web.gin.g-node.org/info/imprint" class="">Imprint</a></li>
+                        <li><a href="https://web.gin.g-node.org/info/contact" class="">Contact</a></li>
+                    </ul>
+                </div>
+                </div>
+            </div>
+        </nav>
 </div>
 </body>
 </html>
