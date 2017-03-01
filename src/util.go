@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"io/ioutil"
+	"encoding/json"
 )
 
 var(
@@ -42,6 +43,7 @@ type OauthIdentity struct {
 	Name string
 	Mail string
 	Token string
+	EmailRaw json.RawMessage
 }
 
 type OauthProvider struct {
@@ -68,6 +70,7 @@ type DoiInfo struct {
 	DOI string
 	UUID string
 	Subjects []string
+	FileSize int64
 }
 
 type DoiAnswer struct {
@@ -108,6 +111,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	ds,_ := storage.GetDataSource()
 	df,_ := ds.GetDoiFile(*URI)
 	uuid, _ := ds.MakeUUID(*URI)
+
 	if ok,doiInfo := validDoiFile(df); !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Print(doiInfo)
