@@ -28,12 +28,12 @@
                     <b>Well Done! </b> Your repository "{{.DoiInfo.Title}}" fullfills all neccessarry requirements! Hit the button below to start the doification.
                 </div>
             </div>
-            <div class="jumbotron">
+            <div class="jumbotron" id="infotable">
                 <div id="infobox">The follwoing information will be registerd with you DOI request.
                     They will also be presented alongside the data. Please check them thoroughly and modify you .cloudberry file if something is wrong.
                 </div>
             <hr>
-            <table id="infotable" class="table table-condensed">
+            <table class="table table-condensed">
 
                 <tbody>
                 <tr>
@@ -60,6 +60,13 @@
                 <tr>
                     <td>License</td>
                     <td>{{.DoiInfo.License}}
+                    </td>
+                </tr>
+                {{end}}
+                {{if .DoiInfo.Keywords}}
+                <tr>
+                    <td>Keywords</td>
+                    <td>{{.DoiInfo.Keywords}}
                     </td>
                 </tr>
                 {{end}}
@@ -138,7 +145,6 @@
                 $("#info").html(data);
                 $("#info").toggleClass("alert-success");
                 $("#info").toggleClass("alert-info");
-                $("#infobox").hide();
                 $("#infotable").hide();
                 $("#warnung").hide();
             }

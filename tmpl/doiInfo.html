@@ -50,6 +50,20 @@
                     </td>
                 </tr>
                 {{end}}
+                {{if .Keywords}}
+                <tr>
+                    <td>Keywords</td>
+                    <td>{{.Keywords}}
+                    </td>
+                </tr>
+                {{end}}
+                {{if .References}}
+                <tr>
+                    <td>Reference</td>
+                    <td>{{.References}}
+                    </td>
+                </tr>
+                {{end}}
                 {{if .Subjects}}
                 <tr>
                     <td>Subjects</td>
