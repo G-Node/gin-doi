@@ -33,7 +33,7 @@ func main() {
 		ginDoi.InitDoiJob(w, r, &ds, &op)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.DoDoiJob(w,r,jobQueue, storage)
+		ginDoi.DoDoiJob(w,r,jobQueue, storage, &op)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))

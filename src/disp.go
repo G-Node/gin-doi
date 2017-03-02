@@ -6,7 +6,6 @@ package ginDoi
 
 import (
 	_ "expvar"
-	"fmt"
 	_ "net/http/pprof"
 	"log"
 )
@@ -38,12 +37,12 @@ func (w *Worker) start() {
 			select {
 			case job := <-w.JobQueue:
 			// Dispatcher has added a job to my jobQueue.
-				out := job.Storage.Put(job.Source, job.Name)
-				log.Printf("Storage: git output was: %s", out)
-				fmt.Printf("worker%d: completed %s!\n", w.Id, job.Name)
+				out := job.Storage.Put(job.Source, job.Name, &job.DoiReq)
+				log.Printf("[Worker %i] Storage: git output was: %s", w.Id, out)
+				log.Printf("[Worker %i] Completed %s!\n", w.Id, job.Name)
 			case <-w.QuitChan:
 			// We have been asked to stop.
-				fmt.Printf("worker%d stopping\n", w.Id)
+				log.Printf("[Worker %i] Stopping\n", w.Id)
 				return
 			}
 		}
@@ -87,9 +86,9 @@ func (d *Dispatcher) dispatch() {
 		select {
 		case job := <-d.jobQueue:
 			go func() {
-				fmt.Printf("fetching workerJobQueue for: %s\n", job.Name)
+				log.Printf("[Disp]: Fetching workerJobQueue for: %s\n", job.Name)
 				workerJobQueue := <-d.workerPool
-				fmt.Printf("adding %s to workerJobQueue\n", job.Name)
+				log.Printf("[Disp]: Adding %s to workerJobQueue\n", job.Name)
 				workerJobQueue <- job
 			}()
 		}

@@ -24,8 +24,8 @@ url=12345`
 	defer srv.Close()
 
 	dp := DoiProvider{ApiURI: srv.URL, Pwd:""}
-	re, err := dp.RegDoi(DoiInfo{Authors:[]string{"Christian Garbers"}, Title:"New title",
-			DOI:"12345"})
+	re, err := dp.RegDoi(CBerry{Authors: []string{"Christian Garbers"}, Title: "New title",
+			DOI:                 "12345"})
 	if err != nil{
 		t.Logf("[DoiP Err] Error was :%s",err)
 		t.Fail()

@@ -24,7 +24,7 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 
 func (ls *LocalStorage) tar(target string) (int64, error) {
 	to := fmt.Sprintf("%s%s", ls.Path, target)
-	log.Printf("Will work on:%s", to)
+	log.Printf("[%s] Will work on:%s",STORLOGPRE, to)
 	fp,err := os.Create(to+"/data.tar.gz")
 	defer fp.Close()
 	err = Tar(to+"/tmp", fp )
@@ -32,7 +32,7 @@ func (ls *LocalStorage) tar(target string) (int64, error) {
 	return stat.Size(), err
 }
 
-func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
+func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 	log.Printf("Trying to create:%s",fmt.Sprintf("%s%s", ls.Path, target))
 	err := os.Mkdir(fmt.Sprintf("%s%s", ls.Path, target), os.ModePerm)
 	if err != nil{
@@ -51,33 +51,30 @@ func (ls *LocalStorage) prepDir(target string, info DoiInfo) error {
 	return nil
 }
 
-func (ls LocalStorage) createIndexFile(target string, info DoiInfo) error {
+func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 	tmpl, err := template.ParseFiles("tmpl/doiInfo.html")
 	if err != nil{
-		log.Printf("Trying building a template went wrong:%s", err)
+		log.Printf("[%s] Trying building the index template went wrong:%s", STORLOGPRE, err)
 		return err
 	}
 	fp, err :=os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/index.html")
 	if err != nil{
-		log.Printf("Tried creating index.html:%s", err)
+		log.Printf("[%s] Tried creating index.html:%s",STORLOGPRE, err)
 		return err
 	}
 	defer fp.Close()
+	log.Printf("[%s] Will try to create an index.html with: %+v", STORLOGPRE, info)
 	if err := tmpl.Execute(fp, info); err!=nil{
-		log.Printf("Could not execte template for index.html: %s",err)
+		log.Printf("[s] Could not execute template for index.html: %s", STORLOGPRE, err)
 		return err
 	}
 	return nil
 }
 
-func (ls *LocalStorage) Put(source string , target string) error{
-	info, err := ls.Source.GetDoiInfo(source)
+func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 	//todo do this better
-	info.UUID = target
-	if err != nil{
-		log.Printf("Error when fetching doiInfo:%s", err)
-	}
-	ls.prepDir(target, info)
+	dReq.DoiInfo.UUID = target
+	ls.prepDir(target, &dReq.DoiInfo)
 	ds,_ := ls.GetDataSource()
 	to := fmt.Sprintf("%s%s", ls.Path, target)
 	if out, err := ds.Get(source, to+"/tmp"); err!=nil {
@@ -88,9 +85,9 @@ func (ls *LocalStorage) Put(source string , target string) error{
 		log.Printf("[%s] Could not tar: %s", STORLOGPRE,  err)
 		return err
 	}
-
-	info.FileSize = fSize/1000
-	ls.createIndexFile(target, info)
+	// +1 to report something with small datsets
+	dReq.DoiInfo.FileSize = fSize/1000000+1
+	ls.createIndexFile(target, dReq)
 
 	err = os.RemoveAll(to+"/tmp")
 
@@ -101,7 +98,7 @@ func (ls *LocalStorage) Put(source string , target string) error{
 	}
 	defer fp.Close()
 	// No registering. But the xml is provided with everything
-	data, err := ls.DProvider.GetXml(info)
+	data, err := ls.DProvider.GetXml(&dReq.DoiInfo)
 	if err != nil{
 		log.Printf("[%s] could not create metadata: %s", STORLOGPRE, err)
 		return err

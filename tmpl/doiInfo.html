@@ -20,55 +20,55 @@
             </div>
         </nav>
         <div class="container main-container">
-            <h1>This is the Landing Page for <b>{{.Title}}</b>. Please find more information below:</h1>
+            <h1>This is the Landing Page for <b>{{.DoiInfo.Title}}</b>. Please find more information below:</h1>
             <table class="table table-condensed">
                 <tbody>
                 <tr>
                     <td>Title</td>
-                    <td>{{.Title}}</td>
+                    <td>{{.DoiInfo.Title}}</td>
                 </tr>
                 <tr>
                     <td>Authors</td>
                     <td>
-                        {{range $index, $auth := .Authors}}
+                        {{range $index, $auth := .DoiInfo.Authors}}
                         {{ $auth }}
                         <br>
                         {{end}}
                     </td>
                 </tr>
-                {{if .Description}}
+                {{if .DoiInfo.Description}}
                 <tr>
                     <td>Description</td>
-                    <td>{{.Description}}
+                    <td>{{.DoiInfo.Description}}
                     </td>
                 </tr>
                 {{end}}
-                {{if .License}}
+                {{if .DoiInfo.License}}
                 <tr>
                     <td>License</td>
-                    <td>{{.License}}
+                    <td>{{.DoiInfo.License}}
                     </td>
                 </tr>
                 {{end}}
-                {{if .Keywords}}
+                {{if .DoiInfo.Keywords}}
                 <tr>
                     <td>Keywords</td>
-                    <td>{{.Keywords}}
+                    <td>{{.DoiInfo.Keywords}}
                     </td>
                 </tr>
                 {{end}}
-                {{if .References}}
+                {{if .DoiInfo.References}}
                 <tr>
                     <td>Reference</td>
-                    <td>{{.References}}
+                    <td>{{.DoiInfo.References}}
                     </td>
                 </tr>
                 {{end}}
-                {{if .Subjects}}
+                {{if .DoiInfo.Subjects}}
                 <tr>
                     <td>Subjects</td>
                     <td>
-                        {{range $index, $sub := .Subjects}}
+                        {{range $index, $sub := .DoiInfo.Subjects}}
                         {{ $sub }}
                         <br>
                         {{end}}
@@ -77,11 +77,20 @@
                 {{end}}
                 <tr>
                     <td>Data</td>
-                    <td><a href="./data.tar.gz">Data ({{.FileSize}} MB)</a></td>
+                    <td>
+                        <a href="./data.tar.gz">Data ({{.DoiInfo.FileSize}} MB)</a><br>
+                        This is the archive of a git repository. The original repository and possibly updated versions can be found at
+                        <a href="https://gin.g-node.org/">gin.g-node.org</a>
+
+                    </td>
                 </tr>
                 <tr>
                     <td>DOI</td>
                     <td><a href="#" class ="label label-default">10.12751/nncn.bc2016.0001</a></td>
+                </tr>
+                <tr>
+                    <td>Source Repository</td>
+                    <td>{{.URI}}</td>
                 </tr>
                 </tbody>
             </table>

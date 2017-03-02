@@ -23,11 +23,11 @@ var(
 
 // Job holds the attributes needed to perform unit of work.
 type Job struct {
-	Name  string
-	Source string
+	Name    string
+	Source  string
 	Storage LocalStorage
-	User DoiUser
-	DoiInfo DoiInfo
+	User    OauthIdentity
+	DoiReq  DoiReq
 }
 
 // Responsible for storing smth defined by source to a kind of Storage 
@@ -59,25 +59,26 @@ type DoiUser struct {
 	MainOId OauthIdentity
 }
 
-type DoiInfo struct {
+type DoiReq struct {
 	URI string
+	User string
+	Token string
+	Mess string
+	DoiInfo CBerry
+}
+
+type CBerry struct {
+	Missing []string
+	DOI string
+	UUID string
+	FileSize int64
 	Title string
 	Authors []string
 	Description string
 	Keywords string
 	References string
 	License string
-	Missing []string
-	DOI string
-	UUID string
 	Subjects []string
-	FileSize int64
-}
-
-type DoiAnswer struct {
-	DoiInfo DoiInfo
-	Mess string
-	URI string
 }
 
 // Check the current user. Return a user if logged in
@@ -92,34 +93,39 @@ func readBody(r *http.Request) (*string, error){
 	return &x, err
 }
 
-func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage) {
+func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op *OauthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	
-	user, err := loggedInUser(r, &OauthProvider{})
-	if err != nil {
+
+	dReq := DoiReq{}
+	//ToDo Error checking
+	body, _ := ioutil.ReadAll(r.Body)
+	json.Unmarshal(body, &dReq)
+	log.Printf("Git URI:%s", dReq.URI)
+
+	user, err := op.getUser(dReq.User, dReq.Token)
+	if err != nil{
+		log.Printf("[Do doi Job]: Could not authenticate user %+v. Request Data: %+v", err, dReq)
+		dReq.Mess = MS_NOLOGIN
 		w.WriteHeader(http.StatusUnauthorized)
-		return 
+		return
 	}
-	
-	URI,err := readBody(r)
-	log.Printf("Git URI:%s", *URI)
 	//ToDo Error checking
 	ds,_ := storage.GetDataSource()
-	df,_ := ds.GetDoiFile(*URI)
-	uuid, _ := ds.MakeUUID(*URI)
+	df,_ := ds.GetDoiFile(dReq.URI)
+	uuid, _ := ds.MakeUUID(dReq.URI)
 
 	if ok,doiInfo := validDoiFile(df); !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Print(doiInfo)
 		return 
 	}else{
 		doiInfo.UUID = uuid
-		job := Job{Source:*URI, Storage:storage, User: *user, DoiInfo:doiInfo, Name:doiInfo.UUID}
+		dReq.DoiInfo = *doiInfo
+		job := Job{Source:dReq.URI, Storage:storage, User: user, DoiReq:dReq, Name:doiInfo.UUID}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
@@ -135,7 +141,8 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	URI := r.Form.Get("repo")
 	token := r.Form.Get("token")
 	username := r.Form.Get("user")
-	log.Printf("[Init] Repo: %s, user: %s, token:%s",URI, username, token)
+	dReq := DoiReq{URI:URI, User:username, Token:token}
+	log.Printf("[Init] Repo: %+v", dReq)
 
 	t, err := template.ParseFiles("tmpl/initjob.html") // Parse template file.
 	if err != nil {
@@ -147,7 +154,8 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	user, err := op.getUser(username, token)
 	if err != nil{
 		log.Printf("InitDoiJob: Could not authenticate user %v", err)
-		t.Execute(w, DoiAnswer{DoiInfo{}, MS_NOLOGIN, ""})
+		dReq.Mess = MS_NOLOGIN
+		t.Execute(w, dReq)
 		return
 	}
 
@@ -158,23 +166,27 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 		doiI, err := ds.GetDoiFile(URI)
 		if err != nil {
 			log.Printf("InitDoiJob: Could not get Doi File %v", err)
-			t.Execute(w, DoiAnswer{DoiInfo{}, MS_NODOIFILE, ""})
+			dReq.Mess = MS_NODOIFILE
+			t.Execute(w, dReq)
 			return
 		}
 		if ok, doiInfo := validDoiFile(doiI); ok {
-			log.Printf("InitDoiJob: Received Doin information:%+v", doiInfo)
-			err := t.Execute(w, DoiAnswer{doiInfo, "",URI})
+			log.Printf("InitDoiJob: Received Doi information:%+v", doiInfo)
+			dReq.DoiInfo = *doiInfo
+			err := t.Execute(w, dReq)
 			if err != nil {
 				log.Printf("InitDoiJob: Could not parse template %v", err)
 				return
 			}
 		} else {
 			log.Printf("InitDoiJob: Cloudberry File invalid %v", err)
-			t.Execute(w, DoiAnswer{DoiInfo{}, MS_INVALIDDOIFILE, ""})
+			dReq.Mess = MS_INVALIDDOIFILE
+			t.Execute(w, dReq)
 			return
 		}
 	} else{
-		err := t.Execute(w, DoiAnswer{DoiInfo{}, MS_URIINVALID, ""})
+		dReq.Mess = MS_URIINVALID
+		err := t.Execute(w, dReq)
 		if err != nil {
 			log.Print(err)
 			return

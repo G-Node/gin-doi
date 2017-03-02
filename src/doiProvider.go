@@ -15,13 +15,13 @@ type DoiProvider struct {
 	DOIBase string
 }
 
-func (dp *DoiProvider) MakeDoi(doiInfo *DoiInfo) string {
+func (dp *DoiProvider) MakeDoi(doiInfo *CBerry) string {
 	doiInfo.DOI = dp.DOIBase + "/" + doiInfo.UUID[:10]
 	return doiInfo.DOI
 }
 
-func (dp *DoiProvider) GetXml(doiInfo DoiInfo) ([]byte, error) {
-	dp.MakeDoi(&doiInfo)
+func (dp *DoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
+	dp.MakeDoi(doiInfo)
 	t, err := template.ParseFiles("tmpl/datacite.xml")
 	if err != nil{
 		log.Printf("[%s] Template broken:%s", LOGPREFIX, err)
@@ -36,8 +36,8 @@ func (dp *DoiProvider) GetXml(doiInfo DoiInfo) ([]byte, error) {
 	return buff.Bytes(), err
 }
 
-func (dp *DoiProvider) RegDoi(doiInfo DoiInfo) (string, error){
-	data, err := dp.GetXml(doiInfo)
+func (dp *DoiProvider) RegDoi(doiInfo CBerry) (string, error){
+	data, err := dp.GetXml(&doiInfo)
 	if err != nil{
 		return "",err
 	}

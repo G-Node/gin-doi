@@ -139,7 +139,7 @@
             url:"/do/",
             type:"POST",
             contentType: "text/plain",
-            data:"{{.URI}}",
+            data:"{\"user\":\"{{.User}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
             dataType:"text",
             success: function (data) {
                 $("#info").html(data);

@@ -26,7 +26,7 @@ type GinDataSource struct {
 	GinURL string
 }
 
-func hasValues(s *DoiInfo) bool{
+func hasValues(s *CBerry) bool{
 	if s.Title == ""{
 		s.Missing = append(s.Missing, MS_NOTITLE)
 	}
@@ -42,29 +42,29 @@ func hasValues(s *DoiInfo) bool{
 	return len(s.Missing)==0
 }
 // Return true if the specifies URI "has" a doi File containing all nec. information
-func validDoiFile(in []byte) (bool, DoiInfo) {
+func validDoiFile(in []byte) (bool, *CBerry) {
 	//Workaround as long as repo does spits out object type and size (and a zero termination...)
 	in = bytes.Replace(in,[]byte("\x00"),[]byte(""),-1)
 	re := regexp.MustCompile(`blob\W\d+`)
 	in = re.ReplaceAll(in, []byte(""))
 
-	doiInfo := DoiInfo{}
+	doiInfo := CBerry{}
 	err :=yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
-		log.Printf("GinDatSource: Could not unmarshal doifile:%v", err)
-		return false, DoiInfo{}
+		log.Printf("[%s]: Could not unmarshal doifile:%v",DSOURCELOGPREFIX, err)
+		return false, &CBerry{}
 	}
 	if !hasValues(&doiInfo) {
-		log.Printf("GinDatSource validDoiFile: Doi File misses entries: %+v", doiInfo)
-		return false, doiInfo
+		log.Printf("[%s]: Doi File misses entries: %+v",DSOURCELOGPREFIX, doiInfo)
+		return false, &doiInfo
 	}
-	return true, doiInfo
+	return true, &doiInfo
 }
 
-func (s *GinDataSource) GetDoiInfo(URI string) (DoiInfo, error){
+func (s *GinDataSource) GetDoiInfo(URI string) (*CBerry, error){
 	data, err := s.GetDoiFile(URI)
 	if err!=nil{
-		return DoiInfo{}, err
+		return nil, err
 	}
 	valid,info := validDoiFile(data)
 	if !valid {
@@ -78,7 +78,7 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
 	fetchRepoPath := ""
-	log.Printf("GinDatSourceGetDoiFile: Got URI:%s", URI)
+	log.Printf("[%s]: Got URI:%s", DSOURCELOGPREFIX, URI)
 	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
 		uname := strings.Split(splUri[0],":")[1]
 		repo := splUri[1]
@@ -86,24 +86,24 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	} else {
 		return nil,nil 
 	}
-	log.Printf("GinDatSourceGetDoiFile: Fetching Path: %s", fetchRepoPath)
+	log.Printf("[%s]: Fetching Path: %s",DSOURCELOGPREFIX, fetchRepoPath)
 	resp, err  := http.Get(fmt.Sprintf("%s%s",s.GinURL, fetchRepoPath))
 	if err != nil{
 		// todo Try to infer what went wrong
-		log.Printf("GinDatSourceGetDoiFile: Could not get cloudberry: %v", err)
+		log.Printf("[%s]: Could not get cloudberry: %v", DSOURCELOGPREFIX, err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err !=nil{
-		log.Printf("GinDatSourceGetDoiFile: Could nort read Clodberry: %v", err)
+		log.Printf("[%s]: Could nort read Clodberry: %v", DSOURCELOGPREFIX, err)
 		return nil, err
 	}
 	return body, nil
 }
 
 func (s *GinDataSource)  Get(URI string, To string) (string, error) {
-	log.Printf("GinDataSourceGet: Will do a git clone now: %s to:%s", URI, To)
+	log.Printf("[%s]: Will do a git clone now: %s to:%s",DSOURCELOGPREFIX, URI, To)
 	cmd := exec.Command("git","clone","--depth","1", URI, To)
 	out, err := cmd.CombinedOutput()
 	if (err != nil) {
@@ -122,13 +122,12 @@ func (s *GinDataSource)  Get(URI string, To string) (string, error) {
 
 func (s *GinDataSource) MakeUUID(URI string) (string, error) {
 	fetchRepoPath := ""
-	log.Printf("GinDatSourceMakeUUID: Got URI:%s", URI)
+	log.Printf("[%s]: Got URI for UUIDfication:%s",DSOURCELOGPREFIX, URI)
 	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
 		uname := strings.Split(splUri[0],":")[1]
 		repo := splUri[1]
 		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master",uname, repo)
 	}
-	log.Printf("GinDatSourceMakeUUID: Fetching Path: %s", fetchRepoPath)
 	resp, err  := http.Get(fmt.Sprintf("%s%s",s.GinURL, fetchRepoPath))
 	if err != nil{
 		return "", err
