@@ -14,7 +14,7 @@ gin-doi fulfills the [Data Cite](https://www.datacite.org/) standard which (acco
 ## What is needed
 To get a doi you need to provide a file called .cloudberry which needs to be put (and pushed) into the root of your repository.
 This file needsa to be a valid [YAML](https://en.wikipedia.org/wiki/YAML) file and should look  [like this one](https://github.com/cgars/gin-doi/blob/master/tmpl/example_cloudberry.yml).
-You need to at least provide the following entries:
+You need to provide  at least the following entries:
 * authors
 * title
 * description
@@ -26,4 +26,4 @@ You need to at least provide the following entries:
 
 Furthermore the repository you want to get a DOI for must be public.
 
-You can find datasets that are already doified [here](http://doid.gin.g-node.de). Join us, make data great (again?)! 
+You can find datasets that are already doified [here](http://doid.gin.g-node.org). Join us, make data great (again?)! 

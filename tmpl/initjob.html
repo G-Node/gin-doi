@@ -28,17 +28,11 @@
                     <b>Well Done! </b> Your repository "{{.DoiInfo.Title}}" fullfills all neccessarry requirements! Hit the button below to start the doification.
                 </div>
             </div>
-            <div class="alert alert-danger" id="warnung">
-                <div>
-                    <b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b>
-                    (Yes, that really means ALL data - including private files, ssh keys, address books, password collections and whatnot.
-                    If it happens to be in the repository, it will be in the archive).
+            <div class="jumbotron">
+                <div id="infobox">The follwoing information will be registerd with you DOI request.
+                    They will also be presented alongside the data. Please check them thoroughly and modify you .cloudberry file if something is wrong.
                 </div>
-            </div>
-
-
-            <div id="infobox" class="alert alert-warning">The follwoing information will be registerd with you DOI request.
-                They will also be presented alongside the data. Please check them thoroughly and modify you .cloudberry file if something is wrong.</div>
+            <hr>
             <table id="infotable" class="table table-condensed">
 
                 <tbody>
@@ -82,6 +76,14 @@
                 {{end}}
                 </tbody>
             </table>
+            </div>
+            <div class="alert alert-danger" id="warnung">
+                <div>
+                    <b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b>
+                    (Yes, that really means ALL data - including private files, ssh keys, address books, password collections and whatnot.
+                    If it happens to be in the repository, it will be in the archive).
+                </div>
+            </div>
             <div class="btn btn-primary" role="button" id="doify">Doify Now</div>
             {{else}}
             <div class="alert alert-warning">
