@@ -63,6 +63,13 @@
                     </td>
                 </tr>
                 {{end}}
+                {{if .DoiInfo.References}}
+                <tr>
+                    <td>Reference</td>
+                    <td>{{.DoiInfo.References}}
+                    </td>
+                </tr>
+                {{end}}
                 {{if .DoiInfo.Subjects}}
                 <tr>
                     <td>Subjects</td>
