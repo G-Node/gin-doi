@@ -20,8 +20,8 @@
   {{if .License}}<rightsList>
     <rights> {{.License}}</rights>
   </rightsList>{{end}}
-  {{if .Subjects}}<subjects>{{range $index, $sub := .Subjects}}
-     <subject>{{$sub}}</subject>{{end}}
+  {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
+     <subject>{{$kw}}</subject>{{end}}
   </subjects>{{end}}
   <resourceType resourceTypeGeneral="Dataset">Dataset</resourceType>
   <version>1</version>

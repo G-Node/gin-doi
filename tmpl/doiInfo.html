@@ -53,7 +53,11 @@
                 {{if .DoiInfo.Keywords}}
                 <tr>
                     <td>Keywords</td>
-                    <td>{{.DoiInfo.Keywords}}
+                    <td>
+                        {{range $index, $kw := .DoiInfo.Keywords}}
+                        {{ $kw }}
+                        <br>
+                        {{end}}
                     </td>
                 </tr>
                 {{end}}
@@ -61,17 +65,6 @@
                 <tr>
                     <td>Reference</td>
                     <td>{{.DoiInfo.References}}
-                    </td>
-                </tr>
-                {{end}}
-                {{if .DoiInfo.Subjects}}
-                <tr>
-                    <td>Subjects</td>
-                    <td>
-                        {{range $index, $sub := .DoiInfo.Subjects}}
-                        {{ $sub }}
-                        <br>
-                        {{end}}
                     </td>
                 </tr>
                 {{end}}

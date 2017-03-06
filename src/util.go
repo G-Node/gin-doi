@@ -75,10 +75,9 @@ type CBerry struct {
 	Title string
 	Authors []string
 	Description string
-	Keywords string
+	Keywords []string
 	References string
 	License string
-	Subjects []string
 }
 
 // Check the current user. Return a user if logged in
