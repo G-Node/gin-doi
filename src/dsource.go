@@ -19,7 +19,7 @@ var (
 	MS_NOAUTHORS = "No Authors provided."
 	MS_NODESC = "No Description provided."
 	MS_NOLIC = "No Liecense provided."
-	DSOURCELOGPREFIX= "DSOURCE"
+	DSOURCELOGPREFIX= "DataSource"
 )
 
 type GinDataSource struct {

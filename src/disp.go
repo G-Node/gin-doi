@@ -37,9 +37,8 @@ func (w *Worker) start() {
 			select {
 			case job := <-w.JobQueue:
 			// Dispatcher has added a job to my jobQueue.
-				out := job.Storage.Put(job.Source, job.Name, &job.DoiReq)
-				log.Printf("[Worker %i] Storage: git output was: %s", w.Id, out)
-				log.Printf("[Worker %i] Completed %s!\n", w.Id, job.Name)
+				job.Storage.Put(job.Source, job.Name, &job.DoiReq)
+				log.Printf("[Worker %d] Completed %s!\n", w.Id, job.Name)
 			case <-w.QuitChan:
 			// We have been asked to stop.
 				log.Printf("[Worker %i] Stopping\n", w.Id)

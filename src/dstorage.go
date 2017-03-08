@@ -36,16 +36,16 @@ func (ls *LocalStorage) tar(target string) (int64, error) {
 }
 
 func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
-	log.Printf("Trying to create:%s",filepath.Join(ls.Path, target))
+	log.Printf("[%s] Trying to create: %s",STORLOGPRE, filepath.Join(ls.Path, target))
 	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil{
-		log.Print(err)
+		log.Printf("[%s] Tried to create the target directory. Smth went wrong: %+v", STORLOGPRE, err)
 		return err
 	}
 	// Deny access per default
 	file, err := os.Create(filepath.Join(ls.Path, target,".htaccess"))
 	if err != nil{
-		log.Printf("Tried httaccess:%s", err)
+		log.Printf("[%s]Tried httaccess:%s", STORLOGPRE, err)
 		return err
 	}
 	defer file.Close()
@@ -63,13 +63,13 @@ func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 
 	fp, err :=os.Create(filepath.Join(ls.Path, target, "index.html"))
 	if err != nil{
-		log.Printf("[%s] Tried creating index.html:%s",STORLOGPRE, err)
+		log.Printf("[%s] Tried creating index.html:%s", STORLOGPRE, err)
 		return err
 	}
 	defer fp.Close()
 	log.Printf("[%s] Will try to create an index.html with: %+v", STORLOGPRE, info)
 	if err := tmpl.Execute(fp, info); err!=nil{
-		log.Printf("[s] Could not execute template for index.html: %s", STORLOGPRE, err)
+		log.Printf("[%s] Could not execute template for index.html: %s", STORLOGPRE, err)
 		return err
 	}
 	return nil
@@ -84,7 +84,7 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 	ds,_ := ls.GetDataSource()
 
 	if out, err := ds.Get(source, tmpDir); err!=nil {
-		return fmt.Errorf("Git said:%s, Error was: %v", out, err)
+		return fmt.Errorf("[%s] Git said:%s, Error was: %v",STORLOGPRE, out, err)
 	}
 	fSize, err := ls.tar(target)
 	if err != nil {
