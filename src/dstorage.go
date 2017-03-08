@@ -16,6 +16,7 @@ type LocalStorage struct {
 	Source GinDataSource
 	DProvider DoiProvider
 	HttpBase string
+	MServer *MailServer
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {
@@ -108,9 +109,16 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 		log.Printf("[%s] could not write to metadata file: %s", STORLOGPRE, err)
 		return err
 	}
+	ls.SendMaster(dReq)
 	return err
 }
 
 func (ls LocalStorage) GetDataSource() (*GinDataSource, error) {
 	return &ls.Source, nil
+}
+func (ls LocalStorage) SendMaster(dReq *DoiReq) (error) {
+	return ls.MServer.ToMaster(
+		fmt.Sprintf(
+			"Hello. the fellowing Archives are ready for doification:%s",
+			dReq.DoiInfo.UUID))
 }

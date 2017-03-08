@@ -15,12 +15,16 @@ func main() {
 		source       = flag.String("source", "https://repo.gin.g-node.org", "The default URI")
 		baseTarget   = flag.String("target", "data/", "The default base path for storgae")
 		httpStorrage   = flag.String("store", "http://doid.gin.g-node.org/", "The default base path for the external data store")
+		mServerA   = flag.String("mServer", "localhost:25", "The mailserver adress (:and port)")
+		mFrom   = flag.String("mFrom", "no-reply@g-node.org", "The mail from adress")
+		doiMaster = flag.String("master", "christian@stuebeweg50.de", "The mail adress to send info to")
 	)
 	flag.Parse()
 	ds := ginDoi.GinDataSource{GinURL: *source}
 	dp := ginDoi.DoiProvider{ApiURI:"", DOIBase:"10.12751"}
+	mServer := ginDoi.MailServer{Adress: *mServerA, From: *mFrom, DoSend:false, Master: *doiMaster}
 	storage := ginDoi.LocalStorage{Path:*baseTarget, Source:ds, HttpBase:*httpStorrage,
-					DProvider:dp}
+					DProvider:dp, MServer: &mServer}
 	op := ginDoi.OauthProvider{Uri:"https://auth.gin.g-node.org/api/accounts"}
 	// Create the job queue.
 	jobQueue := make(chan ginDoi.Job, *maxQueueSize)
