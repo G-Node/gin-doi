@@ -82,7 +82,7 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
 		uname := strings.Split(splUri[0],":")[1]
 		repo := splUri[1]
-		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master/.cloudberry.yml",uname, repo)
+		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master/cloudberry.yml",uname, repo)
 	} else {
 		return nil,nil 
 	}
