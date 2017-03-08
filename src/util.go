@@ -19,6 +19,8 @@ var(
 				"availibility <br><br>"+
 				"<a href=\"%s\" class=\"label label-warning\">Your Landing Page</a>"
 	MS_NOLOGIN =		"You are not logged in with the gin service. Login at: http://gin.g-node.org/"
+	MS_NOTOKEN = 		"No authentication token provided"
+	MS_NOUSER = 		"No username provided"
 
 )
 
@@ -105,11 +107,11 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	//ToDo Error checking
 	body, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(body, &dReq)
-	log.Printf("Git URI:%s", dReq.URI)
+	log.Printf("[DoDoiJob] Git URI:%s", dReq.URI)
 
 	user, err := op.getUser(dReq.User, dReq.Token)
 	if err != nil{
-		log.Printf("[Do doi Job]: Could not authenticate user %+v. Request Data: %+v", err, dReq)
+		log.Printf("[DoDoiJob]: Could not authenticate user %+v. Request Data: %+v", err, dReq)
 		dReq.Mess = MS_NOLOGIN
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -151,7 +153,41 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 		return
 	}
 
-	user, err := op.getUser(username, token)
+	// Test whether URi was provided
+	if !(len(URI) > 0){
+		dReq.Mess = MS_URIINVALID
+		err := t.Execute(w, dReq)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		return
+	}
+
+	// Test whether token was provided
+	if !(len(token) > 0){
+		dReq.Mess = MS_NOTOKEN
+		err := t.Execute(w, dReq)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		return
+	}
+
+	// Test whether username was provided
+	if !(len(username) > 0){
+		dReq.Mess = MS_NOUSER
+		err := t.Execute(w, dReq)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		return
+	}
+
+	// test user login
+	_, err = op.getUser(username, token)
 	if err != nil{
 		log.Printf("InitDoiJob: Could not authenticate user %v", err)
 		dReq.Mess = MS_NOLOGIN
@@ -159,38 +195,28 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 		return
 	}
 
-	log.Printf("[Init] User: %+v", user)
+	doiI, err := ds.GetDoiFile(URI)
+	if err != nil {
+		log.Printf("[InitDoiJob] Could not get a cloudberry File %v", err)
+		dReq.Mess = MS_NODOIFILE
+		t.Execute(w, dReq)
+		return
+	}
 
-
-	if len(URI)>0 {
-		doiI, err := ds.GetDoiFile(URI)
-		if err != nil {
-			log.Printf("InitDoiJob: Could not get Doi File %v", err)
-			dReq.Mess = MS_NODOIFILE
-			t.Execute(w, dReq)
-			return
-		}
-		if ok, doiInfo := validDoiFile(doiI); ok {
-			log.Printf("InitDoiJob: Received Doi information:%+v", doiInfo)
-			dReq.DoiInfo = *doiInfo
-			err := t.Execute(w, dReq)
-			if err != nil {
-				log.Printf("InitDoiJob: Could not parse template %v", err)
-				return
-			}
-		} else {
-			log.Printf("InitDoiJob: Cloudberry File invalid %v", err)
-			dReq.Mess = MS_INVALIDDOIFILE
-			t.Execute(w, dReq)
-			return
-		}
-	} else{
-		dReq.Mess = MS_URIINVALID
+	if ok, doiInfo := validDoiFile(doiI); ok {
+		log.Printf("[InitDoiJob] Received Doi information:%+v", doiInfo)
+		dReq.DoiInfo = *doiInfo
 		err := t.Execute(w, dReq)
 		if err != nil {
-			log.Print(err)
+			log.Printf("InitDoiJob: Could not parse template %v", err)
 			return
 		}
+		log.Printf("[InitDoiJob] Created a proper Response")
+	} else {
+		log.Printf("[InitDoiJob] Cloudberry File invalid %v", err)
+		dReq.Mess = MS_INVALIDDOIFILE
+		t.Execute(w, dReq)
+		return
 	}
 }
 
