@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log"
 	"html/template"
+	"path/filepath"
 )
 
 var(
 	STORLOGPRE = "Storage"
-
+	tmpdir = "tmp"
 )
+
 type LocalStorage struct {
 	Path string
 	Source GinDataSource
@@ -24,24 +26,24 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 }
 
 func (ls *LocalStorage) tar(target string) (int64, error) {
-	to := fmt.Sprintf("%s%s", ls.Path, target)
+	to := filepath.Join(ls.Path, target)
 	log.Printf("[%s] Will work on:%s",STORLOGPRE, to)
-	fp,err := os.Create(to+"/data.tar.gz")
+	fp,err := os.Create(filepath.Join(to, "data.tar.gz"))
 	defer fp.Close()
-	err = Tar(to+"/tmp", fp )
+	err = Tar(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
 	return stat.Size(), err
 }
 
 func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
-	log.Printf("Trying to create:%s",fmt.Sprintf("%s%s", ls.Path, target))
-	err := os.Mkdir(fmt.Sprintf("%s%s", ls.Path, target), os.ModePerm)
+	log.Printf("Trying to create:%s",filepath.Join(ls.Path, target))
+	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil{
 		log.Print(err)
 		return err
 	}
 	// Deny access per default
-	file, err := os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/.htaccess")
+	file, err := os.Create(filepath.Join(ls.Path, target,".htaccess"))
 	if err != nil{
 		log.Printf("Tried httaccess:%s", err)
 		return err
@@ -53,12 +55,13 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 }
 
 func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
-	tmpl, err := template.ParseFiles("tmpl/doiInfo.html")
+	tmpl, err := template.ParseFiles(filepath.Join("tmpl", "doiInfo.html"))
 	if err != nil{
 		log.Printf("[%s] Trying building the index template went wrong:%s", STORLOGPRE, err)
 		return err
 	}
-	fp, err :=os.Create(fmt.Sprintf("%s%s", ls.Path, target)+"/index.html")
+
+	fp, err :=os.Create(filepath.Join(ls.Path, target, "index.html"))
 	if err != nil{
 		log.Printf("[%s] Tried creating index.html:%s",STORLOGPRE, err)
 		return err
@@ -74,11 +77,13 @@ func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 
 func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 	//todo do this better
+	to := filepath.Join(ls.Path, target)
+	tmpDir := filepath.Join(to, tmpdir)
 	dReq.DoiInfo.UUID = target
 	ls.prepDir(target, &dReq.DoiInfo)
 	ds,_ := ls.GetDataSource()
-	to := fmt.Sprintf("%s%s", ls.Path, target)
-	if out, err := ds.Get(source, to+"/tmp"); err!=nil {
+
+	if out, err := ds.Get(source, tmpDir); err!=nil {
 		return fmt.Errorf("Git said:%s, Error was: %v", out, err)
 	}
 	fSize, err := ls.tar(target)
@@ -87,12 +92,12 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 		return err
 	}
 	// +1 to report something with small datsets
-	dReq.DoiInfo.FileSize = fSize/1000000+1
+	dReq.DoiInfo.FileSize = fSize/(1024*1000)+1
 	ls.createIndexFile(target, dReq)
 
-	err = os.RemoveAll(to+"/tmp")
+	err = os.RemoveAll(tmpDir)
 
-	fp,_ := os.Create(to+"/doi.xml")
+	fp,_ := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil{
 		log.Printf("[%s] could not create metadata file:%s", STORLOGPRE, err)
 		return err

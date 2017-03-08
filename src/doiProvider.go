@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"text/template"
 	"log"
+	"path/filepath"
 )
 
 var LOGPREFIX = "DoiProvider"
@@ -22,7 +23,7 @@ func (dp *DoiProvider) MakeDoi(doiInfo *CBerry) string {
 
 func (dp *DoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
 	dp.MakeDoi(doiInfo)
-	t, err := template.ParseFiles("tmpl/datacite.xml")
+	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
 	if err != nil{
 		log.Printf("[%s] Template broken:%s", LOGPREFIX, err)
 		return nil, err

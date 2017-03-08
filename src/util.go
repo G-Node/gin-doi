@@ -7,6 +7,7 @@ import (
 	"log"
 	"io/ioutil"
 	"encoding/json"
+	"path/filepath"
 )
 
 var(
@@ -143,7 +144,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	dReq := DoiReq{URI:URI, User:username, Token:token}
 	log.Printf("[Init] Repo: %+v", dReq)
 
-	t, err := template.ParseFiles("tmpl/initjob.html") // Parse template file.
+	t, err := template.ParseFiles(filepath.Join("tmpl","initjob.html")) // Parse template file.
 	if err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusInternalServerError)
