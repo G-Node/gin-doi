@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"path/filepath"
 	"io"
+	txtTemplate "text/template"
 )
 
 var(
@@ -116,6 +117,7 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 		return err
 	}
 	ls.Poerl(to)
+	ls.MKUpdIndexScript(to, dReq)
 	ls.SendMaster(dReq)
 	return err
 }
@@ -148,11 +150,34 @@ func (ls LocalStorage) Poerl(to string) (error) {
 
 	_, err = io.Copy(pScriptT, pScriptF)
 	if err != nil{
-		log.Printf("[%s] The ugly Perls script cannot be written. HATE IT: %s", STORLOGPRE, err)
+		log.Printf("[%s] The ugly Perl script cannot be written. HATE IT: %s", STORLOGPRE, err)
 		return err
 	}
-
+	// todo error
 	pScriptT.Chmod(0777)
+
+	return err
+}
+
+func (ls LocalStorage) MKUpdIndexScript(to string, dReq *DoiReq) (error) {
+	t, err := txtTemplate.ParseFiles(filepath.Join("tmpl", "updIndex.sh"))
+	if err != nil{
+		log.Printf("[%s] Template broken:%s", LOGPREFIX, err)
+		return err
+	}
+	fp,_ := os.Create(filepath.Join(to, "updIndex.sh"))
+	if err != nil{
+		log.Printf("[%s] could not create update index Script:%s", STORLOGPRE, err)
+		return err
+	}
+	defer fp.Close()
+	err = t.Execute(fp,dReq)
+	if err != nil{
+		log.Printf("[%s] template execution failed:%s", LOGPREFIX, err)
+		return err
+	}
+	// todo error
+	fp.Chmod(0777)
 
 	return err
 }
