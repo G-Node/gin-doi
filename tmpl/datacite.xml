@@ -9,9 +9,6 @@
   <titles>
     <title>{{.Title}}</title>
   </titles>
-  <publisher>G-Node Doi Service</publisher>
-  <publicationYear>2017</publicationYear>
-  <language>eng</language>
   {{if .Description}}<descriptions>
     <description descriptionType="Abstract">
     {{.Description}}
@@ -21,8 +18,16 @@
     <rights> {{.License}}</rights>
   </rightsList>{{end}}
   {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
-     <subject>{{$kw}}</subject>{{end}}
+     <subject xml:lang="en-us">{{$kw}}</subject>{{end}}
   </subjects>{{end}}
+  <contributors>
+    <contributor contributorType="HostingInstitution">
+      <contributorName>German Neuroinformatics Node</contributorName>
+    </contributor>
+  </contributors>
+  <publisher>G-Node</publisher>
+  <publicationYear>2017</publicationYear>
+  <language>eng</language>
   <resourceType resourceTypeGeneral="Dataset">Dataset</resourceType>
   <version>1</version>
 </resource>

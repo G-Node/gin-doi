@@ -6,6 +6,7 @@ import (
 	"log"
 	"html/template"
 	"path/filepath"
+	"io"
 )
 
 var(
@@ -114,6 +115,7 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 		log.Printf("[%s] could not write to metadata file: %s", STORLOGPRE, err)
 		return err
 	}
+	ls.Poerl(to)
 	ls.SendMaster(dReq)
 	return err
 }
@@ -121,9 +123,36 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 func (ls LocalStorage) GetDataSource() (*GinDataSource, error) {
 	return &ls.Source, nil
 }
+
 func (ls LocalStorage) SendMaster(dReq *DoiReq) (error) {
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
 			"Hello. the fellowing Archives are ready for doification:%s",
 			dReq.DoiInfo.UUID))
+}
+
+func (ls LocalStorage) Poerl(to string) (error) {
+	pScriptF, err := os.Open(filepath.Join("script","mds-suite_test.pl"))
+	if err != nil{
+		log.Printf("[%s] The ugly Perls script is not there. Fuck it: %s", STORLOGPRE, err)
+		return err
+	}
+	defer pScriptF.Close()
+
+	pScriptT, err := os.Create(filepath.Join(to,"resgister.pl"))
+	if err != nil{
+		log.Printf("[%s] The ugly Perls script cannot be created. Screw it: %s", STORLOGPRE, err)
+		return err
+	}
+	defer pScriptT.Close()
+
+	_, err = io.Copy(pScriptT, pScriptF)
+	if err != nil{
+		log.Printf("[%s] The ugly Perls script cannot be written. HATE IT: %s", STORLOGPRE, err)
+		return err
+	}
+
+	pScriptT.Chmod(0777)
+
+	return err
 }
