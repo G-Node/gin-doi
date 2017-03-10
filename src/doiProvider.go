@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"bytes"
 	"text/template"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"path/filepath"
 )
 
@@ -25,13 +25,19 @@ func (dp *DoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
 	dp.MakeDoi(doiInfo)
 	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
 	if err != nil{
-		log.Printf("[%s] Template broken:%s", LOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"source": LOGPREFIX,
+			"error":err,
+		}).Error("Could not parse template")
 		return nil, err
 	}
 	buff := bytes.Buffer{}
 	err = t.Execute(&buff,doiInfo)
 	if err != nil{
-		log.Printf("[%s] template execution failed:%s", LOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"source": LOGPREFIX,
+			"error":err,
+		}).Error("Template execution failed")
 		return nil, err
 	}
 	return buff.Bytes(), err

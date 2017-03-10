@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"crypto/md5"
 	"encoding/hex"
 	"bytes"
@@ -51,11 +51,20 @@ func validDoiFile(in []byte) (bool, *CBerry) {
 	doiInfo := CBerry{}
 	err :=yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
-		log.Printf("[%s]: Could not unmarshal doifile:%v",DSOURCELOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"data": in,
+			"source":DSOURCELOGPREFIX,
+			"error":err,
+		}).Error("Could not unmarshal doifile")
 		return false, &CBerry{}
 	}
 	if !hasValues(&doiInfo) {
-		log.Printf("[%s]: Doi File misses entries: %+v",DSOURCELOGPREFIX, doiInfo)
+		log.WithFields(log.Fields{
+			"data": in,
+			"doiInfo": doiInfo,
+			"source":DSOURCELOGPREFIX,
+			"error":err,
+		}).Debug("Doi File misses entries")
 		return false, &doiInfo
 	}
 	return true, &doiInfo
@@ -78,7 +87,6 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
 	fetchRepoPath := ""
-	log.Printf("[%s]: Got URI:%s", DSOURCELOGPREFIX, URI)
 	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
 		uname := strings.Split(splUri[0],":")[1]
 		repo := splUri[1]
@@ -86,24 +94,35 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 	} else {
 		return nil,nil 
 	}
-	log.Printf("[%s]: Fetching Path: %s",DSOURCELOGPREFIX, fetchRepoPath)
 	resp, err  := http.Get(fmt.Sprintf("%s%s",s.GinURL, fetchRepoPath))
 	if err != nil{
 		// todo Try to infer what went wrong
-		log.Printf("[%s]: Could not get cloudberry: %v", DSOURCELOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"path": fetchRepoPath,
+			"source":DSOURCELOGPREFIX,
+			"error":err,
+		}).Debug("Could not get cloudberry")
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err !=nil{
-		log.Printf("[%s]: Could nort read Clodberry: %v", DSOURCELOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"path": fetchRepoPath,
+			"source":DSOURCELOGPREFIX,
+			"error":err,
+		}).Debug("Could nort read from received Clodberry")
 		return nil, err
 	}
 	return body, nil
 }
 
 func (s *GinDataSource)  Get(URI string, To string) (string, error) {
-	log.Printf("[%s]: Will do a git clone now: %s to:%s",DSOURCELOGPREFIX, URI, To)
+	log.WithFields(log.Fields{
+		"URI": URI,
+		"to": To,
+		"source":DSOURCELOGPREFIX,
+	}).Debug("Start cloning")
 	cmd := exec.Command("git","clone","--depth","1", URI, To)
 	out, err := cmd.CombinedOutput()
 	if (err != nil) {
@@ -114,7 +133,12 @@ func (s *GinDataSource)  Get(URI string, To string) (string, error) {
 	if (err != nil) {
 		// Workaround for uninitilaizes git annexes (-> return nil)
 		// todo
-		log.Printf("[%s] Repo was not annexed: %s",DSOURCELOGPREFIX,string(out))
+		log.WithFields(log.Fields{
+			"URI": URI,
+			"to": To,
+			"source":DSOURCELOGPREFIX,
+			"error":string(out),
+		}).Debug("Repo was not annexed")
 		return string(out), nil
 	}
 	return string(out), nil
@@ -122,13 +146,13 @@ func (s *GinDataSource)  Get(URI string, To string) (string, error) {
 
 func (s *GinDataSource) MakeUUID(URI string) (string, error) {
 	fetchRepoPath := ""
-	log.Printf("[%s]: Got URI for UUIDfication:%s",DSOURCELOGPREFIX, URI)
 	if splUri:=strings.Split(URI, "/");len(splUri)>1 {
 		uname := strings.Split(splUri[0],":")[1]
 		repo := splUri[1]
 		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master",uname, repo)
 	}
 	resp, err  := http.Get(fmt.Sprintf("%s%s",s.GinURL, fetchRepoPath))
+	// todo error checking
 	if err != nil{
 		return "", err
 	}

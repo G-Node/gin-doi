@@ -7,10 +7,8 @@ package ginDoi
 import (
 	_ "expvar"
 	_ "net/http/pprof"
-	"log"
+	log "github.com/Sirupsen/logrus"
 )
-
-
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
 func NewWorker(id int, workerPool chan chan Job) Worker {
@@ -38,10 +36,11 @@ func (w *Worker) start() {
 			case job := <-w.JobQueue:
 			// Dispatcher has added a job to my jobQueue.
 				job.Storage.Put(job.Source, job.Name, &job.DoiReq)
-				log.Printf("[Worker %d] Completed %s!\n", w.Id, job.Name)
+				log.WithFields(log.Fields{
+					"source": "Worker",
+				}).Debugf("Worker %d Completed %s!\n", w.Id, job.Name)
 			case <-w.QuitChan:
 			// We have been asked to stop.
-				log.Printf("[Worker %i] Stopping\n", w.Id)
 				return
 			}
 		}
@@ -85,9 +84,11 @@ func (d *Dispatcher) dispatch() {
 		select {
 		case job := <-d.jobQueue:
 			go func() {
-				log.Printf("[Disp]: Fetching workerJobQueue for: %s\n", job.Name)
+				log.WithFields(log.Fields{"jobname":job.Name}).
+					Infof("Fetching workerJobQueue for: %s\n", job.Name)
 				workerJobQueue := <-d.workerPool
-				log.Printf("[Disp]: Adding %s to workerJobQueue\n", job.Name)
+				log.WithFields(log.Fields{"jobname":job.Name}).
+					Infof("Adding %s to workerJobQueue\n", job.Name)
 				workerJobQueue <- job
 			}()
 		}

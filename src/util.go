@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"html/template"
 	"fmt"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"encoding/json"
 	"path/filepath"
@@ -107,11 +107,18 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	//ToDo Error checking
 	body, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(body, &dReq)
-	log.Printf("[DoDoiJob] Git URI:%s", dReq.URI)
+	log.WithFields(log.Fields{
+		"request": dReq,
+		"source": "DoDoiJob",
+	}).Debug()
 
 	user, err := op.getUser(dReq.User, dReq.Token)
 	if err != nil{
-		log.Printf("[DoDoiJob]: Could not authenticate user %+v. Request Data: %+v", err, dReq)
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source": "DoDoiJob",
+			"error":err,
+		}).Debug("Could not authenticate user")
 		dReq.Mess = MS_NOLOGIN
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -136,6 +143,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 }
 
 func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *OauthProvider) {
+	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -144,21 +152,38 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	token := r.Form.Get("token")
 	username := r.Form.Get("user")
 	dReq := DoiReq{URI:URI, User:username, Token:token}
-	log.Printf("[Init] Repo: %+v", dReq)
+	log.WithFields(log.Fields{
+		"request": dReq,
+		"source": "Init",
+	}).Debug("Got DOI Request")
+	log.Infof("Will Doify %s", dReq.URI)
 
 	t, err := template.ParseFiles(filepath.Join("tmpl","initjob.html")) // Parse template file.
 	if err != nil {
-		log.Print(err)
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source": "DoDoiJob",
+			"error":err,
+		}).Debug("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	// Test whether URi was provided
 	if !(len(URI) > 0){
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source": "Init",
+			"error":err,
+		}).Debug("No Repo URI provided")
 		dReq.Mess = MS_URIINVALID
 		err := t.Execute(w, dReq)
 		if err != nil {
-			log.Print(err)
+			log.WithFields(log.Fields{
+				"request": dReq,
+				"source": "Init",
+				"error":err,
+			}).Debug("Template not parsed")
 			return
 		}
 		return
@@ -167,6 +192,11 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	// Test whether token was provided
 	if !(len(token) > 0){
 		dReq.Mess = MS_NOTOKEN
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source": "Init",
+			"error":err,
+		}).Debug("No Token provided")
 		err := t.Execute(w, dReq)
 		if err != nil {
 			log.Print(err)
@@ -189,7 +219,11 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	// test user login
 	_, err = op.getUser(username, token)
 	if err != nil{
-		log.Printf("InitDoiJob: Could not authenticate user %v", err)
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source": "Init",
+			"error":err,
+		}).Debug("Could not authenticate user")
 		dReq.Mess = MS_NOLOGIN
 		t.Execute(w, dReq)
 		return
@@ -197,25 +231,47 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 
 	doiI, err := ds.GetDoiFile(URI)
 	if err != nil {
-		log.Printf("[InitDoiJob] Could not get a cloudberry File %v", err)
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source": "Init",
+			"error":err,
+		}).Debug("Could not get Cloudberry File")
 		dReq.Mess = MS_NODOIFILE
 		t.Execute(w, dReq)
 		return
 	}
 
 	if ok, doiInfo := validDoiFile(doiI); ok {
-		log.Printf("[InitDoiJob] Received Doi information:%+v", doiInfo)
+		log.WithFields(log.Fields{
+			"doiInfo": doiInfo,
+			"source": "Init",
+		}).Debug("Received Doi information")
 		dReq.DoiInfo = *doiInfo
 		err := t.Execute(w, dReq)
 		if err != nil {
-			log.Printf("InitDoiJob: Could not parse template %v", err)
+			log.WithFields(log.Fields{
+				"request": dReq,
+				"source": "Init",
+				"error":err,
+			}).Error("Could not parse template")
 			return
 		}
-		log.Printf("[InitDoiJob] Created a proper Response")
 	} else {
-		log.Printf("[InitDoiJob] Cloudberry File invalid %v", err)
+		log.WithFields(log.Fields{
+			"doiInfo": doiInfo,
+			"source": "Init",
+			"error":err,
+		}).Debug("Cloudberry File invalid")
 		dReq.Mess = MS_INVALIDDOIFILE
 		t.Execute(w, dReq)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"request": dReq,
+				"source": "Init",
+				"error":err,
+			}).Error("Could not parse template")
+			return
+		}
 		return
 	}
 }

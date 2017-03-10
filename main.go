@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/G-Node/gin-doi/src"
 	"github.com/docopt/docopt-go"
 	"os"
@@ -14,7 +14,7 @@ func main() {
 Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from> --doiMaster=<master> --doiBase=<base>
-           --sendMail]
+           --sendMail --debug]
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
@@ -28,6 +28,7 @@ Options:
   --doiMaster=<master>            The mail adress to send info to [default: dev@g-node.org]
   --doiBase=<base>                The first part of the DOI [default: 10.12751]
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
+  --debug                         Whether debug messages shall be printed
  `
 
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -64,7 +65,10 @@ Options:
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
-
+	if (args["--debug"].(bool)) {
+		log.SetLevel(log.DebugLevel)
+		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+	}
 	log.Fatal(http.ListenAndServe(":"+args["--port"].(string), nil))
 }
 

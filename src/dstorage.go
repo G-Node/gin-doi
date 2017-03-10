@@ -3,7 +3,7 @@ package ginDoi
 import (
 	"os"
 	"fmt"
-	"log"
+	log "github.com/Sirupsen/logrus"
 	"html/template"
 	"path/filepath"
 	"io"
@@ -29,7 +29,10 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 
 func (ls *LocalStorage) tar(target string) (int64, error) {
 	to := filepath.Join(ls.Path, target)
-	log.Printf("[%s] Will work on:%s",STORLOGPRE, to)
+	log.WithFields(log.Fields{
+		"source": STORLOGPRE,
+		"to": to,
+	}).Debug("Started taring")
 	fp,err := os.Create(filepath.Join(to, "data.tar.gz"))
 	defer fp.Close()
 	err = Tar(filepath.Join(to, tmpdir), fp)
@@ -38,40 +41,69 @@ func (ls *LocalStorage) tar(target string) (int64, error) {
 }
 
 func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
-	log.Printf("[%s] Trying to create: %s",STORLOGPRE, filepath.Join(ls.Path, target))
 	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil{
-		log.Printf("[%s] Tried to create the target directory. Smth went wrong: %+v", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create the target directory")
 		return err
 	}
 	// Deny access per default
 	file, err := os.Create(filepath.Join(ls.Path, target,".htaccess"))
 	if err != nil{
-		log.Printf("[%s]Tried httaccess:%s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create .httaccess")
 		return err
 	}
 	defer file.Close()
 	// todo check
-	file.Write([]byte("alow from all"))
+	_, err = file.Write([]byte("deny from all"))
+	if err != nil{
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not write to .httaccess")
+		return err
+	}
 	return nil
 }
 
 func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 	tmpl, err := template.ParseFiles(filepath.Join("tmpl", "doiInfo.html"))
 	if err != nil{
-		log.Printf("[%s] Trying building the index template went wrong:%s", STORLOGPRE, err)
+		if err != nil{
+			log.WithFields(log.Fields{
+				"source": STORLOGPRE,
+				"error": err,
+				"target": target,
+			}).Error("Could not parse the doi template")
+			return err
+		}
 		return err
 	}
 
 	fp, err :=os.Create(filepath.Join(ls.Path, target, "index.html"))
 	if err != nil{
-		log.Printf("[%s] Tried creating index.html:%s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create the doi index.html")
 		return err
 	}
 	defer fp.Close()
-	log.Printf("[%s] Will try to create an index.html with: %+v", STORLOGPRE, info)
 	if err := tmpl.Execute(fp, info); err!=nil{
-		log.Printf("[%s] Could not execute template for index.html: %s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"doiInfoo": info,
+		}).Error("Could not execute the doi template")
 		return err
 	}
 	return nil
@@ -90,7 +122,11 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 	}
 	fSize, err := ls.tar(target)
 	if err != nil {
-		log.Printf("[%s] Could not tar: %s", STORLOGPRE,  err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not tar the data")
 		return err
 	}
 	// +1 to report something with small datsets
@@ -101,19 +137,31 @@ func (ls *LocalStorage) Put(source string , target string, dReq *DoiReq) error{
 
 	fp,_ := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil{
-		log.Printf("[%s] could not create metadata file:%s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create parse the metadata template")
 		return err
 	}
 	defer fp.Close()
 	// No registering. But the xml is provided with everything
 	data, err := ls.DProvider.GetXml(&dReq.DoiInfo)
 	if err != nil{
-		log.Printf("[%s] could not create metadata: %s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create the metadata file")
 		return err
 	}
 	_, err = fp.Write(data)
 	if err != nil{
-		log.Printf("[%s] could not write to metadata file: %s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not write to the metadata file")
 		return err
 	}
 	ls.Poerl(to)
@@ -133,24 +181,36 @@ func (ls LocalStorage) SendMaster(dReq *DoiReq) (error) {
 			dReq.DoiInfo.UUID))
 }
 
-func (ls LocalStorage) Poerl(to string) (error) {
+func (ls LocalStorage) Poerl(target string) (error) {
 	pScriptF, err := os.Open(filepath.Join("script","mds-suite_test.pl"))
 	if err != nil{
-		log.Printf("[%s] The ugly Perls script is not there. Fuck it: %s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Debug("The ugly Perls script is not there. Fuck it")
 		return err
 	}
 	defer pScriptF.Close()
 
-	pScriptT, err := os.Create(filepath.Join(to,"resgister.pl"))
+	pScriptT, err := os.Create(filepath.Join(target,"resgister.pl"))
 	if err != nil{
-		log.Printf("[%s] The ugly Perls script cannot be created. Screw it: %s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Debug("The ugly Perls script cannot be created. Screw it")
 		return err
 	}
 	defer pScriptT.Close()
 
 	_, err = io.Copy(pScriptT, pScriptF)
 	if err != nil{
-		log.Printf("[%s] The ugly Perl script cannot be written. HATE IT: %s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Debug("The ugly Perl script cannot be written. HATE IT")
 		return err
 	}
 	// todo error
@@ -159,21 +219,34 @@ func (ls LocalStorage) Poerl(to string) (error) {
 	return err
 }
 
-func (ls LocalStorage) MKUpdIndexScript(to string, dReq *DoiReq) (error) {
+func (ls LocalStorage) MKUpdIndexScript(target string, dReq *DoiReq) (error) {
 	t, err := txtTemplate.ParseFiles(filepath.Join("tmpl", "updIndex.sh"))
 	if err != nil{
-		log.Printf("[%s] Template broken:%s", LOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create parse the update index template")
 		return err
 	}
-	fp,_ := os.Create(filepath.Join(to, "updIndex.sh"))
+	fp,_ := os.Create(filepath.Join(target, "updIndex.sh"))
 	if err != nil{
-		log.Printf("[%s] could not create update index Script:%s", STORLOGPRE, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+		}).Error("Could not create update index script")
 		return err
 	}
 	defer fp.Close()
 	err = t.Execute(fp,dReq)
 	if err != nil{
-		log.Printf("[%s] template execution failed:%s", LOGPREFIX, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error": err,
+			"target": target,
+			"request": dReq,
+		}).Error("Could not execute the update index template")
 		return err
 	}
 	// todo error
