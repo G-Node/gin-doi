@@ -15,9 +15,10 @@ var(
 	MS_INVALIDDOIFILE = 	"The doi File ws not Valid. Please visit http://... for a guide"
 	MS_URIINVALID =   	"Please provide a valid repository URI"
 	MS_SERVERWORKS = 	"The Doi Server has started doifying you repository. " +
-				"Once finnished it will be availible at the location below Please return to that location to check for " +
+				"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Please return to that location to check for " +
 				"availibility <br><br>"+
-				"<a href=\"%s\" class=\"label label-warning\">Your Landing Page</a>"
+				"We will try to resgister the follwoing doi: <div class =\"label label-default\">%s</div> " +
+				"for your dataset. Please note, however, that in rare cases the final doi might be different."
 	MS_NOLOGIN =		"You are not logged in with the gin service. Login at: http://gin.g-node.org/"
 	MS_NOTOKEN = 		"No authentication token provided"
 	MS_NOUSER = 		"No username provided"
@@ -133,12 +134,13 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		return 
 	}else{
 		doiInfo.UUID = uuid
+		doi := storage.DProvider.MakeDoi(doiInfo)
 		dReq.DoiInfo = *doiInfo
 		job := Job{Source:dReq.URI, Storage:storage, User: user, DoiReq:dReq, Name:doiInfo.UUID}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, storage.HttpBase+uuid)))
+		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, storage.HttpBase+uuid, doi)))
 	}
 }
 
