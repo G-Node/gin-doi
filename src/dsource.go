@@ -118,14 +118,30 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error){
 }
 
 func (s *GinDataSource)  Get(URI string, To string) (string, error) {
+	gin_uri := strings.Replace(URI,"master:", "git@gin.g-node.org:",1)
 	log.WithFields(log.Fields{
 		"URI": URI,
+		"gin_uri": gin_uri,
 		"to": To,
 		"source":DSOURCELOGPREFIX,
 	}).Debug("Start cloning")
-	cmd := exec.Command("git","clone","--depth","1", URI, To)
+	cmd := exec.Command("git","clone","--depth","1", gin_uri, To)
 	out, err := cmd.CombinedOutput()
-	if (err != nil) {
+	log.WithFields(log.Fields{
+		"URI": URI,
+		"gin_uri": gin_uri,
+		"to": To,
+		"out": string(out),
+		"source":DSOURCELOGPREFIX,
+	}).Debug("Done with cloning")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"URI": URI,
+			"gin_uri": gin_uri,
+			"to": To,
+			"source":DSOURCELOGPREFIX,
+			"error":string(out),
+		}).Debug("Cloning did not work")
 		return string(out), err
 	}
 	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
@@ -135,6 +151,7 @@ func (s *GinDataSource)  Get(URI string, To string) (string, error) {
 		// todo
 		log.WithFields(log.Fields{
 			"URI": URI,
+			"gin_uri": gin_uri,
 			"to": To,
 			"source":DSOURCELOGPREFIX,
 			"error":string(out),
