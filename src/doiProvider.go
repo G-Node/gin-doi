@@ -17,7 +17,7 @@ type DoiProvider struct {
 }
 
 func (dp *DoiProvider) MakeDoi(doiInfo *CBerry) string {
-	doiInfo.DOI = dp.DOIBase + "/" + doiInfo.UUID[:10]
+	doiInfo.DOI = dp.DOIBase + "/" + "G-NODE." + doiInfo.UUID[:10]
 	return doiInfo.DOI
 }
 
