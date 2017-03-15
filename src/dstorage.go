@@ -27,6 +27,19 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 	return false, nil
 }
 
+func (ls *LocalStorage) zip(target string) (int64, error) {
+	to := filepath.Join(ls.Path, target)
+	log.WithFields(log.Fields{
+		"source": STORLOGPRE,
+		"to":     to,
+	}).Debug("Started zipping")
+	fp, err := os.Create(filepath.Join(to, "data.zip"))
+	defer fp.Close()
+	err = Zip(filepath.Join(to, tmpdir), fp)
+	stat, _ := fp.Stat()
+	return stat.Size(), err
+}
+
 func (ls *LocalStorage) tar(target string) (int64, error) {
 	to := filepath.Join(ls.Path, target)
 	log.WithFields(log.Fields{
@@ -120,13 +133,14 @@ func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	if out, err := ds.Get(source, tmpDir); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
 	}
-	fSize, err := ls.tar(target)
+	_, err := ls.tar(target)
+	fSize, err := ls.zip(target)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,
 			"error":  err,
 			"target": target,
-		}).Error("Could not tar the data")
+		}).Error("Could not zip the data")
 		return err
 	}
 	// +1 to report something with small datsets
