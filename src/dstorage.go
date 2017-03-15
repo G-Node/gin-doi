@@ -177,8 +177,8 @@ func (ls LocalStorage) GetDataSource() (*GinDataSource, error) {
 func (ls LocalStorage) SendMaster(dReq *DoiReq) (error) {
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
-			"Hello. the fellowing Archives are ready for doification:%s",
-			dReq.DoiInfo.UUID))
+			"Hello. the fellowing Archives are ready for doification:%s. Creator:%s",
+			dReq.DoiInfo.UUID, string(dReq.User.MainOId.EmailRaw)))
 }
 
 func (ls LocalStorage) Poerl(target string) (error) {
