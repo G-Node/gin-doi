@@ -30,11 +30,10 @@
             </div>
             <div class="jumbotron" id="infotable">
                 <div id="infobox">The follwoing information will be registerd with you DOI request.
-                    They will also be presented alongside the data. Please check them thoroughly and modify you .cloudberry file if something is wrong.
+                    They will also be presented alongside the data. Please check them thoroughly and modify you cloudberry file if something is wrong.
                 </div>
             <hr>
             <table class="table table-condensed">
-
                 <tbody>
                 <tr>
                     <td>Title</td>
@@ -59,17 +58,28 @@
                 {{if .DoiInfo.License}}
                 <tr>
                     <td>License</td>
-                    <td>{{.DoiInfo.License}}
+                    <td>{{.DoiInfo.License.Name}} ({{.DoiInfo.License.Url}})
                     </td>
                 </tr>
                 {{end}}
-                {{if .DoiInfo.References}}
                 <tr>
-                    <td>Reference</td>
-                    <td>{{.DoiInfo.References}}
+                    <td>References</td>
+                    <td>
+                        {{range $index, $ref := .DoiInfo.References}}
+                        {{ $ref.Name }} [{{ $ref.Doi }}] ({{ $ref.Reftype }})
+                        <br>
+                        {{end}}
                     </td>
                 </tr>
-                {{end}}
+                <tr>
+                    <td>Funding</td>
+                    <td>
+                        {{range $index, $ref := .DoiInfo.Funding}}
+                        {{ $ref}}
+                        <br>
+                        {{end}}
+                    </td>
+                </tr>
                 {{if .DoiInfo.Keywords}}
                 <tr>
                     <td>Keywords</td>

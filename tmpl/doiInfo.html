@@ -46,25 +46,36 @@
                 {{if .DoiInfo.License}}
                 <tr>
                     <td>License</td>
-                    <td>{{.DoiInfo.License}}
+                    <td>{{.DoiInfo.License.Name}} ({{.DoiInfo.License.Url}})
                     </td>
                 </tr>
                 {{end}}
-                {{if .DoiInfo.Keywords}}
                 <tr>
-                    <td>Keywords</td>
+                    <td>References</td>
                     <td>
-                        {{range $index, $kw := .DoiInfo.Keywords}}
-                        {{ $kw }}
+                        {{range $index, $ref := .DoiInfo.References}}
+                        {{ $ref.Name }} [{{ $ref.Doi }}] ({{ $ref.Reftype }})
                         <br>
                         {{end}}
                     </td>
                 </tr>
-                {{end}}
-                {{if .DoiInfo.References}}
                 <tr>
-                    <td>Reference</td>
-                    <td>{{.DoiInfo.References}}
+                    <td>Funding</td>
+                    <td>
+                        {{range $index, $ref := .DoiInfo.Funding}}
+                        {{ $ref}}
+                        <br>
+                        {{end}}
+                    </td>
+                </tr>
+                {{if .DoiInfo.Keywords}}
+                <tr>
+                    <td>Keywords</td>
+                    <td>
+                        {{range $index, $sub := .DoiInfo.Keywords}}
+                        {{ $sub }}
+                        <br>
+                        {{end}}
                     </td>
                 </tr>
                 {{end}}
@@ -79,7 +90,7 @@
                 </tr>
                 <tr>
                     <td>DOI</td>
-                    <td><a href="#" class ="label label-default">10.12751/nncn.bc2016.0001</a></td>
+                    <td><a href="#" class ="label label-default">{{.DoiInfo.DOI}}</a></td>
                 </tr>
                 <tr>
                     <td>Source Repository</td>

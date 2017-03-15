@@ -1,8 +1,8 @@
 package ginDoi
 
 import (
-	"net/smtp"
 	log "github.com/Sirupsen/logrus"
+	"net/smtp"
 )
 
 var (
@@ -11,7 +11,7 @@ var (
 
 type MailServer struct {
 	Adress string
-	From string
+	From   string
 	DoSend bool
 	Master string
 }

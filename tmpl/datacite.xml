@@ -15,11 +15,17 @@
     </description>
   </descriptions>{{end}}
   {{if .License}}<rightsList>
-    <rights> {{.License}}</rights>
+    <rights rightsURI="{{.License.Url}}"> {{.License.Name}}</rights>
   </rightsList>{{end}}
   {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
      <subject xml:lang="en-us">{{$kw}}</subject>{{end}}
   </subjects>{{end}}
+  {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
+  <relatedIdentifier relatedIdentifierType="Handle" relationType="{{$ref.Reftype}}">{{$ref.Name}}</relatedIdentifier>{{end}}
+  </relatedIdentifiers>{{end}}
+  {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
+  <fundingReference><funderName>{{$fu}}</funderName></fundingReference>{{end}}
+</fundingReferences>{{end}}
   <contributors>
     <contributor contributorType="HostingInstitution">
       <contributorName>German Neuroinformatics Node</contributorName>

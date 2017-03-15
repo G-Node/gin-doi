@@ -1,10 +1,10 @@
 package main
 
 import (
-	"net/http"
-	log "github.com/Sirupsen/logrus"
 	"github.com/G-Node/gin-doi/src"
+	log "github.com/Sirupsen/logrus"
 	"github.com/docopt/docopt-go"
+	"net/http"
 	"os"
 	"strconv"
 )
@@ -37,22 +37,22 @@ Options:
 		os.Exit(-1)
 	}
 	ds := ginDoi.GinDataSource{GinURL: args["--source"].(string)}
-	dp := ginDoi.DoiProvider{ApiURI:"", DOIBase:args["--doiBase"].(string)}
+	dp := ginDoi.DoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
 	mServer := ginDoi.MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
-		DoSend:args["--sendMail"].(bool),
+		DoSend: args["--sendMail"].(bool),
 		Master: args["--doiMaster"].(string)}
-	storage := ginDoi.LocalStorage{Path:args["--target"].(string), Source:ds, HttpBase:args["--storeURL"].(string),
-					DProvider:dp, MServer: &mServer}
-	op := ginDoi.OauthProvider{Uri:"https://auth.gin.g-node.org/api/accounts"}
+	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
+		DProvider: dp, MServer: &mServer}
+	op := ginDoi.OauthProvider{Uri: "https://auth.gin.g-node.org/api/accounts"}
 	// Create the job queue.
-	maxQ,err :=strconv.Atoi(args["--max_queue_size"].(string))
+	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
 	if err != nil {
 		log.Printf("Error while parsing command line: %+v", err)
 		os.Exit(-1)
 	}
 	jobQueue := make(chan ginDoi.Job, maxQ)
 	// Start the dispatcher.
-	maxW,err :=strconv.Atoi(args["--max_workers"].(string))
+	maxW, err := strconv.Atoi(args["--max_workers"].(string))
 	dispatcher := ginDoi.NewDispatcher(jobQueue, maxW)
 	dispatcher.Run(ginDoi.NewWorker)
 
@@ -61,14 +61,13 @@ Options:
 		ginDoi.InitDoiJob(w, r, &ds, &op)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.DoDoiJob(w,r,jobQueue, storage, &op)
+		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
-	if (args["--debug"].(bool)) {
+	if args["--debug"].(bool) {
 		log.SetLevel(log.DebugLevel)
 		log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	}
 	log.Fatal(http.ListenAndServe(":"+args["--port"].(string), nil))
 }
-

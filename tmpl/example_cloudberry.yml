@@ -5,7 +5,7 @@ authors:
   - LastName2, GivenName2
 
 #A name or title by which a resource is known.
-title: ExampleTitle
+title: "ExampleTitle"
 
 #All additional information. It is a best practice to supply a description.
 description: Example Description
@@ -15,7 +15,14 @@ keywords:
   - Pseudoscience
 
 #Any rights information for this resource.
-license: BSD 3
+license: {license: BSD 3, url: "https://opensource.org/licenses/BSD-3-Clause"}
 
-## Optional Fields
-references: Me et.al.
+## Optional Fields see https://schema.datacite.org/meta/kernel-4/  (types might be IsCitedBy, IsSupplementTo, IsReferencedBy) for valid types
+references:
+  - {type: "IsSupplementTo", name: "name"}
+  - {type: "IsPartOf", name: "name2"}
+
+funding:
+  - "DFG, DFG.14588"
+  - "EU, EU.sdaasdsa"
+

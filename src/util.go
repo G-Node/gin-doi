@@ -12,7 +12,7 @@ import (
 
 var (
 	MS_NODOIFILE      = "Could no locte a Doi File. Please visit https://web.gin.g-node.org/info/doi for a guide"
-	MS_INVALIDDOIFILE = "The doi File ws not Valid. Please visit https://web.gin.g-node.org/info/doi for a guide"
+	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/info/doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
 	MS_SERVERWORKS    = "The Doi Server has started doifying you repository. " +
 		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Please return to that location to check for " +
@@ -69,19 +69,6 @@ type DoiReq struct {
 	Token        string
 	Mess         string
 	DoiInfo      CBerry
-}
-
-type CBerry struct {
-	Missing     []string
-	DOI         string
-	UUID        string
-	FileSize    int64
-	Title       string
-	Authors     []string
-	Description string
-	Keywords    []string
-	References  string
-	License     string
 }
 
 // Check the current user. Return a user if logged in
@@ -155,7 +142,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	username := r.Form.Get("user")
 	dReq := DoiReq{URI: URI, GinAuthUname: username, Token: token}
 	log.WithFields(log.Fields{
-		"request": fmt.Sprintf("%+v",dReq),
+		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "Init",
 	}).Debug("Got DOI Request")
 	log.Infof("Will Doify %s", dReq.URI)

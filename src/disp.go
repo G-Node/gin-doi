@@ -6,8 +6,8 @@ package ginDoi
 
 import (
 	_ "expvar"
-	_ "net/http/pprof"
 	log "github.com/Sirupsen/logrus"
+	_ "net/http/pprof"
 )
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
@@ -34,13 +34,13 @@ func (w *Worker) start() {
 			w.WorkerPool <- w.JobQueue
 			select {
 			case job := <-w.JobQueue:
-			// Dispatcher has added a job to my jobQueue.
+				// Dispatcher has added a job to my jobQueue.
 				job.Storage.Put(job.Source, job.Name, &job.DoiReq)
 				log.WithFields(log.Fields{
 					"source": "Worker",
 				}).Debugf("Worker %d Completed %s!\n", w.Id, job.Name)
 			case <-w.QuitChan:
-			// We have been asked to stop.
+				// We have been asked to stop.
 				return
 			}
 		}
@@ -70,7 +70,7 @@ type Dispatcher struct {
 	jobQueue   chan Job
 }
 
-func (d *Dispatcher) Run(makeWorker func(int, chan chan Job)Worker) {
+func (d *Dispatcher) Run(makeWorker func(int, chan chan Job) Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := makeWorker(i+1, d.workerPool)
 		worker.start()
@@ -84,10 +84,10 @@ func (d *Dispatcher) dispatch() {
 		select {
 		case job := <-d.jobQueue:
 			go func() {
-				log.WithFields(log.Fields{"jobname":job.Name}).
+				log.WithFields(log.Fields{"jobname": job.Name}).
 					Infof("Fetching workerJobQueue for: %s\n", job.Name)
 				workerJobQueue := <-d.workerPool
-				log.WithFields(log.Fields{"jobname":job.Name}).
+				log.WithFields(log.Fields{"jobname": job.Name}).
 					Infof("Adding %s to workerJobQueue\n", job.Name)
 				workerJobQueue <- job
 			}()

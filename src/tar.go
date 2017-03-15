@@ -1,11 +1,11 @@
 package ginDoi
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"fmt"
 	"io"
 	"os"
-	"fmt"
-	"compress/gzip"
-	"archive/tar"
 	"path/filepath"
 	"strings"
 )
