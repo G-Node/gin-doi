@@ -19,6 +19,7 @@ var (
 	MS_NOAUTHORS     = "No Authors provided."
 	MS_NODESC        = "No Description provided."
 	MS_NOLIC         = "No Valid Liecense provided.Plaese specify url and name!"
+	MS_REFERENCEWRONG= "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX = "DataSource"
 )
 
@@ -61,8 +62,15 @@ func hasValues(s *CBerry) bool {
 	if s.Description == "" {
 		s.Missing = append(s.Missing, MS_NODESC)
 	}
-	if s.License == nil || !s.License.Name || !s.License.Url {
+	if s.License == nil || s.License.Name=="" || s.License.Url=="" {
 		s.Missing = append(s.Missing, MS_NOLIC)
+	}
+	if s.References != nil{
+		for _, ref := range s.References{
+			if ref.Name=="" || ref.Reftype==""{
+				s.Missing = append(s.Missing,MS_REFERENCEWRONG)
+			}
+		}
 	}
 	return len(s.Missing) == 0
 }
