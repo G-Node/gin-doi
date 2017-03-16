@@ -15,10 +15,10 @@
     </description>
   </descriptions>{{end}}
   {{if .License}}<rightsList>
-    <rights rightsURI="{{.License.Url}}"> {{.License.Name}}</rights>
+    <rights {{if {{.License.Url}}}}rightsURI="{{.License.Url}}"{{end}}> {{.License.Name}}</rights>
   </rightsList>{{end}}
   {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
-     <subject xml:lang="en-us">{{$kw}}</subject>{{end}}
+     <subject>{{$kw}}</subject>{{end}}
   </subjects>{{end}}
   {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
   <relatedIdentifier relatedIdentifierType="Handle" relationType="{{$ref.Reftype}}">{{$ref.Name}}</relatedIdentifier>{{end}}

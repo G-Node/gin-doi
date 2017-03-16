@@ -33,7 +33,7 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 		"source": STORLOGPRE,
 		"to":     to,
 	}).Debug("Started zipping")
-	fp, err := os.Create(filepath.Join(to, "data.zip"))
+	fp, err := os.Create(filepath.Join(to, target + ".zip"))
 	defer fp.Close()
 	err = Zip(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
@@ -46,7 +46,7 @@ func (ls *LocalStorage) tar(target string) (int64, error) {
 		"source": STORLOGPRE,
 		"to":     to,
 	}).Debug("Started taring")
-	fp, err := os.Create(filepath.Join(to, "data.tar.gz"))
+	fp, err := os.Create(filepath.Join(to, target + ".tar.gz"))
 	defer fp.Close()
 	err = Tar(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
@@ -129,6 +129,7 @@ func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	dReq.DoiInfo.UUID = target
 	ls.prepDir(target, &dReq.DoiInfo)
 	ds, _ := ls.GetDataSource()
+	ls.DProvider.MakeDoi(&dReq.DoiInfo)
 
 	if out, err := ds.Get(source, tmpDir); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)

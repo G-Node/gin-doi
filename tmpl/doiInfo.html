@@ -12,15 +12,20 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 <script src="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/js/bootstrap.min.js"></script>
 <div id="main">
-        <nav class="navbar navbar-default navbar-fixed-top">
-            <div class="container">
-                <div class="navbar-header">
-                    <a href="https://web.gin.g-node.org/" class="navbar-brand-gin"></a>
-                </div>
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <a href="https://web.gin.g-node.org/" class="navbar-brand-gin"></a>
             </div>
-        </nav>
-        <div class="container main-container">
-            <h1>This is the Landing Page for <b>{{.DoiInfo.Title}}</b>. Please find more information below:</h1>
+        </div>
+    </nav>
+    <div class="container main-container">
+        <ol class="breadcrumb">
+            <li><a href="http://doid.gin.g-node.org/">Home</a></li>
+            <li class="active">Data</li>
+        </ol>
+        <h1><b>{{.DoiInfo.Title}}</b></h1>
+        <p><b>Dataset</b></p>
             <table class="table table-condensed">
                 <tbody>
                 <tr>
@@ -82,7 +87,7 @@
                 <tr>
                     <td>Data</td>
                     <td>
-                        <a href="./data.zip">Data ({{.DoiInfo.FileSize}} MB)</a><br>
+                        <a href="{{.DoiInfo.UUID}}.zip">Data ({{.DoiInfo.FileSize}} MB)</a><br>
                         This is the archive of a git repository. The original repository and possibly updated versions can be found at
                         <a href="https://gin.g-node.org/">gin.g-node.org</a>
 
