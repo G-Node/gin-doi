@@ -1,8 +1,16 @@
 ## Required fields
 # The main researchers involved working on the data, or the authors of the publication in priority order. May be a corporate/institutional or personal name.
 authors:
-  - "LastName1, GivenName1, Affiliation1"
-  - "LastName2, GivenName2, Affiliation2"
+  -
+    firstname: "Max"
+    lastname: "Mustermann"
+    affiliation: "Muster Uni"
+    id: "MaxOnOrcid"
+  -
+    firstname: "Maxine"
+    lastname: "Mustermann"
+    affiliation: "Muster Uni II"
+    id: "MaxineOnOrcid"
 
 #A name or title by which a resource is known.
 title: ExampleTitle

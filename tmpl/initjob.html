@@ -43,7 +43,7 @@
                     <td>Authors</td>
                     <td>
                         {{range $index, $auth := .DoiInfo.Authors}}
-                        {{ $auth }}
+                        {{ $auth.LastName }},{{ $auth.FirstName }}; {{ $auth.Affiliation}}; {{$auth.ID}}
                         <br>
                         {{end}}
                     </td>

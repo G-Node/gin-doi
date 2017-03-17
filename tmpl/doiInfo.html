@@ -24,7 +24,7 @@
             <li><a href="http://doid.gin.g-node.org/">Home</a></li>
             <li class="active">Data</li>
         </ol>
-        <h1><b>{{.DoiInfo.Title}}</b></h1>
+        <h1>{{.DoiInfo.Title}}</h1>
         <p><b>Dataset</b></p>
             <table class="table table-condensed">
                 <tbody>
@@ -36,7 +36,7 @@
                     <td>Authors</td>
                     <td>
                         {{range $index, $auth := .DoiInfo.Authors}}
-                        {{ $auth }}
+                        {{ $auth.LastName }},{{ $auth.FirstName }},{{ $auth.Affiliation}},{{$auth.ID}}
                         <br>
                         {{end}}
                     </td>
@@ -100,6 +100,14 @@
                 <tr>
                     <td>Source Repository</td>
                     <td>{{.URI}}</td>
+                </tr>
+                <tr>
+                    <td>Citation</td>
+                    <td>
+                        <i>This dataset can be cited as:</i><br>
+                        {{.DoiInfo.GetCitation}}<br>
+                        <i>Please also consider citing the material listed in the references</i>
+                    </td>
                 </tr>
                 </tbody>
             </table>

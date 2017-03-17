@@ -12,15 +12,17 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var (
-	MS_NOTITLE       = "No Title provided."
-	MS_NOAUTHORS     = "No Authors provided."
-	MS_NODESC        = "No Description provided."
-	MS_NOLIC         = "No Valid Liecense provided.Plaese specify url and name!"
-	MS_REFERENCEWRONG= "A specified Reference is not valid (needs name and type)"
-	DSOURCELOGPREFIX = "DataSource"
+	MS_NOTITLE        = "No Title provided."
+	MS_NOAUTHORS      = "No Authors provided."
+	MS_AUTHORWRONG      = "Not all Authors valid.  Please provide at least a lastname and a firstname"
+	MS_NODESC         = "No Description provided."
+	MS_NOLIC          = "No Valid Liecense provided.Plaese specify url and name!"
+	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
+	DSOURCELOGPREFIX  = "DataSource"
 )
 
 type CBerry struct {
@@ -29,12 +31,26 @@ type CBerry struct {
 	UUID        string
 	FileSize    int64
 	Title       string
-	Authors     []string
+	Authors     []Author
 	Description string
 	Keywords    []string
 	References  []Reference
 	Funding     []string
 	License     *License
+}
+
+func (c *CBerry) GetCitation() string {
+	var authors string
+	for _, auth := range c.Authors{
+		authors += fmt.Sprintf("%s %s, ", auth.LastName, auth.FirstName)
+		}
+	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)	}
+
+type Author struct {
+	FirstName   string
+	LastName    string
+	Affiliation string
+	ID          string
 }
 
 type Reference struct {
@@ -58,17 +74,23 @@ func hasValues(s *CBerry) bool {
 	}
 	if len(s.Authors) == 0 {
 		s.Missing = append(s.Missing, MS_NOAUTHORS)
+	}else {
+		for _, auth := range s.Authors {
+			if auth.LastName == "" || auth.FirstName == "" {
+				s.Missing = append(s.Missing, MS_AUTHORWRONG)
+			}
+		}
 	}
 	if s.Description == "" {
 		s.Missing = append(s.Missing, MS_NODESC)
 	}
-	if s.License == nil || s.License.Name=="" || s.License.Url=="" {
+	if s.License == nil || s.License.Name == "" || s.License.Url == "" {
 		s.Missing = append(s.Missing, MS_NOLIC)
 	}
-	if s.References != nil{
-		for _, ref := range s.References{
-			if ref.Name=="" || ref.Reftype==""{
-				s.Missing = append(s.Missing,MS_REFERENCEWRONG)
+	if s.References != nil {
+		for _, ref := range s.References {
+			if ref.Name == "" || ref.Reftype == "" {
+				s.Missing = append(s.Missing, MS_REFERENCEWRONG)
 			}
 		}
 	}
@@ -86,7 +108,7 @@ func validDoiFile(in []byte) (bool, *CBerry) {
 	err := yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"data":   in,
+			"data":   string(in),
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
 		}).Error("Could not unmarshal doifile")
