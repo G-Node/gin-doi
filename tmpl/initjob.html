@@ -23,12 +23,12 @@
                 <h1>Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure) DOI service!</h1>
                 <hr>
             {{if .DoiInfo.Title}}
-            <div class="alert alert-success" id="info">
+            <div class="bs-callout bs-callout-success" id="info">
                 <div>
                     <b>Well Done! </b> Your repository "{{.DoiInfo.Title}}" fullfills all neccessarry requirements! Hit the button below to start the doification.
                 </div>
             </div>
-            <div class="jumbotron" id="infotable">
+            <div class="bs-callout bs-callout-info" id="infotable">
                 <div id="infobox">The follwoing information will be registerd with you DOI request.
                     They will also be presented alongside the data. Please check them thoroughly and modify you cloudberry file if something is wrong.
                 </div>
@@ -94,7 +94,7 @@
                 </tbody>
             </table>
             </div>
-            <div class="alert alert-danger" id="warnung">
+            <div class="bs-callout bs-callout-danger" id="warnung">
                 <div>
                     <b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b>
                     (Yes, that really means ALL data - including private files, ssh keys, address books, password collections and whatnot.
@@ -146,8 +146,8 @@
             dataType:"text",
             success: function (data) {
                 $("#info").html(data);
-                $("#info").toggleClass("alert-success");
-                $("#info").toggleClass("alert-info");
+                $("#info").toggleClass("bs-callout-success");
+                $("#info").toggleClass("bs-callout-info");
                 $("#infotable").hide();
                 $("#warnung").hide();
             }
