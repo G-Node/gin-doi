@@ -13,14 +13,15 @@ func main() {
 	usage := `gin doi.
 Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
-           --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from> --doiMaster=<master> --doiBase=<base>
-           --sendMail --debug]
+           --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
+           --doiMaster=<master> --doiBase=<base> --sendMail --debug]
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
   --max_queue_size=<max_quesize>  The The size of the job queue [default: 100]
   --port=<port>                   The server port [default: 8083]
   --source=<dsourceurl>           The Server adress from which data can be read [default: https://repo.gin.g-node.org/]
+  --oauthserver=<repo>            The Server aof the repo service [default: https://auth.gin.g-node.org/api/accounts/]
   --target=<target>               The Location for long term storgae [default: data]
   --storeURL=<url>                The base url for storage [default: http://doid.gin.g-node.org/]
   --mServer=<server>              The mailserver adress (:and port) [default: localhost:25]
@@ -43,7 +44,8 @@ Options:
 		Master: args["--doiMaster"].(string)}
 	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
 		DProvider: dp, MServer: &mServer}
-	op := ginDoi.OauthProvider{Uri: "https://auth.gin.g-node.org/api/accounts"}
+	oaAdress := args["--oauthserver"].(string)
+	op := ginDoi.OauthProvider{Uri: oaAdress}
 	// Create the job queue.
 	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
 	if err != nil {
