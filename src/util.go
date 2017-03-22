@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	MS_NODOIFILE      = "Could no locte a Doi File. Please visit https://web.gin.g-node.org/info/doi for a guide"
+	MS_NODOIFILE      = "Could not locate a cloudberry file. Please visit https://web.gin.g-node.org/info/doi for a guide"
 	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/info/doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
 	MS_SERVERWORKS    = "The Doi Server has started doifying you repository. " +
