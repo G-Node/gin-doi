@@ -14,10 +14,10 @@ var (
 	MS_NODOIFILE      = "Could not locate a cloudberry file. Please visit https://web.gin.g-node.org/info/doi for a guide"
 	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/info/doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
-	MS_SERVERWORKS    = "The Doi Server has started doifying you repository. " +
+	MS_SERVERWORKS    = "The doi server has started doifying you repository. " +
 		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Please return to that location to check for " +
 		"availibility <br><br>" +
-		"We will try to resgister the follwoing doi: <div class =\"label label-default\">%s</div> " +
+		"We will try to resgister the following doi: <div class =\"label label-default\">%s</div> " +
 		"for your dataset. Please note, however, that in rare cases the final doi might be different."
 	MS_NOLOGIN = "You are not logged in with the gin service. Login at http://gin.g-node.org/"
 	MS_NOTOKEN = "No authentication token provided"
