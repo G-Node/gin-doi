@@ -66,6 +66,7 @@ type License struct {
 
 type GinDataSource struct {
 	GinURL string
+	GinGitURL string
 }
 
 func hasValues(s *CBerry) bool {
@@ -174,7 +175,7 @@ func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error) {
 }
 
 func (s *GinDataSource) Get(URI string, To string) (string, error) {
-	gin_uri := strings.Replace(URI, "master:", "git@gin.g-node.org:", 1)
+	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
 	log.WithFields(log.Fields{
 		"URI":     URI,
 		"gin_uri": gin_uri,

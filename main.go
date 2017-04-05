@@ -21,6 +21,7 @@ Options:
   --max_queue_size=<max_quesize>  The The size of the job queue [default: 100]
   --port=<port>                   The server port [default: 8083]
   --source=<dsourceurl>           The Server adress from which data can be read [default: https://repo.gin.g-node.org/]
+  --gitsource=<gitdsourceurl>     The git Server adress from which data can be cloned [default: "git@gin.g-node.org:"]
   --oauthserver=<repo>            The Server aof the repo service [default: https://auth.gin.g-node.org/api/accounts/]
   --target=<target>               The Location for long term storgae [default: data]
   --storeURL=<url>                The base url for storage [default: http://doid.gin.g-node.org/]
@@ -37,7 +38,7 @@ Options:
 		log.Printf("Error while parsing command line: %+v", err)
 		os.Exit(-1)
 	}
-	ds := ginDoi.GinDataSource{GinURL: args["--source"].(string)}
+	ds := ginDoi.GinDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
 	dp := ginDoi.DoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
 	mServer := ginDoi.MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
 		DoSend: args["--sendMail"].(bool),
