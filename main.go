@@ -13,8 +13,9 @@ func main() {
 	usage := `gin doi.
 Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
+           --gitsource=<gitdsourceurl>
            --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
-           --doiMaster=<master> --doiBase=<base> --sendMail --debug]
+           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath>]
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
@@ -31,6 +32,7 @@ Options:
   --doiBase=<base>                The first part of the DOI [default: 10.12751]
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
+  --templates=<tmplpath>          Path to the Templates [default: tmpl]
  `
 
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -44,7 +46,7 @@ Options:
 		DoSend: args["--sendMail"].(bool),
 		Master: args["--doiMaster"].(string)}
 	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
-		DProvider: dp, MServer: &mServer}
+		DProvider: dp, MServer: &mServer, TemplatePath: args["--templates"].(string)}
 	oaAdress := args["--oauthserver"].(string)
 	op := ginDoi.OauthProvider{Uri: oaAdress}
 	// Create the job queue.

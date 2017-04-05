@@ -21,6 +21,7 @@ type LocalStorage struct {
 	DProvider DoiProvider
 	HttpBase  string
 	MServer   *MailServer
+	TemplatePath string
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {
@@ -88,7 +89,7 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 }
 
 func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
-	tmpl, err := template.ParseFiles(filepath.Join("tmpl", "doiInfo.html"))
+	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.html"))
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
