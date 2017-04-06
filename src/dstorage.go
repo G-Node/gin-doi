@@ -16,11 +16,11 @@ var (
 )
 
 type LocalStorage struct {
-	Path      string
-	Source    GinDataSource
-	DProvider DoiProvider
-	HttpBase  string
-	MServer   *MailServer
+	Path         string
+	Source       GinDataSource
+	DProvider    DoiProvider
+	HttpBase     string
+	MServer      *MailServer
 	TemplatePath string
 }
 

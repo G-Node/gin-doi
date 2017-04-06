@@ -8,21 +8,28 @@ import (
 	"text/template"
 )
 
-var LOGPREFIX = "DoiProvider"
+var LOGPREFIX = "GnodeDoiProvider"
 
-type DoiProvider struct {
+
+type DoiProvider interface {
+	MakeDoi(doiInfo *CBerry) string
+	GetXml(doiInfo *CBerry) ([]byte, error)
+	RegDoi(doiInfo CBerry) (string, error)
+}
+
+type GnodeDoiProvider struct {
 	//https://mds.datacite.org/static/apidoc
 	ApiURI  string
 	Pwd     string
 	DOIBase string
 }
 
-func (dp *DoiProvider) MakeDoi(doiInfo *CBerry) string {
+func (dp GnodeDoiProvider) MakeDoi(doiInfo *CBerry) string {
 	doiInfo.DOI = dp.DOIBase + "/" + "G-NODE." + doiInfo.UUID[:10]
 	return doiInfo.DOI
 }
 
-func (dp *DoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
+func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
 	dp.MakeDoi(doiInfo)
 	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
 	if err != nil {
@@ -44,7 +51,7 @@ func (dp *DoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
 	return buff.Bytes(), err
 }
 
-func (dp *DoiProvider) RegDoi(doiInfo CBerry) (string, error) {
+func (dp GnodeDoiProvider) RegDoi(doiInfo CBerry) (string, error) {
 	data, err := dp.GetXml(&doiInfo)
 	if err != nil {
 		return "", err
