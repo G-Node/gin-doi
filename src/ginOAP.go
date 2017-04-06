@@ -12,7 +12,13 @@ var (
 	gOAPLOGP = "GinOAP"
 )
 
-func (pr *OauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
+type GinOauthProvider struct {
+	Name   string
+	Uri    string
+	ApiKey string
+}
+
+func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s", pr.Uri, userName), nil)
 	req.Header.Set("Authorization", token)

@@ -48,7 +48,7 @@ Options:
 	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
 		DProvider: dp, MServer: &mServer, TemplatePath: args["--templates"].(string)}
 	oaAdress := args["--oauthserver"].(string)
-	op := ginDoi.OauthProvider{Uri: oaAdress}
+	op := ginDoi.GinOauthProvider{Uri: oaAdress}
 	// Create the job queue.
 	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
 	if err != nil {

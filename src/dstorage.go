@@ -15,6 +15,10 @@ var (
 	tmpdir     = "tmp"
 )
 
+type Storage interface {
+	GetTemplateDir() string
+}
+
 type LocalStorage struct {
 	Path         string
 	Source       DataSource
@@ -22,6 +26,10 @@ type LocalStorage struct {
 	HttpBase     string
 	MServer      *MailServer
 	TemplatePath string
+}
+
+func (ls LocalStorage) GetTemplateDir() string {
+	return ls.TemplatePath
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {

@@ -50,11 +50,11 @@ type OauthIdentity struct {
 	EmailRaw  json.RawMessage `json:"email"`
 }
 
-type OauthProvider struct {
-	Name   string
-	Uri    string
-	ApiKey string
+type OauthProvider interface {
+	getUser(userName string, token string) (OauthIdentity, error)
 }
+
+
 
 type DoiUser struct {
 	Name       string
@@ -82,7 +82,7 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op *OauthProvider) {
+func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op OauthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -131,9 +131,13 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	}
 }
 
-func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *OauthProvider, st *LocalStorage) {
+func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthProvider,
+	        st Storage) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
+		log.WithFields(log.Fields{
+			"source":  "Init",
+		}).Debug("Could not parse form data")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -147,10 +151,9 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	}).Debug("Got DOI Request")
 	log.Infof("Will Doify %s", dReq.URI)
 
-	t, err := template.ParseFiles(filepath.Join(st.TemplatePath, "initjob.html")) // Parse template file.
+	t, err := template.ParseFiles(filepath.Join(st.GetTemplateDir(), "initjob.html")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
-			"request": dReq,
 			"source":  "DoDoiJob",
 			"error":   err,
 		}).Debug("Could not parse init template")
