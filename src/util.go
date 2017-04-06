@@ -131,7 +131,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	}
 }
 
-func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *OauthProvider) {
+func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *OauthProvider, st *LocalStorage) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -147,7 +147,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds *GinDataSource, op *O
 	}).Debug("Got DOI Request")
 	log.Infof("Will Doify %s", dReq.URI)
 
-	t, err := template.ParseFiles(filepath.Join("tmpl", "initjob.html")) // Parse template file.
+	t, err := template.ParseFiles(filepath.Join(st.TemplatePath, "initjob.html")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": dReq,

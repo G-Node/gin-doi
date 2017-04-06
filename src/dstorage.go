@@ -37,6 +37,7 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	fp, err := os.Create(filepath.Join(to, target + ".zip"))
 	defer fp.Close()
 	err = Zip(filepath.Join(to, tmpdir), fp)
+	err = Zip(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
 	return stat.Size(), err
 }
@@ -198,7 +199,7 @@ func (ls LocalStorage) SendMaster(dReq *DoiReq) error {
 }
 
 func (ls LocalStorage) Poerl(target string) error {
-	pScriptF, err := os.Open(filepath.Join("script", "mds-suite_test.pl"))
+	pScriptF, err := os.Open(filepath.Join(ls.TemplatePath, "mds-suite_test.pl"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,
@@ -236,7 +237,7 @@ func (ls LocalStorage) Poerl(target string) error {
 }
 
 func (ls LocalStorage) MKUpdIndexScript(target string, dReq *DoiReq) error {
-	t, err := txtTemplate.ParseFiles(filepath.Join("tmpl", "updIndex.sh"))
+	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,
