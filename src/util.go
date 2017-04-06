@@ -40,7 +40,7 @@ type StorageElement interface {
 	Exists(target string) (bool, error)
 	// Store the things specifies by source in target
 	Put(source string, target string) (bool, error)
-	GetDataSource() (*GinDataSource, error)
+	GetDataSource() (*DataSource, error)
 }
 
 type OauthIdentity struct {
@@ -113,8 +113,8 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	dReq.User = DoiUser{MainOId: user}
 	//ToDo Error checking
 	ds, _ := storage.GetDataSource()
-	df, _ := ds.GetDoiFile(dReq.URI)
-	uuid, _ := ds.MakeUUID(dReq.URI)
+	df, _ := (*ds).GetDoiFile(dReq.URI)
+	uuid, _ := (*ds).MakeUUID(dReq.URI)
 
 	if ok, doiInfo := validDoiFile(df); !ok {
 		w.WriteHeader(http.StatusBadRequest)

@@ -17,7 +17,7 @@ var (
 
 type LocalStorage struct {
 	Path         string
-	Source       GinDataSource
+	Source       DataSource
 	DProvider    DoiProvider
 	HttpBase     string
 	MServer      *MailServer
@@ -132,7 +132,7 @@ func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	ds, _ := ls.GetDataSource()
 	ls.DProvider.MakeDoi(&dReq.DoiInfo)
 
-	if out, err := ds.Get(source, tmpDir); err != nil {
+	if out, err := (*ds).Get(source, tmpDir); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
 	}
 	_, err := ls.tar(target)
@@ -186,7 +186,7 @@ func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	return err
 }
 
-func (ls LocalStorage) GetDataSource() (*GinDataSource, error) {
+func (ls LocalStorage) GetDataSource() (*DataSource, error) {
 	return &ls.Source, nil
 }
 

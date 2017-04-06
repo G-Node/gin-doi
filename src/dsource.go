@@ -25,6 +25,129 @@ var (
 	DSOURCELOGPREFIX  = "DataSource"
 )
 
+type DataSource interface {
+	GetDoiInfo(URI string) (*CBerry, error)
+	GetDoiFile(URI string) ([]byte, error)
+	Get(URI string, To string) (string, error)
+	MakeUUID(URI string) (string, error)
+}
+
+type GinDataSource struct {
+	GinURL string
+	GinGitURL string
+}
+
+func (s GinDataSource) GetDoiInfo(URI string) (*CBerry, error) {
+	data, err := s.GetDoiFile(URI)
+	if err != nil {
+		return nil, err
+	}
+	valid, info := validDoiFile(data)
+	if !valid {
+		return info, fmt.Errorf("Not all cloudberry info provided")
+	}
+	return info, nil
+}
+
+func (s GinDataSource) GetDoiFile(URI string) ([]byte, error) {
+	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
+	//https://github.com/go-yaml/yaml.git
+	//git@github.com:go-yaml/yaml.git
+	fetchRepoPath := ""
+	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
+		uname := strings.Split(splUri[0], ":")[1]
+		repo := splUri[1]
+		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master/cloudberry.yml", uname, repo)
+	} else {
+		return nil, nil
+	}
+	resp, err := http.Get(fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath))
+	if err != nil {
+		// todo Try to infer what went wrong
+		log.WithFields(log.Fields{
+			"path":   fetchRepoPath,
+			"source": DSOURCELOGPREFIX,
+			"error":  err,
+		}).Debug("Could not get cloudberry")
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"path":   fetchRepoPath,
+			"source": DSOURCELOGPREFIX,
+			"error":  err,
+		}).Debug("Could nort read from received Clodberry")
+		return nil, err
+	}
+	return body, nil
+}
+
+func (s GinDataSource) Get(URI string, To string) (string, error) {
+	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
+	log.WithFields(log.Fields{
+		"URI":     URI,
+		"gin_uri": gin_uri,
+		"to":      To,
+		"source":  DSOURCELOGPREFIX,
+	}).Debug("Start cloning")
+	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
+	out, err := cmd.CombinedOutput()
+	log.WithFields(log.Fields{
+		"URI":     URI,
+		"gin_uri": gin_uri,
+		"to":      To,
+		"out":     string(out),
+		"source":  DSOURCELOGPREFIX,
+	}).Debug("Done with cloning")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"URI":     URI,
+			"gin_uri": gin_uri,
+			"to":      To,
+			"source":  DSOURCELOGPREFIX,
+			"error":   string(out),
+		}).Debug("Cloning did not work")
+		return string(out), err
+	}
+	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		// Workaround for uninitilaizes git annexes (-> return nil)
+		// todo
+		log.WithFields(log.Fields{
+			"URI":     URI,
+			"gin_uri": gin_uri,
+			"to":      To,
+			"source":  DSOURCELOGPREFIX,
+			"error":   string(out),
+		}).Debug("Repo was not annexed")
+		return string(out), nil
+	}
+	return string(out), nil
+}
+
+func (s GinDataSource) MakeUUID(URI string) (string, error) {
+	fetchRepoPath := ""
+	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
+		uname := strings.Split(splUri[0], ":")[1]
+		repo := splUri[1]
+		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master", uname, repo)
+	}
+	resp, err := http.Get(fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath))
+	// todo error checking
+	if err != nil {
+		return "", err
+	}
+	if bd, err := ioutil.ReadAll(resp.Body); err != nil {
+		return "", err
+	} else {
+		currMd5 := md5.Sum(bd)
+		return hex.EncodeToString(currMd5[:]), nil
+	}
+}
+
 type CBerry struct {
 	Missing     []string
 	DOI         string
@@ -43,7 +166,7 @@ func (c *CBerry) GetCitation() string {
 	var authors string
 	for _, auth := range c.Authors{
 		authors += fmt.Sprintf("%s %s, ", auth.LastName, auth.FirstName)
-		}
+	}
 	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)	}
 
 type Author struct {
@@ -62,11 +185,6 @@ type Reference struct {
 type License struct {
 	Name string
 	Url  string
-}
-
-type GinDataSource struct {
-	GinURL string
-	GinGitURL string
 }
 
 func hasValues(s *CBerry) bool {
@@ -125,115 +243,4 @@ func validDoiFile(in []byte) (bool, *CBerry) {
 		return false, &doiInfo
 	}
 	return true, &doiInfo
-}
-
-func (s *GinDataSource) GetDoiInfo(URI string) (*CBerry, error) {
-	data, err := s.GetDoiFile(URI)
-	if err != nil {
-		return nil, err
-	}
-	valid, info := validDoiFile(data)
-	if !valid {
-		return info, fmt.Errorf("Not all cloudberry info provided")
-	}
-	return info, nil
-}
-
-func (s *GinDataSource) GetDoiFile(URI string) ([]byte, error) {
-	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
-	//https://github.com/go-yaml/yaml.git
-	//git@github.com:go-yaml/yaml.git
-	fetchRepoPath := ""
-	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
-		uname := strings.Split(splUri[0], ":")[1]
-		repo := splUri[1]
-		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master/cloudberry.yml", uname, repo)
-	} else {
-		return nil, nil
-	}
-	resp, err := http.Get(fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath))
-	if err != nil {
-		// todo Try to infer what went wrong
-		log.WithFields(log.Fields{
-			"path":   fetchRepoPath,
-			"source": DSOURCELOGPREFIX,
-			"error":  err,
-		}).Debug("Could not get cloudberry")
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"path":   fetchRepoPath,
-			"source": DSOURCELOGPREFIX,
-			"error":  err,
-		}).Debug("Could nort read from received Clodberry")
-		return nil, err
-	}
-	return body, nil
-}
-
-func (s *GinDataSource) Get(URI string, To string) (string, error) {
-	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
-	log.WithFields(log.Fields{
-		"URI":     URI,
-		"gin_uri": gin_uri,
-		"to":      To,
-		"source":  DSOURCELOGPREFIX,
-	}).Debug("Start cloning")
-	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
-	out, err := cmd.CombinedOutput()
-	log.WithFields(log.Fields{
-		"URI":     URI,
-		"gin_uri": gin_uri,
-		"to":      To,
-		"out":     string(out),
-		"source":  DSOURCELOGPREFIX,
-	}).Debug("Done with cloning")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"URI":     URI,
-			"gin_uri": gin_uri,
-			"to":      To,
-			"source":  DSOURCELOGPREFIX,
-			"error":   string(out),
-		}).Debug("Cloning did not work")
-		return string(out), err
-	}
-	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		// Workaround for uninitilaizes git annexes (-> return nil)
-		// todo
-		log.WithFields(log.Fields{
-			"URI":     URI,
-			"gin_uri": gin_uri,
-			"to":      To,
-			"source":  DSOURCELOGPREFIX,
-			"error":   string(out),
-		}).Debug("Repo was not annexed")
-		return string(out), nil
-	}
-	return string(out), nil
-}
-
-func (s *GinDataSource) MakeUUID(URI string) (string, error) {
-	fetchRepoPath := ""
-	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
-		uname := strings.Split(splUri[0], ":")[1]
-		repo := splUri[1]
-		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master", uname, repo)
-	}
-	resp, err := http.Get(fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath))
-	// todo error checking
-	if err != nil {
-		return "", err
-	}
-	if bd, err := ioutil.ReadAll(resp.Body); err != nil {
-		return "", err
-	} else {
-		currMd5 := md5.Sum(bd)
-		return hex.EncodeToString(currMd5[:]), nil
-	}
 }
