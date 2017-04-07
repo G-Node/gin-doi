@@ -23,11 +23,11 @@ var (
 	MS_NOLIC          = "No Valid Liecense provided.Plaese specify url and name!"
 	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX  = "DataSource"
+	GINREPODOIPATH     = "/users/%s/repos/%s/browse/master/cloudberry.yml"
 )
 
 type DataSource interface {
-	GetDoiInfo(URI string) (*CBerry, error)
-	GetDoiFile(URI string) ([]byte, error)
+	ValidDoiFile(URI string) (bool, *CBerry)
 	Get(URI string, To string) (string, error)
 	MakeUUID(URI string) (string, error)
 }
@@ -37,19 +37,7 @@ type GinDataSource struct {
 	GinGitURL string
 }
 
-func (s GinDataSource) GetDoiInfo(URI string) (*CBerry, error) {
-	data, err := s.GetDoiFile(URI)
-	if err != nil {
-		return nil, err
-	}
-	valid, info := validDoiFile(data)
-	if !valid {
-		return info, fmt.Errorf("Not all cloudberry info provided")
-	}
-	return info, nil
-}
-
-func (s GinDataSource) GetDoiFile(URI string) ([]byte, error) {
+func (s GinDataSource) getDoiFile(URI string) ([]byte, error) {
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
@@ -57,7 +45,7 @@ func (s GinDataSource) GetDoiFile(URI string) ([]byte, error) {
 	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
 		uname := strings.Split(splUri[0], ":")[1]
 		repo := splUri[1]
-		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master/cloudberry.yml", uname, repo)
+		fetchRepoPath = fmt.Sprintf(GINREPODOIPATH, uname, repo)
 	} else {
 		return nil, nil
 	}
@@ -112,6 +100,7 @@ func (s GinDataSource) Get(URI string, To string) (string, error) {
 		return string(out), err
 	}
 	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
+	cmd.Dir = To
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		// Workaround for uninitilaizes git annexes (-> return nil)
@@ -146,6 +135,39 @@ func (s GinDataSource) MakeUUID(URI string) (string, error) {
 		currMd5 := md5.Sum(bd)
 		return hex.EncodeToString(currMd5[:]), nil
 	}
+}
+
+// Return true if the specifies URI "has" a doi File containing all nec. information
+func (s GinDataSource) ValidDoiFile(URI string) (bool, *CBerry) {
+	in, err := s.getDoiFile(URI)
+	if err != nil{
+		return false, nil
+	}
+	//Workaround as long as repo does spits out object type and size (and a zero termination...)
+	in = bytes.Replace(in, []byte("\x00"), []byte(""), -1)
+	re := regexp.MustCompile(`blob\W\d+`)
+	in = re.ReplaceAll(in, []byte(""))
+
+	doiInfo := CBerry{}
+	err = yaml.Unmarshal(in, &doiInfo)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"data":   string(in),
+			"source": DSOURCELOGPREFIX,
+			"error":  err,
+		}).Error("Could not unmarshal doifile")
+		return false, &CBerry{}
+	}
+	if !hasValues(&doiInfo) {
+		log.WithFields(log.Fields{
+			"data":    in,
+			"doiInfo": doiInfo,
+			"source":  DSOURCELOGPREFIX,
+			"error":   err,
+		}).Debug("Doi File misses entries")
+		return false, &doiInfo
+	}
+	return true, &doiInfo
 }
 
 type CBerry struct {
@@ -214,33 +236,4 @@ func hasValues(s *CBerry) bool {
 		}
 	}
 	return len(s.Missing) == 0
-}
-
-// Return true if the specifies URI "has" a doi File containing all nec. information
-func validDoiFile(in []byte) (bool, *CBerry) {
-	//Workaround as long as repo does spits out object type and size (and a zero termination...)
-	in = bytes.Replace(in, []byte("\x00"), []byte(""), -1)
-	re := regexp.MustCompile(`blob\W\d+`)
-	in = re.ReplaceAll(in, []byte(""))
-
-	doiInfo := CBerry{}
-	err := yaml.Unmarshal(in, &doiInfo)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"data":   string(in),
-			"source": DSOURCELOGPREFIX,
-			"error":  err,
-		}).Error("Could not unmarshal doifile")
-		return false, &CBerry{}
-	}
-	if !hasValues(&doiInfo) {
-		log.WithFields(log.Fields{
-			"data":    in,
-			"doiInfo": doiInfo,
-			"source":  DSOURCELOGPREFIX,
-			"error":   err,
-		}).Debug("Doi File misses entries")
-		return false, &doiInfo
-	}
-	return true, &doiInfo
 }

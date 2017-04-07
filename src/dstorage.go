@@ -16,7 +16,8 @@ var (
 )
 
 type Storage interface {
-	GetTemplateDir() string
+	Put(source string, target string, dReq *DoiReq) error
+	GetDataSource() (*DataSource, error)
 }
 
 type LocalStorage struct {
@@ -28,111 +29,11 @@ type LocalStorage struct {
 	TemplatePath string
 }
 
-func (ls LocalStorage) GetTemplateDir() string {
-	return ls.TemplatePath
-}
-
 func (ls *LocalStorage) Exists(target string) (bool, error) {
 	return false, nil
 }
 
-func (ls *LocalStorage) zip(target string) (int64, error) {
-	to := filepath.Join(ls.Path, target)
-	log.WithFields(log.Fields{
-		"source": STORLOGPRE,
-		"to":     to,
-	}).Debug("Started zipping")
-	fp, err := os.Create(filepath.Join(to, target + ".zip"))
-	defer fp.Close()
-	err = Zip(filepath.Join(to, tmpdir), fp)
-	err = Zip(filepath.Join(to, tmpdir), fp)
-	stat, _ := fp.Stat()
-	return stat.Size(), err
-}
-
-func (ls *LocalStorage) tar(target string) (int64, error) {
-	to := filepath.Join(ls.Path, target)
-	log.WithFields(log.Fields{
-		"source": STORLOGPRE,
-		"to":     to,
-	}).Debug("Started taring")
-	fp, err := os.Create(filepath.Join(to, target + ".tar.gz"))
-	defer fp.Close()
-	err = Tar(filepath.Join(to, tmpdir), fp)
-	stat, _ := fp.Stat()
-	return stat.Size(), err
-}
-
-func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
-	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
-			"error":  err,
-			"target": target,
-		}).Error("Could not create the target directory")
-		return err
-	}
-	// Deny access per default
-	file, err := os.Create(filepath.Join(ls.Path, target, ".htaccess"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
-			"error":  err,
-			"target": target,
-		}).Error("Could not create .httaccess")
-		return err
-	}
-	defer file.Close()
-	// todo check
-	_, err = file.Write([]byte("deny from all"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
-			"error":  err,
-			"target": target,
-		}).Error("Could not write to .httaccess")
-		return err
-	}
-	return nil
-}
-
-func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
-	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.html"))
-	if err != nil {
-		if err != nil {
-			log.WithFields(log.Fields{
-				"source": STORLOGPRE,
-				"error":  err,
-				"target": target,
-			}).Error("Could not parse the doi template")
-			return err
-		}
-		return err
-	}
-
-	fp, err := os.Create(filepath.Join(ls.Path, target, "index.html"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
-			"error":  err,
-			"target": target,
-		}).Error("Could not create the doi index.html")
-		return err
-	}
-	defer fp.Close()
-	if err := tmpl.Execute(fp, info); err != nil {
-		log.WithFields(log.Fields{
-			"source":   STORLOGPRE,
-			"error":    err,
-			"doiInfoo": info,
-		}).Error("Could not execute the doi template")
-		return err
-	}
-	return nil
-}
-
-func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
+func (ls LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	//todo do this better
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
@@ -141,7 +42,7 @@ func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	ds, _ := ls.GetDataSource()
 	ls.DProvider.MakeDoi(&dReq.DoiInfo)
 
-	if out, err := (*ds).Get(source, tmpDir); err != nil {
+	if out, err := ds.Get(source, tmpDir); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
 	}
 	_, err := ls.tar(target)
@@ -189,24 +90,121 @@ func (ls *LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 		}).Error("Could not write to the metadata file")
 		return err
 	}
-	ls.Poerl(to)
-	ls.MKUpdIndexScript(to, dReq)
-	ls.SendMaster(dReq)
+	ls.poerl(to)
+	ls.mkUpdIndexScript(to, dReq)
+	ls.sendMaster(dReq)
 	return err
 }
 
-func (ls LocalStorage) GetDataSource() (*DataSource, error) {
-	return &ls.Source, nil
+func (ls *LocalStorage) zip(target string) (int64, error) {
+	to := filepath.Join(ls.Path, target)
+	log.WithFields(log.Fields{
+		"source": STORLOGPRE,
+		"to":     to,
+	}).Debug("Started zipping")
+	fp, err := os.Create(filepath.Join(to, target + ".zip"))
+	defer fp.Close()
+	err = Zip(filepath.Join(to, tmpdir), fp)
+	err = Zip(filepath.Join(to, tmpdir), fp)
+	stat, _ := fp.Stat()
+	return stat.Size(), err
 }
 
-func (ls LocalStorage) SendMaster(dReq *DoiReq) error {
+func (ls *LocalStorage) tar(target string) (int64, error) {
+	to := filepath.Join(ls.Path, target)
+	log.WithFields(log.Fields{
+		"source": STORLOGPRE,
+		"to":     to,
+	}).Debug("Started taring")
+	fp, err := os.Create(filepath.Join(to, target + ".tar.gz"))
+	defer fp.Close()
+	err = Tar(filepath.Join(to, tmpdir), fp)
+	stat, _ := fp.Stat()
+	return stat.Size(), err
+}
+
+
+func (ls LocalStorage) GetDataSource() (DataSource, error) {
+	return ls.Source, nil
+}
+
+func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
+	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.html"))
+	if err != nil {
+		if err != nil {
+			log.WithFields(log.Fields{
+				"source": STORLOGPRE,
+				"error":  err,
+				"target": target,
+			}).Error("Could not parse the doi template")
+			return err
+		}
+		return err
+	}
+
+	fp, err := os.Create(filepath.Join(ls.Path, target, "index.html"))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Error("Could not create the doi index.html")
+		return err
+	}
+	defer fp.Close()
+	if err := tmpl.Execute(fp, info); err != nil {
+		log.WithFields(log.Fields{
+			"source":   STORLOGPRE,
+			"error":    err,
+			"doiInfoo": info,
+		}).Error("Could not execute the doi template")
+		return err
+	}
+	return nil
+}
+
+func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
+	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Error("Could not create the target directory")
+		return err
+	}
+	// Deny access per default
+	file, err := os.Create(filepath.Join(ls.Path, target, ".htaccess"))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Error("Could not create .httaccess")
+		return err
+	}
+	defer file.Close()
+	// todo check
+	_, err = file.Write([]byte("deny from all"))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"target": target,
+		}).Error("Could not write to .httaccess")
+		return err
+	}
+	return nil
+}
+
+func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
 			"Hello. the fellowing Archives are ready for doification:%s. Creator:%s",
 			dReq.DoiInfo.UUID, string(dReq.User.MainOId.EmailRaw)))
 }
 
-func (ls LocalStorage) Poerl(target string) error {
+func (ls LocalStorage) poerl(target string) error {
 	pScriptF, err := os.Open(filepath.Join(ls.TemplatePath, "mds-suite_test.pl"))
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -244,14 +242,14 @@ func (ls LocalStorage) Poerl(target string) error {
 	return err
 }
 
-func (ls LocalStorage) MKUpdIndexScript(target string, dReq *DoiReq) error {
+func (ls LocalStorage) mkUpdIndexScript(target string, dReq *DoiReq) error {
 	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,
 			"error":  err,
 			"target": target,
-		}).Error("Could not create parse the update index template")
+		}).Error("Could not parse the update index template")
 		return err
 	}
 	fp, _ := os.Create(filepath.Join(target, "updIndex.sh"))

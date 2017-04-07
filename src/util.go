@@ -113,10 +113,8 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	dReq.User = DoiUser{MainOId: user}
 	//ToDo Error checking
 	ds, _ := storage.GetDataSource()
-	df, _ := (*ds).GetDoiFile(dReq.URI)
-	uuid, _ := (*ds).MakeUUID(dReq.URI)
-
-	if ok, doiInfo := validDoiFile(df); !ok {
+	uuid, _ := ds.MakeUUID(dReq.URI)
+	if ok, doiInfo := ds.ValidDoiFile(dReq.URI); !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	} else {
@@ -132,7 +130,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 }
 
 func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthProvider,
-	        st Storage) {
+	        tp string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -151,7 +149,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}).Debug("Got DOI Request")
 	log.Infof("Will Doify %s", dReq.URI)
 
-	t, err := template.ParseFiles(filepath.Join(st.GetTemplateDir(), "initjob.html")) // Parse template file.
+	t, err := template.ParseFiles(filepath.Join(tp, "initjob.html")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source":  "DoDoiJob",
@@ -221,19 +219,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		return
 	}
 
-	doiI, err := ds.GetDoiFile(URI)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"request": dReq,
-			"source":  "Init",
-			"error":   err,
-		}).Debug("Could not get Cloudberry File")
-		dReq.Mess = MS_NODOIFILE
-		t.Execute(w, dReq)
-		return
-	}
-
-	if ok, doiInfo := validDoiFile(doiI); ok {
+	if ok, doiInfo := ds.ValidDoiFile(URI); ok {
 		log.WithFields(log.Fields{
 			"doiInfo": doiInfo,
 			"source":  "Init",

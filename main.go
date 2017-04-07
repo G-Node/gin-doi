@@ -63,7 +63,7 @@ Options:
 
 	// Start the HTTP handler.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.InitDoiJob(w, r, &ds, &op, &storage)
+		ginDoi.InitDoiJob(w, r, &ds, &op, storage.TemplatePath)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
 		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
