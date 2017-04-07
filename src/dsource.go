@@ -37,7 +37,7 @@ type GinDataSource struct {
 	GinGitURL string
 }
 
-func (s GinDataSource) getDoiFile(URI string) ([]byte, error) {
+func (s *GinDataSource) getDoiFile(URI string) ([]byte, error) {
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
@@ -72,7 +72,7 @@ func (s GinDataSource) getDoiFile(URI string) ([]byte, error) {
 	return body, nil
 }
 
-func (s GinDataSource) Get(URI string, To string) (string, error) {
+func (s *GinDataSource) Get(URI string, To string) (string, error) {
 	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
 	log.WithFields(log.Fields{
 		"URI":     URI,
@@ -117,7 +117,7 @@ func (s GinDataSource) Get(URI string, To string) (string, error) {
 	return string(out), nil
 }
 
-func (s GinDataSource) MakeUUID(URI string) (string, error) {
+func (s *GinDataSource) MakeUUID(URI string) (string, error) {
 	fetchRepoPath := ""
 	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
 		uname := strings.Split(splUri[0], ":")[1]
@@ -138,7 +138,7 @@ func (s GinDataSource) MakeUUID(URI string) (string, error) {
 }
 
 // Return true if the specifies URI "has" a doi File containing all nec. information
-func (s GinDataSource) ValidDoiFile(URI string) (bool, *CBerry) {
+func (s *GinDataSource) ValidDoiFile(URI string) (bool, *CBerry) {
 	in, err := s.getDoiFile(URI)
 	if err != nil{
 		return false, nil

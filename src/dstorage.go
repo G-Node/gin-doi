@@ -37,10 +37,8 @@ func (ls LocalStorage) Put(source string, target string, dReq *DoiReq) error {
 	//todo do this better
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
-	dReq.DoiInfo.UUID = target
 	ls.prepDir(target, &dReq.DoiInfo)
 	ds, _ := ls.GetDataSource()
-	ls.DProvider.MakeDoi(&dReq.DoiInfo)
 
 	if out, err := ds.Get(source, tmpDir); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)

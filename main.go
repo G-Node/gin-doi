@@ -40,7 +40,7 @@ Options:
 		log.Printf("Error while parsing command line: %+v", err)
 		os.Exit(-1)
 	}
-	ds := ginDoi.GinDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
+	ds := &ginDoi.GinDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
 	dp := ginDoi.GnodeDoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
 	mServer := ginDoi.MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
 		DoSend: args["--sendMail"].(bool),
@@ -63,7 +63,7 @@ Options:
 
 	// Start the HTTP handler.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.InitDoiJob(w, r, &ds, &op, storage.TemplatePath)
+		ginDoi.InitDoiJob(w, r, ds, &op, storage.TemplatePath)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
 		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
