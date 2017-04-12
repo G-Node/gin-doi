@@ -18,12 +18,12 @@ import (
 var (
 	MS_NOTITLE        = "No Title provided."
 	MS_NOAUTHORS      = "No Authors provided."
-	MS_AUTHORWRONG      = "Not all Authors valid.  Please provide at least a lastname and a firstname"
+	MS_AUTHORWRONG    = "Not all Authors valid.  Please provide at least a lastname and a firstname"
 	MS_NODESC         = "No Description provided."
 	MS_NOLIC          = "No Valid Liecense provided.Plaese specify url and name!"
 	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX  = "DataSource"
-	GINREPODOIPATH     = "/users/%s/repos/%s/browse/master/cloudberry.yml"
+	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/cloudberry.yml"
 )
 
 type DataSource interface {
@@ -33,7 +33,7 @@ type DataSource interface {
 }
 
 type GinDataSource struct {
-	GinURL string
+	GinURL    string
 	GinGitURL string
 }
 
@@ -140,7 +140,7 @@ func (s *GinDataSource) MakeUUID(URI string) (string, error) {
 // Return true if the specifies URI "has" a doi File containing all nec. information
 func (s *GinDataSource) ValidDoiFile(URI string) (bool, *CBerry) {
 	in, err := s.getDoiFile(URI)
-	if err != nil{
+	if err != nil {
 		return false, nil
 	}
 	//Workaround as long as repo does spits out object type and size (and a zero termination...)
@@ -186,10 +186,11 @@ type CBerry struct {
 
 func (c *CBerry) GetCitation() string {
 	var authors string
-	for _, auth := range c.Authors{
+	for _, auth := range c.Authors {
 		authors += fmt.Sprintf("%s %s, ", auth.LastName, auth.FirstName)
 	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)	}
+	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
+}
 
 type Author struct {
 	FirstName   string
@@ -215,7 +216,7 @@ func hasValues(s *CBerry) bool {
 	}
 	if len(s.Authors) == 0 {
 		s.Missing = append(s.Missing, MS_NOAUTHORS)
-	}else {
+	} else {
 		for _, auth := range s.Authors {
 			if auth.LastName == "" || auth.FirstName == "" {
 				s.Missing = append(s.Missing, MS_AUTHORWRONG)

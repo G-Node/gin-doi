@@ -10,7 +10,6 @@ import (
 
 var LOGPREFIX = "GnodeDoiProvider"
 
-
 type DoiProvider interface {
 	MakeDoi(doiInfo *CBerry) string
 	GetXml(doiInfo *CBerry) ([]byte, error)

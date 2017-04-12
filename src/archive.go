@@ -2,13 +2,13 @@ package ginDoi
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"archive/zip"
 )
 
 // Tar takes a source and variable writers and walks 'source' writing each file

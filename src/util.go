@@ -54,8 +54,6 @@ type OauthProvider interface {
 	getUser(userName string, token string) (OauthIdentity, error)
 }
 
-
-
 type DoiUser struct {
 	Name       string
 	Identities []OauthIdentity
@@ -130,11 +128,11 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 }
 
 func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthProvider,
-	        tp string) {
+	tp string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
-			"source":  "Init",
+			"source": "Init",
 		}).Debug("Could not parse form data")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -152,8 +150,8 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	t, err := template.ParseFiles(filepath.Join(tp, "initjob.html")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source":  "DoDoiJob",
-			"error":   err,
+			"source": "DoDoiJob",
+			"error":  err,
 		}).Debug("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
