@@ -1,20 +1,20 @@
 package ginDoi
 
 import (
-	"os"
-	"testing"
 	"io/ioutil"
 	"log"
+	"os"
+	"testing"
 )
 
 func TestGet(t *testing.T) {
 	tmpLoc, err := ioutil.TempDir("", "gin_testget")
-	if err != nil{
+	if err != nil {
 		t.Log("[Err] Could nor create tempory directory for cloning")
 		t.Fail()
 		return
 	}
-	ds := GinDataSource{GinGitURL:""}
+	ds := GinDataSource{GinGitURL: ""}
 	out, err := ds.Get("master:../contrib/test", tmpLoc)
 	defer os.RemoveAll(tmpLoc)
 	if err != nil {
@@ -30,15 +30,16 @@ func TestGet(t *testing.T) {
 		t.Fail()
 	}
 	t.Log("[OK] Data source seems to break")
+	//todo test annex
 }
 
-func TestGetDoiInfo(t *testing.T) {
-	ds := GinDataSource{GinURL:"https://repo.gin.g-node.org/"}
-	cb, err := ds.GetDoiInfo("master:testi/test")
-	if err != nil{
-		log.Printf("[Err] Could nor get Doifile :%+v", err)
+func TestValidDoiFile(t *testing.T) {
+	ds := GinDataSource{GinURL: "https://repo.gin.g-node.org/"}
+	ok, cb := ds.ValidDoiFile("master:testi/test", OauthIdentity{})
+	if !ok {
+		log.Printf("[Err] Could nor get valid Doifile :%+v")
 	}
-	if (cb.Authors[0].FirstName=="Max") {
+	if cb.Authors[0].FirstName == "Max" {
 		t.Log("[Ok]: Getting cloudberry seems fine")
 	}
 }

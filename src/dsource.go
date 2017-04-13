@@ -27,17 +27,18 @@ var (
 )
 
 type DataSource interface {
-	ValidDoiFile(URI string) (bool, *CBerry)
+	ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry)
 	Get(URI string, To string) (string, error)
-	MakeUUID(URI string) (string, error)
+	MakeUUID(URI string, user OauthIdentity) (string, error)
 }
 
 type GinDataSource struct {
 	GinURL    string
 	GinGitURL string
+	pubKey    string
 }
 
-func (s *GinDataSource) getDoiFile(URI string) ([]byte, error) {
+func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, error) {
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
@@ -49,7 +50,10 @@ func (s *GinDataSource) getDoiFile(URI string) ([]byte, error) {
 	} else {
 		return nil, nil
 	}
-	resp, err := http.Get(fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath))
+	client := &http.Client{}
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath), nil)
+	req.Header.Add("Auhoroisation", user.Token)
+	resp, err := client.Do(req)
 	if err != nil {
 		// todo Try to infer what went wrong
 		log.WithFields(log.Fields{
@@ -117,7 +121,7 @@ func (s *GinDataSource) Get(URI string, To string) (string, error) {
 	return string(out), nil
 }
 
-func (s *GinDataSource) MakeUUID(URI string) (string, error) {
+func (s *GinDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
 	fetchRepoPath := ""
 	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
 		uname := strings.Split(splUri[0], ":")[1]
@@ -138,8 +142,8 @@ func (s *GinDataSource) MakeUUID(URI string) (string, error) {
 }
 
 // Return true if the specifies URI "has" a doi File containing all nec. information
-func (s *GinDataSource) ValidDoiFile(URI string) (bool, *CBerry) {
-	in, err := s.getDoiFile(URI)
+func (s *GinDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry) {
+	in, err := s.getDoiFile(URI, user)
 	if err != nil {
 		return false, nil
 	}

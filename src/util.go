@@ -52,6 +52,7 @@ type OauthIdentity struct {
 
 type OauthProvider interface {
 	getUser(userName string, token string) (OauthIdentity, error)
+	AuthorizePull(user OauthIdentity) (error)
 }
 
 type DoiUser struct {
@@ -111,14 +112,15 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 	dReq.User = DoiUser{MainOId: user}
 	//ToDo Error checking
 	ds, _ := storage.GetDataSource()
-	uuid, _ := ds.MakeUUID(dReq.URI)
-	if ok, doiInfo := ds.ValidDoiFile(dReq.URI); !ok {
+	uuid, _ := ds.MakeUUID(dReq.URI, user)
+	if ok, doiInfo := ds.ValidDoiFile(dReq.URI, user); !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	} else {
 		doiInfo.UUID = uuid
 		doi := storage.DProvider.MakeDoi(doiInfo)
 		dReq.DoiInfo = *doiInfo
+		op.AuthorizePull(user)
 		job := Job{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID}
 		jobQueue <- job
 		// Render success.
@@ -205,7 +207,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 
 	// test user login
-	_, err = op.getUser(username, token)
+	user, err := op.getUser(username, token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": dReq,
@@ -217,7 +219,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		return
 	}
 
-	if ok, doiInfo := ds.ValidDoiFile(URI); ok {
+	if ok, doiInfo := ds.ValidDoiFile(URI, user); ok {
 		log.WithFields(log.Fields{
 			"doiInfo": doiInfo,
 			"source":  "Init",

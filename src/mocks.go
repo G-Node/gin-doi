@@ -9,7 +9,7 @@ type MockDataSource struct {
 	calls []string
 }
 
-func (ds *MockDataSource) ValidDoiFile(URI string) (bool, *CBerry) {
+func (ds *MockDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry) {
 	return true, &CBerry{}
 }
 func (ds *MockDataSource) Get(URI string, To string) (string, error) {
@@ -17,7 +17,7 @@ func (ds *MockDataSource) Get(URI string, To string) (string, error) {
 	ds.calls = append(ds.calls, fmt.Sprintf("%s, %s", URI, To))
 	return "", nil
 }
-func (ds *MockDataSource) MakeUUID(URI string) (string, error) {
+func (ds *MockDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
 	return "123", nil
 }
 

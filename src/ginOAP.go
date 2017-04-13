@@ -60,3 +60,7 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 		return user, fmt.Errorf("User not Authenticated")
 	}
 }
+
+func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (error) {
+	return nil
+}
