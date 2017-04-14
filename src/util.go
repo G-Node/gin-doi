@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"github.com/G-Node/gin-core/gin"
 )
 
 var (
@@ -44,6 +45,7 @@ type StorageElement interface {
 }
 
 type OauthIdentity struct {
+	UName     string `json:"username"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Token     string
@@ -52,7 +54,8 @@ type OauthIdentity struct {
 
 type OauthProvider interface {
 	getUser(userName string, token string) (OauthIdentity, error)
-	AuthorizePull(user OauthIdentity) (error)
+	AuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
+	DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
 }
 
 type DoiUser struct {
@@ -81,7 +84,8 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op OauthProvider) {
+func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op OauthProvider,
+	key gin.SSHKey) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -120,7 +124,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		doiInfo.UUID = uuid
 		doi := storage.DProvider.MakeDoi(doiInfo)
 		dReq.DoiInfo = *doiInfo
-		op.AuthorizePull(user)
+		op.AuthorizePull(user, key)
 		job := Job{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID}
 		jobQueue <- job
 		// Render success.

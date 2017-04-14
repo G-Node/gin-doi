@@ -7,6 +7,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"io"
+	"io/ioutil"
+	"encoding/json"
+	"github.com/G-Node/gin-core/gin"
 )
 
 func main() {
@@ -15,7 +19,7 @@ Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --gitsource=<gitdsourceurl>
            --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
-           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath>]
+           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath> --pubkey=<key>]
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
@@ -33,6 +37,7 @@ Options:
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
   --templates=<tmplpath>          Path to the Templates [default: tmpl]
+  --pubkey=<key>		  Path to the ssh Public Key of the doi user [default: ~/.ssh/id_rsa.pub]
  `
 
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -43,10 +48,10 @@ Options:
 	ds := &ginDoi.GinDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
 	dp := ginDoi.GnodeDoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
 	mServer := ginDoi.MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
-		DoSend: args["--sendMail"].(bool),
-		Master: args["--doiMaster"].(string)}
+		DoSend:                      args["--sendMail"].(bool),
+		Master:                      args["--doiMaster"].(string)}
 	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
-		DProvider: dp, MServer: &mServer, TemplatePath: args["--templates"].(string)}
+		DProvider:                   dp, MServer: &mServer, TemplatePath: args["--templates"].(string)}
 	oaAdress := args["--oauthserver"].(string)
 	op := ginDoi.GinOauthProvider{Uri: oaAdress}
 	// Create the job queue.
@@ -61,12 +66,30 @@ Options:
 	dispatcher := ginDoi.NewDispatcher(jobQueue, maxW)
 	dispatcher.Run(ginDoi.NewWorker)
 
-	// Start the HTTP handler.
+	//get the doi users ssh key
+	fp, err := os.Open(args["--pubkey"].(string))
+	if err != nil {
+		log.Errorf("Could not open key file: %+v", err)
+		os.Exit(-1)
+	}
+	key := gin.SSHKey{}
+	RKey, err := ioutil.ReadAll(fp)
+	if err != nil {
+		log.Errorf("Could not read from key file: %+v", err)
+		os.Exit(-1)
+	}
+	err = json.Unmarshal(RKey, &key)
+	if err != nil {
+		log.Errorf("Could not unmarshal key file: %+v", err)
+		os.Exit(-1)
+	}
+
+	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ginDoi.InitDoiJob(w, r, ds, &op, storage.TemplatePath)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
+		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op, key)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))

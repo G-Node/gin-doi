@@ -6,6 +6,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"github.com/G-Node/gin-core/gin"
+	"bytes"
 )
 
 var (
@@ -13,9 +15,11 @@ var (
 )
 
 type GinOauthProvider struct {
-	Name   string
-	Uri    string
-	ApiKey string
+	Name     string
+	Uri      string
+	ApiKey   string
+	KeyURL   string
+	TokenURL string
 }
 
 func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
@@ -61,6 +65,46 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 	}
 }
 
-func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (error) {
+func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
+	cl := http.Client{}
+	bd, _ := json.Marshal(key)
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL, user.UName), bytes.NewReader(bd))
+	resp, err := cl.Do(req)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": gOAPLOGP,
+			"error":  err,
+		}).Error("Could not put ssh key in server")
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.WithFields(log.Fields{
+			"source":   gOAPLOGP,
+			"Response": resp,
+		}).Error("Could not put ssh key in server")
+		return fmt.Errorf("Could not put ssh key")
+	}
+	return nil
+}
+
+func (pr *GinOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
+	cl := http.Client{}
+	bd, _ := json.Marshal(key)
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf(pr.KeyURL, user.UName), bytes.NewReader(bd))
+	resp, err := cl.Do(req)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": gOAPLOGP,
+			"error":  err,
+		}).Error("Could not delete ssh key on server")
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.WithFields(log.Fields{
+			"source":   gOAPLOGP,
+			"Response": resp,
+		}).Error("Could not delete ssh key in server")
+		return fmt.Errorf("Could not put ssh key")
+	}
 	return nil
 }
