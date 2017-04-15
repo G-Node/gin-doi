@@ -53,6 +53,7 @@ type OauthIdentity struct {
 }
 
 type OauthProvider interface {
+	ValidateToken(userName string, token string) (bool, error)
 	getUser(userName string, token string) (OauthIdentity, error)
 	AuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
 	DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
@@ -102,13 +103,34 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		"source":  "DoDoiJob",
 	}).Debug("Unmarshaled a doi request")
 
+	ok, err := op.ValidateToken(dReq.GinAuthUname, dReq.Token)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"request": fmt.Sprintf("%+v", dReq),
+			"source":  "DoDoiJob",
+			"error":   err,
+		}).Debug("User authentication Failed")
+		dReq.Mess = MS_NOLOGIN
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if ! ok {
+		log.WithFields(log.Fields{
+			"request": fmt.Sprintf("%+v", dReq),
+			"source":  "DoDoiJob",
+		}).Debug("Token not valid")
+		dReq.Mess = MS_NOLOGIN
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	user, err := op.getUser(dReq.GinAuthUname, dReq.Token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "DoDoiJob",
 			"error":   err,
-		}).Debug("Could not authenticate user")
+		}).Debug("User authentication Failed. Could nor get userdata")
 		dReq.Mess = MS_NOLOGIN
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -211,6 +233,28 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 
 	// test user login
+	ok, err := op.ValidateToken(username, token)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"request": fmt.Sprintf("%+v", dReq),
+			"source":  "DoDoiJob",
+			"error":   err,
+		}).Debug("User authentication Failed")
+		dReq.Mess = MS_NOLOGIN
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if ! ok {
+		log.WithFields(log.Fields{
+			"request": fmt.Sprintf("%+v", dReq),
+			"source":  "DoDoiJob",
+		}).Debug("Token not valid")
+		dReq.Mess = MS_NOLOGIN
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// get user
 	user, err := op.getUser(username, token)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -223,6 +267,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		return
 	}
 
+	// check for doifile
 	if ok, doiInfo := ds.ValidDoiFile(URI, user); ok {
 		log.WithFields(log.Fields{
 			"doiInfo": doiInfo,

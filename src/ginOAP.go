@@ -22,6 +22,21 @@ type GinOauthProvider struct {
 	TokenURL string
 }
 
+func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, error) {
+	resp, err := http.Get(fmt.Sprintf(pr.TokenURL, token))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": gOAPLOGP,
+			"error":  err,
+		}).Debug("Token Validation failed")
+		return false, err
+	}
+	if resp.StatusCode != http.StatusOK{
+		return false, nil
+	}
+	return true, nil
+}
+
 func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s", pr.Uri, userName), nil)
@@ -58,11 +73,7 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 		return OauthIdentity{}, err
 	}
 
-	if len(user.EmailRaw) > 0 {
-		return user, err
-	} else {
-		return user, fmt.Errorf("User not Authenticated")
-	}
+	return user, err
 }
 
 func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
