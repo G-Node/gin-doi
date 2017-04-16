@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"io"
 	"io/ioutil"
 	"encoding/json"
 	"github.com/G-Node/gin-core/gin"

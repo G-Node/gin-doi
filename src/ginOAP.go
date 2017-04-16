@@ -79,7 +79,7 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
 	cl := http.Client{}
 	bd, _ := json.Marshal(key)
-	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL, user.UName), bytes.NewReader(bd))
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL, user.Login), bytes.NewReader(bd))
 	resp, err := cl.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -101,7 +101,7 @@ func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity, key gin.SSHKey) (e
 func (pr *GinOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
 	cl := http.Client{}
 	bd, _ := json.Marshal(key)
-	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf(pr.KeyURL, user.UName), bytes.NewReader(bd))
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf(pr.KeyURL, user.Login), bytes.NewReader(bd))
 	resp, err := cl.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{

@@ -198,7 +198,7 @@ func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
 			"Hello. the fellowing Archives are ready for doification:%s. Creator:%s",
-			dReq.DoiInfo.UUID, string(dReq.User.MainOId.EmailRaw)))
+			dReq.DoiInfo.UUID, string(dReq.User.MainOId.Email)))
 }
 
 func (ls LocalStorage) poerl(target string) error {

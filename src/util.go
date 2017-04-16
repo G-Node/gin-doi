@@ -45,11 +45,8 @@ type StorageElement interface {
 }
 
 type OauthIdentity struct {
-	UName     string `json:"username"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Token     string
-	EmailRaw  json.RawMessage `json:"email"`
+	gin.Account
+	Token string
 }
 
 type OauthProvider interface {
