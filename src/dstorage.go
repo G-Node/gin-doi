@@ -197,8 +197,8 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
-			"Hello. the fellowing Archives are ready for doification:%s. Creator:%s",
-			dReq.DoiInfo.UUID, string(dReq.User.MainOId.Email)))
+			"Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s",
+			dReq.DoiInfo.UUID, dReq.User.MainOId.Email.Email, dReq.User.MainOId.Login))
 }
 
 func (ls LocalStorage) poerl(target string) error {

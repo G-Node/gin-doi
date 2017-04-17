@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"io/ioutil"
-	"encoding/json"
 	"github.com/G-Node/gin-core/gin"
 	"fmt"
 )
@@ -37,7 +36,7 @@ Options:
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
   --templates=<tmplpath>          Path to the Templates [default: tmpl]
-  --pubkey=<key>		  Path to the ssh Public Key of the doi user [default: ~/.ssh/id_rsa.pub]
+  --pubkey=<key>		  Path to the ssh Public Key of the doi user [default: .ssh/id_rsa.pub]
  `
 
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -87,11 +86,8 @@ Options:
 		log.Errorf("Could not read from key file: %+v", err)
 		os.Exit(-1)
 	}
-	err = json.Unmarshal(RKey, &key)
-	if err != nil {
-		log.Errorf("Could not unmarshal key file: %+v", err)
-		os.Exit(-1)
-	}
+	key.Key = string(RKey)
+	key.Description = "Gin Doi Key"
 
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +104,6 @@ Options:
 		log.SetLevel(log.DebugLevel)
 		log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	}
-
 
 	log.Fatal(http.ListenAndServe(":"+args["--port"].(string), nil))
 }
