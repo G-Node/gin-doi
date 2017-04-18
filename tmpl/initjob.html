@@ -142,7 +142,7 @@
             url:"/do/",
             type:"POST",
             contentType: "text/plain",
-            data:"{\"GinAuthUname\":\"{{.GinAuthUname}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
+            data:"{\"GinAuthUname\":\"{{.OauthLogin}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
             dataType:"text",
             success: function (data) {
                 $("#info").html(data);

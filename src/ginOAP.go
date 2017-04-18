@@ -28,10 +28,14 @@ func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, 
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
 			"error":  err,
-		}).Debug("Token Validation failed")
+		}).Error("Token Validation failed")
 		return false, err
 	}
 	if resp.StatusCode != http.StatusOK{
+		log.WithFields(log.Fields{
+			"source": gOAPLOGP,
+			"token":  token,
+		}).Debug("Token Validation failed")
 		return false, nil
 	}
 	return true, nil

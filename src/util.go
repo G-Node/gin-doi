@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"github.com/G-Node/gin-core/gin"
+	"strings"
 )
 
 var (
@@ -63,12 +64,12 @@ type DoiUser struct {
 }
 
 type DoiReq struct {
-	URI          string
-	User         DoiUser
-	GinAuthUname string
-	Token        string
-	Mess         string
-	DoiInfo      CBerry
+	URI        string
+	User       DoiUser
+	OauthLogin string
+	Token      string
+	Mess       string
+	DoiInfo    CBerry
 }
 
 // Check the current user. Return a user if logged in
@@ -100,7 +101,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		"source":  "DoDoiJob",
 	}).Debug("Unmarshaled a doi request")
 
-	ok, err := op.ValidateToken(dReq.GinAuthUname, dReq.Token)
+	ok, err := op.ValidateToken(dReq.OauthLogin, dReq.Token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
@@ -121,7 +122,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		return
 	}
 
-	user, err := op.getUser(dReq.GinAuthUname, dReq.Token)
+	user, err := op.getUser(dReq.OauthLogin, dReq.Token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
@@ -165,7 +166,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	URI := r.Form.Get("repo")
 	token := r.Form.Get("token")
 	username := r.Form.Get("user")
-	dReq := DoiReq{URI: URI, GinAuthUname: username, Token: token}
+	dReq := DoiReq{URI: URI, OauthLogin: username, Token: token}
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "Init",
@@ -230,7 +231,8 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 
 	// test user login
-	ok, err := op.ValidateToken(username, token)
+	tmp := strings.Split(token, " ")
+	ok, err := op.ValidateToken(username, tmp[1])
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),

@@ -60,7 +60,7 @@ Options:
 	// setup authentication
 	oaAdress := args["--oauthserver"].(string)
 	op := ginDoi.GinOauthProvider{Uri: fmt.Sprintf("%s/api/accounts/", oaAdress),
-		TokenURL:                  fmt.Sprintf("%s/oauth/validate/\\%s", oaAdress)}
+		TokenURL:                  fmt.Sprintf("%s/oauth/validate/%s", oaAdress,"%s")}
 
 	// Create the job queue.
 	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
