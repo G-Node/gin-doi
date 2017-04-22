@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"github.com/G-Node/gin-core/gin"
 	"strings"
+	"crypto/rsa"
 )
 
 var (
@@ -33,6 +34,7 @@ type Job struct {
 	Storage LocalStorage
 	User    OauthIdentity
 	DoiReq  DoiReq
+	Key     rsa.PrivateKey
 }
 
 // Responsible for storing smth defined by source to a kind of Storage
@@ -53,7 +55,7 @@ type OauthIdentity struct {
 type OauthProvider interface {
 	ValidateToken(userName string, token string) (bool, error)
 	getUser(userName string, token string) (OauthIdentity, error)
-	AuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
+	AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, error)
 	DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
 }
 
@@ -83,8 +85,7 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op OauthProvider,
-	key gin.SSHKey) {
+func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op OauthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -128,7 +129,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "DoDoiJob",
 			"error":   err,
-		}).Debug("User authentication Failed. Could nor get userdata")
+		}).Debug("Could not get userdata")
 		dReq.Mess = MS_NOLOGIN
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -144,8 +145,16 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 		doiInfo.UUID = uuid
 		doi := storage.DProvider.MakeDoi(doiInfo)
 		dReq.DoiInfo = *doiInfo
-		op.AuthorizePull(user, key)
-		job := Job{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID}
+		key, err := op.AuthorizePull(user)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"source":  "DoDoiJob",
+				"error":   err,
+			}).Error("Could not Authorize Pull")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		job := Job{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID, Key: *key}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)

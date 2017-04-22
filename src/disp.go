@@ -35,7 +35,7 @@ func (w *Worker) start() {
 			select {
 			case job := <-w.JobQueue:
 				// Dispatcher has added a job to my jobQueue.
-				job.Storage.Put(job.Source, job.Name, &job.DoiReq)
+				job.Storage.Put(job)
 				log.WithFields(log.Fields{
 					"source": "Worker",
 				}).Debugf("Worker %d Completed %s!\n", w.Id, job.Name)

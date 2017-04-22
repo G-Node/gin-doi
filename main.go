@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"io/ioutil"
-	"github.com/G-Node/gin-core/gin"
 	"fmt"
 )
 
@@ -18,7 +16,7 @@ Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --gitsource=<gitdsourceurl>
            --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
-           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath> --pubkey=<key>]
+           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath>]
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
@@ -36,7 +34,6 @@ Options:
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
   --templates=<tmplpath>          Path to the Templates [default: tmpl]
-  --pubkey=<key>		  Path to the ssh Public Key of the doi user [default: .ssh/id_rsa.pub]
  `
 
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -59,8 +56,11 @@ Options:
 
 	// setup authentication
 	oaAdress := args["--oauthserver"].(string)
-	op := ginDoi.GinOauthProvider{Uri: fmt.Sprintf("%s/api/accounts/", oaAdress),
-		TokenURL:                  fmt.Sprintf("%s/oauth/validate/%s", oaAdress,"%s")}
+	op := ginDoi.GinOauthProvider{
+		Uri:      fmt.Sprintf("%s/api/accounts/", oaAdress),
+		TokenURL: fmt.Sprintf("%s/oauth/validate/%s", oaAdress, "%s"),
+		KeyURL:   fmt.Sprintf("%s/accounts/%s/keys", oaAdress, "%s"),
+	}
 
 	// Create the job queue.
 	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
@@ -74,27 +74,12 @@ Options:
 	dispatcher := ginDoi.NewDispatcher(jobQueue, maxW)
 	dispatcher.Run(ginDoi.NewWorker)
 
-	//get the doi users ssh key
-	fp, err := os.Open(args["--pubkey"].(string))
-	if err != nil {
-		log.Errorf("Could not open key file: %+v", err)
-		os.Exit(-1)
-	}
-	key := gin.SSHKey{}
-	RKey, err := ioutil.ReadAll(fp)
-	if err != nil {
-		log.Errorf("Could not read from key file: %+v", err)
-		os.Exit(-1)
-	}
-	key.Key = string(RKey)
-	key.Description = "Gin Doi Key"
-
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ginDoi.InitDoiJob(w, r, ds, &op, storage.TemplatePath)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op, key)
+		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))

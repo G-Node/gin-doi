@@ -13,6 +13,12 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"crypto/rsa"
+	"os"
+	"path/filepath"
+	"encoding/pem"
+	"crypto/x509"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -28,7 +34,7 @@ var (
 
 type DataSource interface {
 	ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry)
-	Get(URI string, To string) (string, error)
+	Get(URI string, To string, key rsa.PrivateKey) (string, error)
 	MakeUUID(URI string, user OauthIdentity) (string, error)
 }
 
@@ -76,7 +82,7 @@ func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, erro
 	return body, nil
 }
 
-func (s *GinDataSource) Get(URI string, To string) (string, error) {
+func (s *GinDataSource) Get(URI string, To string, key rsa.PrivateKey) (string, error) {
 	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
 	log.WithFields(log.Fields{
 		"URI":     URI,
@@ -84,7 +90,26 @@ func (s *GinDataSource) Get(URI string, To string) (string, error) {
 		"to":      To,
 		"source":  DSOURCELOGPREFIX,
 	}).Debug("Start cloning")
+
+	//Create tmp ssh keys files from the key provided
+	tmpDir, err := ioutil.TempDir("", To)
+	if err != nil{
+		log.WithFields(log.Fields{
+			"source":  DSOURCELOGPREFIX,
+		}).Error("SSH key tmp dir not created")
+		return "", err
+	}
+	_, priv_path, err := WriteSSHKeyPair(tmpDir, &key)
+	if err != nil{
+		log.WithFields(log.Fields{
+			"source":  DSOURCELOGPREFIX,
+		}).Error("SSH key storing failed")
+		return "", err
+	}
+
 	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
+	env := os.Environ()
+	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o StrictHostKeyChecking=no", priv_path))
 	out, err := cmd.CombinedOutput()
 	log.WithFields(log.Fields{
 		"URI":     URI,
@@ -105,6 +130,7 @@ func (s *GinDataSource) Get(URI string, To string) (string, error) {
 	}
 	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
 	cmd.Dir = To
+	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o StrictHostKeyChecking=no", priv_path))
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		// Workaround for uninitilaizes git annexes (-> return nil)
@@ -241,4 +267,31 @@ func hasValues(s *CBerry) bool {
 		}
 	}
 	return len(s.Missing) == 0
+}
+
+func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
+	// generate and write private key as PEM
+	priv_path := filepath.Join(path, "id_rsa")
+	pub_path := filepath.Join(path, "id_rsa.pub")
+	privateKeyFile, err := os.Create(priv_path)
+	defer privateKeyFile.Close()
+	if err != nil {
+		return "", "", err
+	}
+	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(PrKey)}
+	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+		return "", "", err
+	}
+
+	// generate and write public key
+	pub, err := ssh.NewPublicKey(PrKey.PublicKey)
+	if err != nil {
+		return "", "", err
+	}
+	err = ioutil.WriteFile(pub_path, ssh.MarshalAuthorizedKey(pub), 0655)
+	if err != nil {
+		return "", "", err
+	}
+
+	return pub_path, priv_path, nil
 }

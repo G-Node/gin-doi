@@ -16,7 +16,7 @@ var (
 )
 
 type Storage interface {
-	Put(source string, target string, dReq *DoiReq) error
+	Put(job Job) error
 	GetDataSource() (*DataSource, error)
 }
 
@@ -33,14 +33,18 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 	return false, nil
 }
 
-func (ls LocalStorage) Put(source string, target string, dReq *DoiReq) error {
+func (ls LocalStorage) Put(job Job) error {
+	source := job.Source
+	target := job.Name
+	dReq := &job.DoiReq
+
 	//todo do this better
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
 	ls.prepDir(target, &dReq.DoiInfo)
 	ds, _ := ls.GetDataSource()
 
-	if out, err := ds.Get(source, tmpDir); err != nil {
+	if out, err := ds.Get(source, tmpDir, job.Key); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
 	}
 	_, err := ls.tar(target)

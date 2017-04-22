@@ -8,6 +8,10 @@ import (
 	"net/http"
 	"github.com/G-Node/gin-core/gin"
 	"bytes"
+	"crypto/rsa"
+	"golang.org/x/crypto/ssh"
+	"crypto/rand"
+	"strings"
 )
 
 var (
@@ -23,6 +27,7 @@ type GinOauthProvider struct {
 }
 
 func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, error) {
+	token = strings.Replace(token,"Bearer ","",1)
 	resp, err := http.Get(fmt.Sprintf(pr.TokenURL, token))
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -31,7 +36,7 @@ func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, 
 		}).Error("Token Validation failed")
 		return false, err
 	}
-	if resp.StatusCode != http.StatusOK{
+	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
 			"token":  token,
@@ -44,7 +49,7 @@ func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, 
 func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s", pr.Uri, userName), nil)
-	req.Header.Set("Authorization", token)
+	req.Header.Set("Authorisation", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -56,7 +61,7 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
-			"error":  err,
+			"request":  req,
 		}).Debug("Authorisation server reponse malformed")
 		return OauthIdentity{}, fmt.Errorf("[%s] Server reponse malformed", gOAPLOGP)
 	}
@@ -80,26 +85,45 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 	return user, err
 }
 
-func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
+func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, error) {
+	rsaKey, err := genSSHKey()
+	if err != nil {
+		return nil, err
+	}
+	pub, err := ssh.NewPublicKey(&rsaKey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	key := gin.SSHKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Description: "Gin Doi Key"}
 	cl := http.Client{}
-	bd, _ := json.Marshal(key)
-	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL, user.Login), bytes.NewReader(bd))
+	bd, err := json.Marshal(key)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL, user.Login), bytes.NewReader(bd))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": gOAPLOGP,
+			"error":  err,
+		}).Error("Could not Create Post request to post ssh key")
+		return nil, err
+	}
 	resp, err := cl.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
 			"error":  err,
 		}).Error("Could not put ssh key in server")
-		return err
+		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
 			"source":   gOAPLOGP,
 			"Response": resp,
 		}).Error("Could not put ssh key in server")
-		return fmt.Errorf("Could not put ssh key")
+		return nil, fmt.Errorf("Could not put ssh key")
 	}
-	return nil
+	return rsaKey, nil
 }
 
 func (pr *GinOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
@@ -122,4 +146,12 @@ func (pr *GinOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) 
 		return fmt.Errorf("Could not put ssh key")
 	}
 	return nil
+}
+
+func genSSHKey() (*rsa.PrivateKey, error) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		return nil, err
+	}
+	return rsaKey, nil
 }
