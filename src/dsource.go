@@ -92,24 +92,26 @@ func (s *GinDataSource) Get(URI string, To string, key rsa.PrivateKey) (string, 
 	}).Debug("Start cloning")
 
 	//Create tmp ssh keys files from the key provided
-	tmpDir, err := ioutil.TempDir("", To)
-	if err != nil{
+	tmpDir, err := ioutil.TempDir("", "")
+	if err != nil {
 		log.WithFields(log.Fields{
-			"source":  DSOURCELOGPREFIX,
+			"source": DSOURCELOGPREFIX,
+			"error":  err,
 		}).Error("SSH key tmp dir not created")
 		return "", err
 	}
 	_, priv_path, err := WriteSSHKeyPair(tmpDir, &key)
-	if err != nil{
+	if err != nil {
 		log.WithFields(log.Fields{
-			"source":  DSOURCELOGPREFIX,
+			"source": DSOURCELOGPREFIX,
+			"error":  err,
 		}).Error("SSH key storing failed")
 		return "", err
 	}
 
 	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
 	env := os.Environ()
-	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o StrictHostKeyChecking=no", priv_path))
+	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
 	out, err := cmd.CombinedOutput()
 	log.WithFields(log.Fields{
 		"URI":     URI,
@@ -130,7 +132,7 @@ func (s *GinDataSource) Get(URI string, To string, key rsa.PrivateKey) (string, 
 	}
 	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
 	cmd.Dir = To
-	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o StrictHostKeyChecking=no", priv_path))
+	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		// Workaround for uninitilaizes git annexes (-> return nil)
@@ -284,7 +286,7 @@ func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error)
 	}
 
 	// generate and write public key
-	pub, err := ssh.NewPublicKey(PrKey.PublicKey)
+	pub, err := ssh.NewPublicKey(&PrKey.PublicKey)
 	if err != nil {
 		return "", "", err
 	}

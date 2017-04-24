@@ -49,7 +49,7 @@ func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, 
 func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s", pr.Uri, userName), nil)
-	req.Header.Set("Authorisation", token)
+	req.Header.Set("Authorization", token)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -81,7 +81,7 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 		}).Debug("Could not unmarshal user profile")
 		return OauthIdentity{}, err
 	}
-
+	user.Token = token
 	return user, err
 }
 
@@ -101,6 +101,7 @@ func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, 
 		return nil, err
 	}
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL, user.Login), bytes.NewReader(bd))
+	req.Header.Set("Authorization", user.Token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
@@ -113,14 +114,17 @@ func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, 
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
 			"error":  err,
-		}).Error("Could not put ssh key in server")
+			"Response": resp,
+			"Request":req,
+		}).Error("Could not put ssh key to server")
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
 			"source":   gOAPLOGP,
 			"Response": resp,
-		}).Error("Could not put ssh key in server")
+			"Request":req,
+		}).Error("Could not put ssh key to server")
 		return nil, fmt.Errorf("Could not put ssh key")
 	}
 	return rsaKey, nil
