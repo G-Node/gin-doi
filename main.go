@@ -59,7 +59,7 @@ Options:
 	op := ginDoi.GinOauthProvider{
 		Uri:      fmt.Sprintf("%s/api/accounts/", oaAdress),
 		TokenURL: fmt.Sprintf("%s/oauth/validate/%s", oaAdress, "%s"),
-		KeyURL:   fmt.Sprintf("%s/accounts/%s/keys", oaAdress, "%s"),
+		KeyURL:   fmt.Sprintf("%s/api/accounts/%s/keys", oaAdress, "%s"),
 	}
 
 	// Create the job queue.
