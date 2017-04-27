@@ -1,16 +1,11 @@
 package ginDoi
 
 import (
-	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 	"crypto/rsa"
@@ -19,6 +14,11 @@ import (
 	"encoding/pem"
 	"crypto/x509"
 	"golang.org/x/crypto/ssh"
+	"crypto/md5"
+	"encoding/hex"
+	"bytes"
+	"regexp"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -34,7 +34,7 @@ var (
 
 type DataSource interface {
 	ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry)
-	Get(URI string, To string, key rsa.PrivateKey) (string, error)
+	Get(URI string, To string, key *rsa.PrivateKey) (string, error)
 	MakeUUID(URI string, user OauthIdentity) (string, error)
 }
 
@@ -82,7 +82,7 @@ func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, erro
 	return body, nil
 }
 
-func (s *GinDataSource) Get(URI string, To string, key rsa.PrivateKey) (string, error) {
+func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
 	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
 	log.WithFields(log.Fields{
 		"URI":     URI,
@@ -100,18 +100,22 @@ func (s *GinDataSource) Get(URI string, To string, key rsa.PrivateKey) (string, 
 		}).Error("SSH key tmp dir not created")
 		return "", err
 	}
-	_, priv_path, err := WriteSSHKeyPair(tmpDir, &key)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
-			"error":  err,
-		}).Error("SSH key storing failed")
-		return "", err
-	}
 
 	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
 	env := os.Environ()
-	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
+	// If a key was provided we need to use that with nthe ssh
+	if key != nil {
+		_, priv_path, err := WriteSSHKeyPair(tmpDir, key)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"source": DSOURCELOGPREFIX,
+				"error":  err,
+			}).Error("SSH key storing failed")
+			return "", err
+		}
+		env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
+		cmd.Env = env
+	}
 	out, err := cmd.CombinedOutput()
 	log.WithFields(log.Fields{
 		"URI":     URI,
@@ -132,7 +136,7 @@ func (s *GinDataSource) Get(URI string, To string, key rsa.PrivateKey) (string, 
 	}
 	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
 	cmd.Dir = To
-	cmd.Env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
+	cmd.Env = env
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		// Workaround for uninitilaizes git annexes (-> return nil)

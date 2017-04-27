@@ -44,7 +44,7 @@ func (ls LocalStorage) Put(job Job) error {
 	ls.prepDir(target, &dReq.DoiInfo)
 	ds, _ := ls.GetDataSource()
 
-	if out, err := ds.Get(source, tmpDir, job.Key); err != nil {
+	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
 	}
 	_, err := ls.tar(target)
