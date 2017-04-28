@@ -15,7 +15,7 @@ func TestGet(t *testing.T) {
 		return
 	}
 	ds := GinDataSource{GinGitURL: ""}
-	out, err := ds.Get("master:../contrib/test", tmpLoc)
+	out, err := ds.Get("master:../contrib/test", tmpLoc, nil)
 	defer os.RemoveAll(tmpLoc)
 	if err != nil {
 		t.Log(out)
@@ -24,7 +24,7 @@ func TestGet(t *testing.T) {
 	}
 	t.Log("[OK] Data source seems to clone")
 
-	out, err = ds.Get("../test_data/test21", "")
+	out, err = ds.Get("../test_data/test21", "", nil)
 	if err == nil {
 		t.Log(out)
 		t.Fail()

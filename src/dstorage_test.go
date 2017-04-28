@@ -6,6 +6,7 @@ import (
 	//log "github.com/Sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"github.com/G-Node/gin-core/gin"
 	"strings"
 )
 
@@ -65,7 +66,13 @@ func TestPut(t *testing.T) {
 	ds := &MockDataSource{}
 	ls := LocalStorage{Path: tmpDir, Source: ds, DProvider: MockDoiProvider{},
 		MServer: &MailServer{}}
-	ls.Put("nohwere", "123", &DoiReq{})
+	dReq := DoiReq{}
+	dReq.User.MainOId.Email = &gin.Email{Email: "123"}
+
+	mJob := Job{Name: "123", Source: "nowhere",
+		DoiReq:   dReq}
+
+	ls.Put(mJob)
 
 	fileThere("123.zip", tmpDir, t)
 	fileThere("doi.xml", tmpDir, t)
