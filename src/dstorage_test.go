@@ -69,8 +69,8 @@ func TestPut(t *testing.T) {
 	dReq := DoiReq{}
 	dReq.User.MainOId.Email = &gin.Email{Email: "123"}
 
-	mJob := Job{Name: "123", Source: "nowhere",
-		DoiReq:   dReq}
+	mJob := DoiJob{Name: "123", Source: "nowhere",
+		DoiReq:      dReq}
 
 	ls.Put(mJob)
 

@@ -11,10 +11,10 @@ import (
 )
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan Job) Worker {
+func NewWorker(id int, workerPool chan chan DoiJob) Worker {
 	return Worker{
 		Id:         id,
-		JobQueue:   make(chan Job),
+		JobQueue:   make(chan DoiJob),
 		WorkerPool: workerPool,
 		QuitChan:   make(chan bool),
 	}
@@ -22,8 +22,8 @@ func NewWorker(id int, workerPool chan chan Job) Worker {
 
 type Worker struct {
 	Id         int
-	JobQueue   chan Job
-	WorkerPool chan chan Job
+	JobQueue   chan DoiJob
+	WorkerPool chan chan DoiJob
 	QuitChan   chan bool
 }
 
@@ -54,8 +54,8 @@ func (w *Worker) stop() {
 }
 
 // NewDispatcher creates, and returns a new Dispatcher object.
-func NewDispatcher(jobQueue chan Job, maxWorkers int) *Dispatcher {
-	workerPool := make(chan chan Job, maxWorkers)
+func NewDispatcher(jobQueue chan DoiJob, maxWorkers int) *Dispatcher {
+	workerPool := make(chan chan DoiJob, maxWorkers)
 
 	return &Dispatcher{
 		jobQueue:   jobQueue,
@@ -65,12 +65,12 @@ func NewDispatcher(jobQueue chan Job, maxWorkers int) *Dispatcher {
 }
 
 type Dispatcher struct {
-	workerPool chan chan Job
+	workerPool chan chan DoiJob
 	maxWorkers int
-	jobQueue   chan Job
+	jobQueue   chan DoiJob
 }
 
-func (d *Dispatcher) Run(makeWorker func(int, chan chan Job) Worker) {
+func (d *Dispatcher) Run(makeWorker func(int, chan chan DoiJob) Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := makeWorker(i+1, d.workerPool)
 		worker.start()

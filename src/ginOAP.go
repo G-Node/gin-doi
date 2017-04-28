@@ -27,7 +27,7 @@ type GinOauthProvider struct {
 }
 
 func (pr *GinOauthProvider) ValidateToken(userName string, token string) (bool, error) {
-	token = strings.Replace(token,"Bearer ","",1)
+	token = strings.Replace(token, "Bearer ", "", 1)
 	resp, err := http.Get(fmt.Sprintf(pr.TokenURL, token))
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -60,8 +60,8 @@ func (pr *GinOauthProvider) getUser(userName string, token string) (OauthIdentit
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
-			"source": gOAPLOGP,
-			"request":  req,
+			"source":  gOAPLOGP,
+			"request": req,
 		}).Debug("Authorisation server reponse malformed")
 		return OauthIdentity{}, fmt.Errorf("[%s] Server reponse malformed", gOAPLOGP)
 	}
@@ -112,10 +112,10 @@ func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, 
 	resp, err := cl.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": gOAPLOGP,
-			"error":  err,
+			"source":   gOAPLOGP,
+			"error":    err,
 			"Response": resp,
-			"Request":req,
+			"Request":  req,
 		}).Error("Could not put ssh key to server")
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (pr *GinOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, 
 		log.WithFields(log.Fields{
 			"source":   gOAPLOGP,
 			"Response": resp,
-			"Request":req,
+			"Request":  req,
 		}).Error("Could not put ssh key to server")
 		return nil, fmt.Errorf("Could not put ssh key")
 	}

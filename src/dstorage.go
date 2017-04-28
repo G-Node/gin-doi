@@ -15,10 +15,6 @@ var (
 	tmpdir     = "tmp"
 )
 
-type Storage interface {
-	Put(job Job) error
-	GetDataSource() (*DataSource, error)
-}
 
 type LocalStorage struct {
 	Path         string
@@ -33,7 +29,7 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 	return false, nil
 }
 
-func (ls LocalStorage) Put(job Job) error {
+func (ls LocalStorage) Put(job DoiJob) error {
 	source := job.Source
 	target := job.Name
 	dReq := &job.DoiReq

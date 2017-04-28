@@ -8,71 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	"github.com/G-Node/gin-core/gin"
 	"strings"
-	"crypto/rsa"
 )
 
-var (
-	MS_NODOIFILE      = "Could not locate a cloudberry file. Please visit https://web.gin.g-node.org/info/doi for a guide"
-	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/info/doi for a guide"
-	MS_URIINVALID     = "Please provide a valid repository URI"
-	MS_SERVERWORKS    = "The doi server has started doifying you repository. " +
-		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Please return to that location to check for " +
-		"availibility <br><br>" +
-		"We will try to resgister the following doi: <div class =\"label label-default\">%s</div> " +
-		"for your dataset. Please note, however, that in rare cases the final doi might be different."
-	MS_NOLOGIN = "You are not logged in with the gin service. Login at http://gin.g-node.org/"
-	MS_NOTOKEN = "No authentication token provided"
-	MS_NOUSER  = "No username provided"
-)
 
-// Job holds the attributes needed to perform unit of work.
-type Job struct {
-	Name    string
-	Source  string
-	Storage LocalStorage
-	User    OauthIdentity
-	DoiReq  DoiReq
-	Key     rsa.PrivateKey
-}
-
-// Responsible for storing smth defined by source to a kind of Storage
-// defined by target
-type StorageElement interface {
-	// Should return true if the target location is alredy there
-	Exists(target string) (bool, error)
-	// Store the things specifies by source in target
-	Put(source string, target string) (bool, error)
-	GetDataSource() (*DataSource, error)
-}
-
-type OauthIdentity struct {
-	gin.Account
-	Token string
-}
-
-type OauthProvider interface {
-	ValidateToken(userName string, token string) (bool, error)
-	getUser(userName string, token string) (OauthIdentity, error)
-	AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, error)
-	DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
-}
-
-type DoiUser struct {
-	Name       string
-	Identities []OauthIdentity
-	MainOId    OauthIdentity
-}
-
-type DoiReq struct {
-	URI        string
-	User       DoiUser
-	OauthLogin string
-	Token      string
-	Mess       string
-	DoiInfo    CBerry
-}
 
 // Check the current user. Return a user if logged in
 func loggedInUser(r *http.Request, pr *OauthProvider) (*DoiUser, error) {
@@ -85,7 +24,7 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage LocalStorage, op OauthProvider) {
+func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, storage LocalStorage, op OauthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -154,7 +93,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan Job, storage
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		job := Job{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID, Key: *key}
+		job := DoiJob{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID, Key: *key}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)

@@ -21,22 +21,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var (
-	MS_NOTITLE        = "No Title provided."
-	MS_NOAUTHORS      = "No Authors provided."
-	MS_AUTHORWRONG    = "Not all Authors valid.  Please provide at least a lastname and a firstname"
-	MS_NODESC         = "No Description provided."
-	MS_NOLIC          = "No Valid Liecense provided.Plaese specify url and name!"
-	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
-	DSOURCELOGPREFIX  = "DataSource"
-	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/cloudberry.yml"
-)
-
-type DataSource interface {
-	ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry)
-	Get(URI string, To string, key *rsa.PrivateKey) (string, error)
-	MakeUUID(URI string, user OauthIdentity) (string, error)
-}
 
 type GinDataSource struct {
 	GinURL    string
