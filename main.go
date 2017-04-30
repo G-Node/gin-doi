@@ -68,7 +68,7 @@ Options:
 		log.Printf("Error while parsing command line: %+v", err)
 		os.Exit(-1)
 	}
-	jobQueue := make(chan ginDoi.Job, maxQ)
+	jobQueue := make(chan ginDoi.DoiJob, maxQ)
 	// Start the dispatcher.
 	maxW, err := strconv.Atoi(args["--max_workers"].(string))
 	dispatcher := ginDoi.NewDispatcher(jobQueue, maxW)
