@@ -65,7 +65,7 @@ func TestPut(t *testing.T) {
 	}
 	ds := &MockDataSource{}
 	ls := LocalStorage{Path: tmpDir, Source: ds, DProvider: MockDoiProvider{},
-		MServer: &MailServer{}}
+		MServer:         &MailServer{}}
 	dReq := DoiReq{}
 	dReq.User.MainOId.Email = &gin.Email{Email: "123"}
 
@@ -77,7 +77,7 @@ func TestPut(t *testing.T) {
 	fileThere("123.zip", tmpDir, t)
 	fileThere("doi.xml", tmpDir, t)
 	fileThere(".htaccess", tmpDir, t)
-	if strings.Contains(ds.calls[0], "nohwere") {
+	if strings.Contains(ds.calls[0], "nowhere") {
 		t.Log("[OK] Get was calles properly")
 	} else {
 		t.Log("[ERR] Get was not called properly")
