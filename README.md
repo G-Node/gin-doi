@@ -1,4 +1,5 @@
 [![Docker Automated buil](https://img.shields.io/docker/automated/cgars/gin-doi.svg)](https://hub.docker.com/r/cgars/gin-doi/builds/)
+[![Build Status](https://travis-ci.org/cgars/gin-doi.svg?branch=master)](https://travis-ci.org/G-Node/gin-doi)
 
 # gin-doi
 G-Node DOI Service
