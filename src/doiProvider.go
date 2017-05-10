@@ -10,12 +10,6 @@ import (
 
 var LOGPREFIX = "GnodeDoiProvider"
 
-type DoiProvider interface {
-	MakeDoi(doiInfo *CBerry) string
-	GetXml(doiInfo *CBerry) ([]byte, error)
-	RegDoi(doiInfo CBerry) (string, error)
-}
-
 type GnodeDoiProvider struct {
 	//https://mds.datacite.org/static/apidoc
 	ApiURI  string
@@ -28,7 +22,7 @@ func (dp GnodeDoiProvider) MakeDoi(doiInfo *CBerry) string {
 	return doiInfo.DOI
 }
 
-func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
+func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) (string, error) {
 	dp.MakeDoi(doiInfo)
 	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
 	if err != nil {
@@ -36,7 +30,7 @@ func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
 			"source": LOGPREFIX,
 			"error":  err,
 		}).Error("Could not parse template")
-		return nil, err
+		return "", err
 	}
 	buff := bytes.Buffer{}
 	err = t.Execute(&buff, doiInfo)
@@ -45,9 +39,9 @@ func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
 			"source": LOGPREFIX,
 			"error":  err,
 		}).Error("Template execution failed")
-		return nil, err
+		return "", err
 	}
-	return buff.Bytes(), err
+	return buff.String(), err
 }
 
 func (dp GnodeDoiProvider) RegDoi(doiInfo CBerry) (string, error) {
@@ -55,7 +49,8 @@ func (dp GnodeDoiProvider) RegDoi(doiInfo CBerry) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if r, err := http.Post(dp.ApiURI+"/metadata", "text/plain;charset=UTF-8", bytes.NewReader(data)); err != nil {
+	if r, err := http.Post(dp.ApiURI+"/metadata", "text/plain;charset=UTF-8",
+		bytes.NewReader([]byte(data))); err != nil {
 		return "", err
 	} else {
 		return r.Status, nil

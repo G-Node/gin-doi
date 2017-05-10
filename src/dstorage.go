@@ -15,7 +15,6 @@ var (
 	tmpdir     = "tmp"
 )
 
-
 type LocalStorage struct {
 	Path         string
 	Source       DataSource
@@ -79,7 +78,7 @@ func (ls LocalStorage) Put(job DoiJob) error {
 		}).Error("Could not create the metadata file")
 		return err
 	}
-	_, err = fp.Write(data)
+	_, err = fp.Write([]byte(data))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,

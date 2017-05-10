@@ -29,8 +29,8 @@ type MockDoiProvider struct {
 func (dp MockDoiProvider) MakeDoi(doiInfo *CBerry) string {
 	return "133"
 }
-func (dp MockDoiProvider) GetXml(doiInfo *CBerry) ([]byte, error) {
-	return []byte("xml"), nil
+func (dp MockDoiProvider) GetXml(doiInfo *CBerry) (string, error) {
+	return "xml", nil
 }
 func (dp MockDoiProvider) RegDoi(doiInfo CBerry) (string, error) {
 	return "", nil

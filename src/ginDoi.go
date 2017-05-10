@@ -55,6 +55,12 @@ type DataSource interface {
 	MakeUUID(URI string, user OauthIdentity) (string, error)
 }
 
+type DoiProvider interface {
+	MakeDoi(doiInfo *CBerry) string
+	GetXml(doiInfo *CBerry) (string, error)
+	RegDoi(doiInfo CBerry) (string, error)
+}
+
 type DoiUser struct {
 	Name       string
 	Identities []OauthIdentity
