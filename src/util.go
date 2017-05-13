@@ -119,7 +119,6 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "Init",
 	}).Debug("Got DOI Request")
-	log.Infof("Will Doify %s", dReq.URI)
 
 	t, err := template.ParseFiles(filepath.Join(tp, "initjob.html")) // Parse template file.
 	if err != nil {
@@ -184,7 +183,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDoiJob",
+			"source":  "InitDoiJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
 		dReq.Mess = MS_NOLOGIN
@@ -194,10 +193,11 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	if ! ok {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDoiJob",
+			"source":  "InitDoiJob",
 		}).Debug("Token not valid")
 		dReq.Mess = MS_NOLOGIN
 		w.WriteHeader(http.StatusUnauthorized)
+		t.Execute(w, dReq)
 		return
 	}
 
