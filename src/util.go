@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	"strings"
 )
 
 
@@ -178,8 +177,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 
 	// test user login
-	tmp := strings.Split(token, " ")
-	ok, err := op.ValidateToken(username, tmp[1])
+	ok, err := op.ValidateToken(username, token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
