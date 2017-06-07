@@ -22,9 +22,9 @@ Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
   --max_queue_size=<max_quesize>  The The size of the job queue [default: 100]
   --port=<port>                   The server port [default: 8083]
-  --source=<dsourceurl>           The Server adress from which data can be read [default: https://repo.gin.g-node.org/]
-  --gitsource=<gitdsourceurl>     The git Server adress from which data can be cloned [default: git@gin.g-node.org:]
-  --oauthserver=<repo>            The Server aof the repo service [default: https://auth.gin.g-node.org]
+  --source=<dsourceurl>           The Server adress from which data can be read [default: http://dev.g-node.de:10080]
+  --gitsource=<gitdsourceurl>     The git Server adress from which data can be cloned [default: ssh://git@dev.g-node.org:10022]
+  --oauthserver=<repo>            The Server aof the repo service [default: http://dev.g-node.org:10080]
   --target=<target>               The Location for long term storgae [default: data]
   --storeURL=<url>                The base url for storage [default: http://doid.gin.g-node.org/]
   --mServer=<server>              The mailserver adress (:and port) [default: localhost:25]
@@ -42,7 +42,7 @@ Options:
 		os.Exit(-1)
 	}
 	// Setup data source
-	ds := &ginDoi.GinDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
+	ds := &ginDoi.GogsDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
 
 	// doi provider
 	dp := ginDoi.GnodeDoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
@@ -56,10 +56,10 @@ Options:
 
 	// setup authentication
 	oaAdress := args["--oauthserver"].(string)
-	op := ginDoi.GinOauthProvider{
-		Uri:      fmt.Sprintf("%s/api/accounts/", oaAdress),
-		TokenURL: fmt.Sprintf("%s/oauth/validate/%s", oaAdress, "%s"),
-		KeyURL:   fmt.Sprintf("%s/api/accounts/%s/keys", oaAdress, "%s"),
+	op := ginDoi.GogsOauthProvider{
+		Uri:      fmt.Sprintf("%s/api/v1/users", oaAdress),
+		TokenURL: "",
+		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oaAdress),
 	}
 
 	// Create the job queue.
