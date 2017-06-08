@@ -69,7 +69,7 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 		return "", err
 	}
 
-	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
+	cmd := exec.Command("git", "clone", gin_uri, To)
 	env := os.Environ()
 	// If a key was provided we need to use that with nthe ssh
 	if key != nil {
@@ -102,7 +102,7 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 		}).Debug("Cloning did not work")
 		return string(out), err
 	}
-	cmd = exec.Command("git", "annex", "sync", "--no-push", "--content")
+	cmd = exec.Command("git-annex", "init")
 	cmd.Dir = To
 	cmd.Env = env
 	out, err = cmd.CombinedOutput()
@@ -110,12 +110,36 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 		// Workaround for uninitilaizes git annexes (-> return nil)
 		// todo
 		log.WithFields(log.Fields{
-			"URI":     URI,
-			"gin_uri": gin_uri,
-			"to":      To,
 			"source":  DSOURCELOGPREFIX,
 			"error":   string(out),
-		}).Debug("Repo was not annexed")
+		}).Debug("Init Anex failed")
+		return string(out), nil
+	}
+
+	cmd = exec.Command("git-annex", "get", "--all")
+	cmd.Dir = To
+	cmd.Env = env
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		// Workaround for uninitilaizes git annexes (-> return nil)
+		// todo
+		log.WithFields(log.Fields{
+			"source": DSOURCELOGPREFIX,
+			"error":  string(out),
+		}).Debug("Anex get failed")
+		return string(out), nil
+	}
+	cmd = exec.Command("git-annex", "unlock")
+	cmd.Dir = To
+	cmd.Env = env
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		// Workaround for uninitilaizes git annexes (-> return nil)
+		// todo
+		log.WithFields(log.Fields{
+			"source": DSOURCELOGPREFIX,
+			"error":  string(out),
+		}).Debug("Anex unlock failed")
 		return string(out), nil
 	}
 	return string(out), nil

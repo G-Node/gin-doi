@@ -42,7 +42,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
 		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
 	}
-	_, err := ls.tar(target)
 	fSize, err := ls.zip(target)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -56,6 +55,11 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	dReq.DoiInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
+	filepath.Walk(tmpDir, func(file string, fi os.FileInfo, err error) error {
+		os.Chmod(file, 0777)
+		os.Remove(file)
+		return nil
+	})
 	err = os.RemoveAll(tmpDir)
 
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
