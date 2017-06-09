@@ -10,6 +10,9 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"golang.org/x/crypto/ssh"
+	"crypto/sha256"
+	"strings"
+	"encoding/base64"
 )
 
 var (
@@ -117,7 +120,7 @@ func (pr *GogsOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey,
 	if err != nil {
 		return nil, err
 	}
-	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: "Gin Doi Key"}
+	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: FingerprintSHA256(pub)}
 	log.WithFields(log.Fields{
 		"source": gogsOAPLOGP,
 		"Key":    key,
@@ -167,4 +170,11 @@ func (pr *GogsOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey,
 
 func (pr *GogsOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
 	return nil
+}
+
+//As Long as go does not ship it
+func FingerprintSHA256(key ssh.PublicKey) string {
+	hash := sha256.Sum256(key.Marshal())
+	b64hash := base64.StdEncoding.EncodeToString(hash[:])
+	return strings.TrimRight(b64hash, "=")
 }
