@@ -106,7 +106,6 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	fp, err := os.Create(filepath.Join(to, target+".zip"))
 	defer fp.Close()
 	err = Zip(filepath.Join(to, tmpdir), fp)
-	err = Zip(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
 	return stat.Size(), err
 }

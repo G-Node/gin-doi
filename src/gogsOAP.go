@@ -146,7 +146,6 @@ func (pr *GogsOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey,
 	}
 	resp, err := cl.Do(req)
 	if err != nil {
-
 		log.WithFields(log.Fields{
 			"source":   gogsOAPLOGP,
 			"error":    err,
