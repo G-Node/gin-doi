@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 )
 
-
-
 // Check the current user. Return a user if logged in
 func loggedInUser(r *http.Request, pr *OauthProvider) (*DoiUser, error) {
 	return &DoiUser{}, nil
@@ -86,8 +84,8 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 		key, err := op.AuthorizePull(user)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"source":  "DoDoiJob",
-				"error":   err,
+				"source": "DoDoiJob",
+				"error":  err,
 			}).Error("Could not Authorize Pull")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -228,13 +226,25 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			}).Error("Could not parse template")
 			return
 		}
-	} else {
+	} else if doiInfo != nil {
 		log.WithFields(log.Fields{
 			"doiInfo": doiInfo,
 			"source":  "Init",
 			"error":   err,
 		}).Debug("Cloudberry File invalid")
 		dReq.Mess = MS_INVALIDDOIFILE + " Issue: " + doiInfo.Missing[0]
+		t.Execute(w, dReq)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"request": dReq,
+				"source":  "Init",
+				"error":   err,
+			}).Error("Could not parse template")
+			return
+		}
+		return
+	} else {
+		dReq.Mess = MS_INVALIDDOIFILE
 		t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{

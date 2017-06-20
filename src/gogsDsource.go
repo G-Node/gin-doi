@@ -38,6 +38,9 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("could not get cloudberry")
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
