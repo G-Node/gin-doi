@@ -272,13 +272,13 @@ func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error)
 	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
 		return "", "", err
 	}
-
+	privateKeyFile.Chmod(0600)
 	// generate and write public key
 	pub, err := ssh.NewPublicKey(&PrKey.PublicKey)
 	if err != nil {
 		return "", "", err
 	}
-	err = ioutil.WriteFile(pub_path, ssh.MarshalAuthorizedKey(pub), 0655)
+	err = ioutil.WriteFile(pub_path, ssh.MarshalAuthorizedKey(pub), 0600)
 	if err != nil {
 		return "", "", err
 	}

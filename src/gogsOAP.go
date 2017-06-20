@@ -57,6 +57,7 @@ func (pr *GogsOauthProvider) ValidateToken(userName string, token string) (bool,
 		log.WithFields(log.Fields{
 			"source": gogsOAPLOGP,
 			"token":  token,
+			"request": req,
 		}).Debug("Token Validation failed")
 		return false, nil
 	}
