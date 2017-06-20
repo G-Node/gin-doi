@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	MS_NODOIFILE      = "Could not locate a cloudberry file. Please visit https://web.gin.g-node.org/info/doi for a guide"
-	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/info/doi for a guide"
+	MS_NODOIFILE      = "Could not locate a cloudberry file. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
+	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
 	MS_SERVERWORKS    = "The doi server has started doifying you repository. " +
 		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Please return to that location to check for " +
