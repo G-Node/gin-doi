@@ -10,7 +10,7 @@ var (
 	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
 	MS_SERVERWORKS    = "The doi server has started doifying you repository. " +
-		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Please return to that location to check for " +
+		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Until the doi registration is finished you will get a 403 Forbidden warning when you go there. Please return to that location to check for " +
 		"availibility <br><br>" +
 		"We will try to resgister the following doi: <div class =\"label label-default\">%s</div> " +
 		"for your dataset. Please note, however, that in rare cases the final doi might be different."
