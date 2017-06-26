@@ -36,8 +36,7 @@
                     <td>Authors</td>
                     <td>
                         {{range $index, $auth := .DoiInfo.Authors}}
-                        {{ $auth.LastName }},{{ $auth.FirstName }},{{ $auth.Affiliation}},{{$auth.ID}}
-                        <br>
+                        {{ $auth.LastName }} {{ $auth.FirstName }},
                         {{end}}
                     </td>
                 </tr>
@@ -51,7 +50,7 @@
                 {{if .DoiInfo.License}}
                 <tr>
                     <td>License</td>
-                    <td>{{.DoiInfo.License.Name}} ({{.DoiInfo.License.Url}})
+                    <td>{{.DoiInfo.License.Name}} (<a href="{{.DoiInfo.License.Url}}">{{.DoiInfo.License.Url}}</a>)
                     </td>
                 </tr>
                 {{end}}
@@ -59,7 +58,7 @@
                     <td>References</td>
                     <td>
                         {{range $index, $ref := .DoiInfo.References}}
-                        {{ $ref.Name }} [{{ $ref.Doi }}] ({{ $ref.Reftype }})
+                        {{ $ref.Name }} [{{ $ref.Doi }}]
                         <br>
                         {{end}}
                     </td>
@@ -87,19 +86,17 @@
                 <tr>
                     <td>Data</td>
                     <td>
+                        This dataset can easily be browsed online <a href="https://web.gin.g-node.org/{{.URI}}">here</a>.
+                        While this repository contains possibly updated version of the data, we also created a copy of
+                        the original state, which can be accesed by looking for the fork of the original created by the
+                        <a href="https://web.gin.g-node.org/doi">Doi user</a>
+                        An archive of the data can also be downloaded:<br>
                         <a href="{{.DoiInfo.UUID}}.zip">Data ({{.DoiInfo.FileSize}} MB)</a><br>
-                        This is the archive of a git repository. The original repository and possibly updated versions can be found at
-                        <a href="https://gin.g-node.org/">gin.g-node.org</a>
-
                     </td>
                 </tr>
                 <tr>
                     <td>DOI</td>
                     <td><a href="#" class ="label label-default">{{.DoiInfo.DOI}}</a></td>
-                </tr>
-                <tr>
-                    <td>Source Repository</td>
-                    <td>{{.URI}}</td>
                 </tr>
                 <tr>
                     <td>Citation</td>
