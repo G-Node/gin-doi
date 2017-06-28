@@ -105,21 +105,8 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 		}).Debug("Cloning did not work")
 		return string(out), err
 	}
-	cmd = exec.Command("git-annex", "init")
-	cmd.Dir = To
-	cmd.Env = env
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		// Workaround for uninitilaizes git annexes (-> return nil)
-		// todo
-		log.WithFields(log.Fields{
-			"source":  DSOURCELOGPREFIX,
-			"error":   string(out),
-		}).Debug("Init Anex failed")
-		return string(out), nil
-	}
 
-	cmd = exec.Command("git-annex", "get", "--all")
+	cmd = exec.Command("git-annex", "get")
 	cmd.Dir = To
 	cmd.Env = env
 	out, err = cmd.CombinedOutput()
@@ -130,9 +117,8 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 			"source": DSOURCELOGPREFIX,
 			"error":  string(out),
 		}).Debug("Anex get failed")
-		return string(out), nil
 	}
-	cmd = exec.Command("git-annex", "unlock")
+	cmd = exec.Command("git-annex", "uninit")
 	cmd.Dir = To
 	cmd.Env = env
 	out, err = cmd.CombinedOutput()
@@ -143,7 +129,6 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 			"source": DSOURCELOGPREFIX,
 			"error":  string(out),
 		}).Debug("Anex unlock failed")
-		return string(out), nil
 	}
 	return string(out), nil
 }

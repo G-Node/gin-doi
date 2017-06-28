@@ -3,7 +3,6 @@ package ginDoi
 import (
 	log "github.com/Sirupsen/logrus"
 	"net/smtp"
-	"strings"
 	"bytes"
 )
 
