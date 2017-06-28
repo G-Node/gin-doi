@@ -25,6 +25,7 @@ var (
 	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX  = "DataSource"
 	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/cloudberry.yml"
+	MS_ENCODING       = "There was an issue with the content of your Doifile. This might mean that the encoding is wrong. please consult our FAQ or write an email to dev@g-node.org"
 )
 
 // Responsible for storing smth defined by source to a kind of Storage
