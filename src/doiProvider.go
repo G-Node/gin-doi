@@ -18,7 +18,7 @@ type GnodeDoiProvider struct {
 }
 
 func (dp GnodeDoiProvider) MakeDoi(doiInfo *CBerry) string {
-	doiInfo.DOI = dp.DOIBase + "/" + "G-NODE." + doiInfo.UUID[:6]
+	doiInfo.DOI = dp.DOIBase + "/" + "g-node." + doiInfo.UUID[:6]
 	return doiInfo.DOI
 }
 
