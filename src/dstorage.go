@@ -60,12 +60,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	dReq.DoiInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
-	filepath.Walk(tmpDir, func(file string, fi os.FileInfo, err error) error {
-		os.Chmod(file, 0777)
-		os.Remove(file)
-		return nil
-	})
-
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
