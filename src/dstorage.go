@@ -2,12 +2,13 @@ package ginDoi
 
 import (
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"html/template"
 	"io"
 	"os"
 	"path/filepath"
 	txtTemplate "text/template"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -40,7 +41,12 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	ds, _ := ls.GetDataSource()
 
 	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
-		return fmt.Errorf("[%s] Git said:%s, Error was: %v", STORLOGPRE, out, err)
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"out":    out,
+			"target": target,
+		}).Error("Could not Get the data")
 	}
 	fSize, err := ls.zip(target)
 	if err != nil {
@@ -49,7 +55,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not zip the data")
-		return err
 	}
 	// +1 to report something with small datsets
 	dReq.DoiInfo.FileSize = fSize/(1024*1000) + 1
@@ -60,7 +65,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 		os.Remove(file)
 		return nil
 	})
-	err = os.RemoveAll(tmpDir)
 
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil {
@@ -69,7 +73,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not create parse the metadata template")
-		return err
 	}
 	defer fp.Close()
 	// No registering. But the xml is provided with everything
@@ -80,7 +83,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the metadata file")
-		return err
 	}
 	_, err = fp.Write([]byte(data))
 	if err != nil {
@@ -89,7 +91,6 @@ func (ls LocalStorage) Put(job DoiJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to the metadata file")
-		return err
 	}
 	ls.poerl(to)
 	ls.mkUpdIndexScript(to, dReq)
