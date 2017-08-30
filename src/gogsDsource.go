@@ -85,6 +85,8 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 			return "", err
 		}
 		env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
+		env = append(env, "GIT_COMMITTER_NAME=GINDOI")
+		env = append(env, "GIT_COMMITTER_EMAIL=doi@g-node.org")
 		cmd.Env = env
 	}
 	out, err := cmd.CombinedOutput()
@@ -116,7 +118,7 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 		log.WithFields(log.Fields{
 			"source": DSOURCELOGPREFIX,
 			"error":  string(out),
-		}).Debug("Anex get failed")
+		}).Debug("Annex get failed")
 	}
 	cmd = exec.Command("git-annex", "uninit")
 	cmd.Dir = To
