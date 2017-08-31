@@ -15,6 +15,8 @@ ENV GOPATH /go
 RUN go get gopkg.in/yaml.v2
 RUN go get github.com/Sirupsen/logrus
 RUN go get github.com/docopt/docopt-go
+RUN go get github.com/G-Node/gin-core/gin
+RUN go get golang.org/x/crypto/ssh
 
 ADD . /gin-doi
 RUN mkdir -p /go/src/github.com/G-Node
@@ -22,7 +24,7 @@ RUN ln -s  /gin-doi /go/src/github.com/G-Node/gin-doi
 RUN cd gin-doi
 WORKDIR /gin-doi
 RUN go build
+VOLUME ["/doidata"]
 
-
-ENTRYPOINT ./gin-doi --target /data/doid/
+ENTRYPOINT ./gin-doi --target /doidata
 EXPOSE 8083
