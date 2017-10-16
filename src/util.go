@@ -231,7 +231,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"doiInfo": doiInfo,
 			"source":  "Init",
 			"error":   err,
-		}).Debug("Cloudberry File invalid")
+		}).Debug("Doifile File invalid")
 		if doiInfo.Missing != nil {
 			dReq.Mess = MS_INVALIDDOIFILE + " Issue: " + doiInfo.Missing[0]
 		} else {

@@ -50,7 +50,7 @@ func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, erro
 			"path":   fetchRepoPath,
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
-		}).Debug("Could not get cloudberry")
+		}).Debug("Could not get doifile")
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -60,7 +60,7 @@ func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, erro
 			"path":   fetchRepoPath,
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
-		}).Debug("Could nort read from received Clodberry")
+		}).Debug("Could nort read from received doifile")
 		return nil, err
 	}
 	return body, nil

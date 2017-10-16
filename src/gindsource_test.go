@@ -40,6 +40,6 @@ func TestValidDoiFile(t *testing.T) {
 		log.Printf("[Err] Could nor get valid Doifile :%+v")
 	}
 	if cb.Authors[0].FirstName == "Max" {
-		t.Log("[Ok]: Getting cloudberry seems fine")
+		t.Log("[Ok]: Getting doifile seems fine")
 	}
 }

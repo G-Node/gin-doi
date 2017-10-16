@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	MS_NODOIFILE      = "Could not locate a cloudberry file. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
+	MS_NODOIFILE      = "Could not locate a datacite file. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
 	MS_SERVERWORKS    = "The doi server has started doifying you repository. " +
@@ -24,7 +24,7 @@ var (
 	MS_NOLIC          = "No Valid Liecense provided.Plaese specify url and name!"
 	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX  = "DataSource"
-	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/cloudberry.yml"
+	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/datacite.yml"
 	MS_ENCODING       = "There was an issue with the content of your Doifile. This might mean that the encoding is wrong. please consult our FAQ or write an email to dev@g-node.org"
 )
 

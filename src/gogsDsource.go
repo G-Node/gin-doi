@@ -23,7 +23,7 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
-	fetchRepoPath := fmt.Sprintf("%s/raw/master/cloudberry.yml", URI)
+	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL, fetchRepoPath), nil)
 	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
@@ -34,12 +34,12 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 			"path":   fetchRepoPath,
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
-		}).Debug("Could not get cloudberry")
+		}).Debug("Could not get doifile")
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get cloudberry")
+		return nil, fmt.Errorf("could not get doifile")
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
