@@ -34,10 +34,12 @@ func TestGet(t *testing.T) {
 }
 
 func TestValidDoiFile(t *testing.T) {
-	ds := GinDataSource{GinURL: "https://repo.gin.g-node.org/"}
-	ok, cb := ds.ValidDoiFile("master:testi/test", OauthIdentity{})
+	ds := GogsDataSource{GinURL: "https://gin.g-node.org/"}
+	ok, cb := ds.ValidDoiFile("G-Node/Info", OauthIdentity{})
 	if !ok {
-		log.Printf("[Err] Could nor get valid Doifile :%+v")
+		log.Printf("[Err] Could not get valid Doifile")
+		t.Fail()
+		return
 	}
 	if cb.Authors[0].FirstName == "Max" {
 		t.Log("[Ok]: Getting doifile seems fine")

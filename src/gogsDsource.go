@@ -39,7 +39,7 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get doifile")
+		return nil, fmt.Errorf("could not get doifile:%+v,%s", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -47,7 +47,7 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 			"path":   fetchRepoPath,
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
-		}).Debug("Could nort read from received Clodberry")
+		}).Debug("Could not read from received Clodberry")
 		return nil, err
 	}
 	return body, nil
@@ -157,6 +157,11 @@ func (s *GogsDataSource) MakeUUID(URI string, user OauthIdentity) (string, error
 func (s *GogsDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry) {
 	in, err := s.getDoiFile(URI, user)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"data":   string(in),
+			"source": DSOURCELOGPREFIX,
+			"error":  err,
+		}).Error("Could not get the doi file")
 		return false, nil
 	}
 	doiInfo := CBerry{}
