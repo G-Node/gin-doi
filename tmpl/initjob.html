@@ -1,158 +1,255 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
+<head data-suburl="">
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="//projects.g-node.org/assets/gnode-bootstrap-theme/1.1.0-snapshot/css/bootstrap.min.css">
-    <link rel="shortcut icon" type="image/png" href="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/img/favicon.png">
-    <title>G-Node GIN-Doi</title>
+
+    <meta name="robots" content="noindex,nofollow">
+
+
+    <meta name="author" content="G-Node">
+    <meta name="description" content="Info">
+    <meta name="keywords" content="gin, data, sharing, science git">
+
+    <meta property="og:url" content="https://gin.g-node.org/G-Node/Info">
+    <meta property="og:type" content="object">
+    <meta property="og:title" content="G-Node/Info">
+    <meta property="og:description" content="">
+    <meta property="og:image" content="https://gin.g-node.org/avatars/18">
+
+
+    <link rel="shortcut icon" href="https://web.gin.g-node.org/img/favicon.png">
+    <script src="https://web.gin.g-node.org/js/jquery-1.11.3.min.js"></script>
+    <script src="https://web.gin.g-node.org/js/libs/jquery.are-you-sure.js"></script>
+    <link rel="stylesheet" href="https://web.gin.g-node.org/assets/font-awesome-4.6.3/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://web.gin.g-node.org/assets/octicons-4.3.0/octicons.min.css">
+
+    <link href="https://fonts.googleapis.com/css?family=Kaushan+Script" rel="stylesheet" type="text/css">
+
+    <link rel="stylesheet" href="https://web.gin.g-node.org/css/semantic-2.2.10.min.css">
+    <link rel="stylesheet" href="https://web.gin.g-node.org/css/gogs.css?v=a5ba52186d8265d9a6079ed01467a93a">
+
+
+    <script src="https://web.gin.g-node.org/js/semantic-2.2.10.min.js"></script>
+    <script src="https://web.gin.g-node.org/js/gogs.js?v=a5ba52186d8265d9a6079ed01467a93a"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $ = jQuery.noConflict();
+            $.ajaxSetup({cache: false});
+            $("#main").on('click', "#doify", doify);
+        });
+
+        function doify(event) {
+            $(event.target).addClass("disabled");
+            $.ajax({
+                url: "/do/",
+                type: "POST",
+                contentType: "text/plain",
+                data: "{\"OauthLogin\":\"{{.OauthLogin}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
+                dataType: "text",
+                success: function (data) {
+                    $("#info").html(data);
+                    $("#info").toggleClass("ui positive message");
+                    $("#info").toggleClass("ui info message");
+                    $("#infotable").hide();
+                    $("#warnung").hide();
+                },
+                error: function (data) {
+                    $("#info").html("This did nor work and the reasons are somewhat unclear. Please consider <a href=\"https://web.gin.g-node.org/G-Node/Info/wiki#i-found-a-bug-something-is-not-working-or-i-dont-know-what-to-do\">contacting us</a>");
+                    $("#info").toggleClass("ui positive message");
+                    $("#info").toggleClass("ui negative message");
+                    $("#infotable").hide();
+                    $("#warnung").hide();
+                }
+            });
+        }
+    </script>
+    <title>GIN-DOI</title>
+
+    <meta name="theme-color" content="#ff5343">
+
+
 </head>
 <body>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-<script src="//projects.g-node.org/assets/gnode-bootstrap-theme/1.0.0-snapshot/js/bootstrap.min.js"></script>
-<div id="main">
-        <nav class="navbar navbar-default navbar-fixed-top">
-            <div class="container">
-                <div class="navbar-header">
-                <a href="https://web.gin.g-node.org/" class="navbar-brand-gin"></a>
+<div class="full-height" id="main">
+    <div class="following bar light">
+        <div class="ui container">
+            <div class="ui grid">
+                <div class="column">
+                    <div class="ui top secondary menu">
+                        <a class="item brand" href="https://web.gin.g-node.org">
+                            <img class="ui mini image" src="https://web.gin.g-node.org/img/favicon.png">
+                        </a>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+    <div class="repository file list">
+        <div class="header-wrapper">
+            <div class="ui container">
+                <div class="ui vertically padded grid head">
+                    <div class="column">
+                        <div class="ui header">
+                            <div class="ui huge breadcrumb">
+                                <i class="mega-octicon octicon octicon-squirrel"></i>
+                                Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure)
+                                DOI service!
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </nav>
-        <div class="container main-container">
-                <h1>Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure) DOI service!</h1>
-                <hr>
+        </div>
+        <div class="ui tabs divider"></div>
+
+        <div class="ui container">
             {{if .DoiInfo.Title}}
-            <div class="bs-callout bs-callout-success" id="info">
+            <div class="ui positive message" id="info">
                 <div>
                     <b>Well Done! </b> Your repository "{{.DoiInfo.Title}}" fullfills all neccessarry requirements! Hit the button below to start the doification.
                 </div>
             </div>
-            <div class="bs-callout bs-callout-info" id="infotable">
+            <div class="ui info message" id="infotable">
                 <div id="infobox">The follwoing information will be registerd with you DOI request.
                     They will also be presented alongside the data. Please check them thoroughly and modify you datacite file if something is wrong.
                 </div>
             <hr>
-            <table class="table table-condensed">
-                <tbody>
-                <tr>
-                    <td>Title</td>
-                    <td>{{.DoiInfo.Title}}</td>
-                </tr>
-                <tr>
-                    <td>Authors</td>
-                    <td>
-                        {{range $index, $auth := .DoiInfo.Authors}}
-                        {{ $auth.LastName }},{{ $auth.FirstName }}; {{ $auth.Affiliation}}; {{$auth.ID}}
-                        <br>
+                <div id="cloudberry-view" class="tab-size-8">
+                    <table class="ui fixed single line table">
+                        <thead>
+                        <tr>
+                            <th class="two wide">
+                                <i class="octicon octicon-squirrel"></i>
+                                <strong>Datacite.yml</strong>
+                            </th>
+                            <th class="fourteen wide">
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Title</td>
+                            <td>{{.DoiInfo.Title}}</td>
+                        </tr>
+                        <tr>
+                            <td>Authors</td>
+                            <td>
+                                {{range $index, $auth := .DoiInfo.Authors}}
+                                {{ $auth.LastName }},{{ $auth.FirstName }}; {{ $auth.Affiliation}}; {{$auth.ID}}
+                                <br>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{if .DoiInfo.Description}}
+                        <tr>
+                            <td>Description</td>
+                            <td>{{.DoiInfo.Description}}
+                            </td>
+                        </tr>
                         {{end}}
-                    </td>
-                </tr>
-                {{if .DoiInfo.Description}}
-                <tr>
-                    <td>Description</td>
-                    <td>{{.DoiInfo.Description}}
-                    </td>
-                </tr>
-                {{end}}
-                {{if .DoiInfo.License}}
-                <tr>
-                    <td>License</td>
-                    <td>{{.DoiInfo.License.Name}} ({{.DoiInfo.License.Url}})
-                    </td>
-                </tr>
-                {{end}}
-                <tr>
-                    <td>References</td>
-                    <td>
-                        {{range $index, $ref := .DoiInfo.References}}
-                        {{ $ref.Name }} [{{ $ref.Doi }}] ({{ $ref.Reftype }})
-                        <br>
+                        {{if .DoiInfo.License}}
+                        <tr>
+                            <td>License</td>
+                            <td>{{.DoiInfo.License.Name}} ({{.DoiInfo.License.Url}})
+                            </td>
+                        </tr>
                         {{end}}
-                    </td>
-                </tr>
-                <tr>
-                    <td>Funding</td>
-                    <td>
-                        {{range $index, $ref := .DoiInfo.Funding}}
-                        {{ $ref}}
-                        <br>
+                        <tr>
+                            <td>References</td>
+                            <td>
+                                {{range $index, $ref := .DoiInfo.References}}
+                                {{ $ref.Name }} [{{ $ref.Doi }}] ({{ $ref.Reftype }})
+                                <br>
+                                {{end}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Funding</td>
+                            <td>
+                                {{range $index, $ref := .DoiInfo.Funding}}
+                                {{ $ref}}
+                                <br>
+                                {{end}}
+                            </td>
+                        </tr>
+                        {{if .DoiInfo.Keywords}}
+                        <tr>
+                            <td>Keywords</td>
+                            <td>
+                                {{range $index, $sub := .DoiInfo.Keywords}}
+                                {{ $sub }}
+                                <br>
+                                {{end}}
+                            </td>
+                        </tr>
                         {{end}}
-                    </td>
-                </tr>
-                {{if .DoiInfo.Keywords}}
-                <tr>
-                    <td>Keywords</td>
-                    <td>
-                        {{range $index, $sub := .DoiInfo.Keywords}}
-                        {{ $sub }}
-                        <br>
-                        {{end}}
-                    </td>
-                </tr>
-                {{end}}
-                </tbody>
-            </table>
-            </div>
-            <div class="bs-callout bs-callout-danger" id="warnung">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ui negative message" id="warnung">
                 <div>
                     <b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b>
                     (Yes, that really means ALL data - including private files, ssh keys, address books, password collections and whatnot.
                     If it happens to be in the repository, it will be in the archive).
                 </div>
             </div>
-            <div class="btn btn-primary" role="button" id="doify">Doify Now</div>
+                <div class="ui primary button" id="doify">Doify Now</div>
             {{else}}
-            <div class="alert alert-warning">
+                <div class="ui warning message">
                 <div><b>This did not work. The Server seems to be angry with you and wont doify this request!</b> {{.Mess}}</div>
             </div>
             {{end}}
+            </div>
         </div>
-        <nav class="navbar navbar-fixed-bottom navbar-default">
-            <div class="container">
-                <div class="row display-table">
-                    <div class="col-sm-1 display-cell">
-                        <a href="http://www.g-node.org" class="navbar-footer-brand-gin"></a>
+    </div>
+</div>
+<footer>
+    <div class="following bar light">
+        <div class="ui container">
+            <div class="ui grid">
+                <div class="column">
+                    <div class="ui top secondary menu center">
+                        <a class="item brand" href="http://www.g-node.org">
+                            <img class="ui mini image"
+                                 src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png">
+                            © G-Node, 2016-2017
+                        </a>
+                        <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/about">About</a>
+                        <a class="item brand"
+                           href="https://web.gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
+                        <a class="item brand"
+                           href="https://web.gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>
+                        <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/Terms+of+Use">Terms
+                            of Use</a>
+
+                        <div class="ui supersmall leftspace">
+                            Powered by:
+                            <a href="https://github.com/gogits/gogs">
+                                <img class="ui gogssmall image" src="https://web.gin.g-node.org/img/gogs.svg">
+                            </a>
+                        </div>
+                        <div class="ui supersmall">
+                            Hosted by:
+                            <img class="ui bmbf image" src="https://web.gin.g-node.org/img/lmu.png">
+                        </div>
+                        <div class="ui supersmall">
+                            Funded by:
+                            <img class="ui bmbf image" src="https://web.gin.g-node.org/img/bmbf.png">
+                        </div>
+                        <div class="ui supersmall">
+                            Registered with:
+                            <a href="http://doi.org/10.17616/R3SX9N">
+                                <img class="ui bmbf image" src="https://web.gin.g-node.org/img/re3.png">
+                            </a>
+                        </div>
                     </div>
-                    <div class="col-sm-6 display-cell">
-                        <ul class="list-inline">
-                            <li>© G-Node, 2016-2017</li>
-                            <li><a href="http://www.g-node.org/gin_terms">Terms of usage</a></li>
-                        </ul>
-                    </div> <div class="col-sm-6 display-cell">
-                    <ul class="list-inline pull-right">
-                        <li><a href="https://web.gin.g-node.org/info/about" class="">About</a></li>
-                        <li><a href="https://web.gin.g-node.org/info/imprint" class="">Imprint</a></li>
-                        <li><a href="https://web.gin.g-node.org/info/contact" class="">Contact</a></li>
-                    </ul>
-                </div>
                 </div>
             </div>
-        </nav>
-</div>
-<script>
-    $(document).ready(function() {
-        $ = jQuery.noConflict();
-        $.ajaxSetup({cache: false});
-        $("#main").on('click', "#doify", doify);
-    });
-    function doify(event) {
-        $(event.target).addClass("disabled");
-        $.ajax({
-            url:"/do/",
-            type:"POST",
-            contentType: "text/plain",
-            data:"{\"OauthLogin\":\"{{.OauthLogin}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
-            dataType:"text",
-            success: function (data) {
-                $("#info").html(data);
-                $("#info").toggleClass("bs-callout-success");
-                $("#info").toggleClass("bs-callout-info");
-                $("#infotable").hide();
-                $("#warnung").hide();
-            }
-        });
-    }
-</script>
+        </div>
+    </div>
+</footer>
 </body>
 </html>
