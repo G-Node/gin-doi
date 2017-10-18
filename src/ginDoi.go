@@ -9,23 +9,24 @@ var (
 	MS_NODOIFILE      = "Could not locate a datacite file. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
-	MS_SERVERWORKS    = "The doi server has started doifying you repository. " +
-		"Once finnished it will be availible <a href=\"%s\" class=\"label label-warning\">here</a>. Until the doi registration is finished you will get a 403 Forbidden warning when you go there. Please return to that location to check for " +
-		"availibility <br><br>" +
-		"We will try to resgister the following doi: <div class =\"label label-default\">%s</div> " +
-		"for your dataset. Please note, however, that in rare cases the final doi might be different."
+	MS_SERVERWORKS    = "The doi server has started doifying and archiving your repository. " +
+		"We will try to register the following doi: <div class =\"label label-default\">%s</div> " +
+		"for your dataset. Please note, however, that in rare cases the final doi might be different.<br>" +
+		"Please consider that there is a step of human intervention before the doi is registered." +
+		"It might therefore take a few hours until the doi page goes live. We will notify you" +
+		"via email once the process is finished."
 	MS_NOLOGIN        = "You are not logged in with the gin service. Login at http://gin.g-node.org/"
 	MS_NOTOKEN        = "No authentication token provided"
 	MS_NOUSER         = "No username provided"
-	MS_NOTITLE        = "No Title provided."
-	MS_NOAUTHORS      = "No Authors provided."
-	MS_AUTHORWRONG    = "Not all Authors valid.  Please provide at least a lastname and a firstname"
-	MS_NODESC         = "No Description provided."
-	MS_NOLIC          = "No Valid Liecense provided.Plaese specify url and name!"
+	MS_NOTITLE        = "No title provided."
+	MS_NOAUTHORS      = "No authors provided."
+	MS_AUTHORWRONG    = "Not all authors valid.  Please provide at least a lastname and a firstname"
+	MS_NODESC         = "No description provided."
+	MS_NOLIC          = "No valid license provided. Please specify url and name!"
 	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX  = "DataSource"
 	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/datacite.yml"
-	MS_ENCODING       = "There was an issue with the content of your Doifile. This might mean that the encoding is wrong. please consult our FAQ or write an email to dev@g-node.org"
+	MS_ENCODING       = "There was an issue with the content of your doifile. This might mean that the encoding is wrong. please consult our FAQ or write an email to dev@g-node.org"
 )
 
 // Responsible for storing smth defined by source to a kind of Storage
