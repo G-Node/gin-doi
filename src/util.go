@@ -94,7 +94,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, storage.HttpBase+uuid, doi)))
+		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi)))
 	}
 }
 
