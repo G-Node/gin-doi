@@ -54,7 +54,7 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 }
 
 func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
-	gin_uri := fmt.Sprintf("%s/%s.git", s.GinGitURL, URI)
+	gin_uri := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
 		"URI":     URI,
 		"gin_uri": gin_uri,
