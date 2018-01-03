@@ -11,6 +11,9 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"gopkg.in/yaml.v2"
+	"strings"
+	"encoding/json"
+	"github.com/gogits/go-gogs-client"
 )
 
 type GogsDataSource struct {
@@ -136,21 +139,37 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 }
 
 func (s *GogsDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
+	currMd5 := md5.Sum([]byte(URI))
+	return hex.EncodeToString(currMd5[:]), nil
+}
+
+// Determine the lates commit id of the master branch
+func (s *GogsDataSource) GetMasterCommit(URI string, user OauthIdentity) (string, error) {
 	fetchRepoPath := fmt.Sprintf("%s", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL, fetchRepoPath), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL, fetchRepoPath), nil)
 	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
-	// todo error checking
+	defer resp.Body.Close()
 	if err != nil {
 		return "", err
 	}
-	if bd, err := ioutil.ReadAll(resp.Body); err != nil {
-		return "", err
-	} else {
-		currMd5 := md5.Sum(bd)
-		return hex.EncodeToString(currMd5[:]), nil
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Could not get repo branches: %s", resp.Status)
 	}
+
+	branches := []gogs.Branch{}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	json.Unmarshal(data, &branches)
+	for _, branch := range branches {
+		if branch.Name == "master" {
+			return branch.Commit.ID, nil
+		}
+	}
+	return "", fmt.Errorf("Could not locate master branch")
 }
 
 // Return true if the specifies URI "has" a doi File containing all nec. information
