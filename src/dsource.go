@@ -208,7 +208,7 @@ func (c *CBerry) GetCitation() string {
 	var authors string
 	for _, auth := range c.Authors {
 		if len(auth.FirstName) > 0 {
-			authors += fmt.Sprintf("%s %s, ", auth.LastName, auth.FirstName[0])
+			authors += fmt.Sprintf("%s %s, ", auth.LastName, string(auth.FirstName[0]))
 		} else {
 			authors += fmt.Sprintf("%s, ", auth.LastName)
 		}
