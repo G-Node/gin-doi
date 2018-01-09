@@ -3,6 +3,7 @@ package ginDoi
 import (
 	"crypto/rsa"
 	"github.com/G-Node/gin-core/gin"
+	"regexp"
 )
 
 var (
@@ -91,4 +92,11 @@ type DoiJob struct {
 	User    OauthIdentity
 	DoiReq  DoiReq
 	Key     rsa.PrivateKey
+}
+
+
+func (d *DoiReq) GetdoiUri() string {
+	var re = regexp.MustCompile(`(.+)\/`)
+	return string(re.ReplaceAll([]byte(d.URI),[]byte("doi/")))
+
 }

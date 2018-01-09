@@ -61,7 +61,10 @@
                     <td>References</td>
                     <td>
                         {{range $index, $ref := .DoiInfo.References}}
-                        {{ $ref.Name }} [{{ $ref.Doi }}]
+                        {{ $ref.Name }}
+                            {{if $ref.Doi}}
+                                [<a href=" http://{{$ref.Doi}}">{{$ref.Doi}}</a>]
+                            {{end}}
                         <br>
                         {{end}}
                     </td>
@@ -89,12 +92,9 @@
                 <tr>
                     <td>Data</td>
                     <td>
-                        This dataset can easily be browsed online <a class="ui green label" href="https://web.gin.g-node.org/{{.URI}}">here</a>.
-                        While this repository contains possibly updated version of the data, we also created a copy of
-                        the original state, which can be accesed by looking for the fork of the original created by the
-                        <a href="https://web.gin.g-node.org/doi">Doi user</a>.
-                        An archive of the data can also be downloaded:<br>
-                        <a href="{{.DoiInfo.UUID}}.zip">Data ({{.DoiInfo.FileSize}} MB)</a><br>
+                        This dataset can be browsed online <a href="https://web.gin.g-node.org/{{.GetdoiUri}}">here</a> or downloaded as a
+                        <a href="{{.DoiInfo.UUID}}.zip">zip archive ({{.DoiInfo.FileSize}} MB)</a>.
+                        The current version of the dataset repository, possibly with updates, can be found <a href="https://web.gin.g-node.org/{{.URI}}">here</a>.
                     </td>
                 </tr>
                 <tr>
