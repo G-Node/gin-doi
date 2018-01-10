@@ -223,6 +223,22 @@ type Author struct {
 	ID          string
 }
 
+type NamedIdentifier struct {
+	URI string
+	Scheme string
+	ID string
+}
+
+func (c *Author) GetValidId() *NamedIdentifier {
+	if c.ID == ""{
+		return nil
+	}
+	if strings.Contains(c.ID, "orcid") {
+		return &NamedIdentifier{URI: "http://orcid.org/", Scheme: "ORCID", ID: c.ID}
+	}
+	return nil
+}
+
 type Reference struct {
 	Reftype string
 	Name    string
