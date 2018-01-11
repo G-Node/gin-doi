@@ -17,6 +17,7 @@ RUN go get github.com/Sirupsen/logrus
 RUN go get github.com/docopt/docopt-go
 RUN go get github.com/G-Node/gin-core/gin
 RUN go get golang.org/x/crypto/ssh
+RUN go get github.com/gogits/go-gogs-client
 
 ADD . /gin-doi
 RUN mkdir -p /go/src/github.com/G-Node
@@ -24,7 +25,9 @@ RUN ln -s  /gin-doi /go/src/github.com/G-Node/gin-doi
 RUN cd gin-doi
 WORKDIR /gin-doi
 RUN go build
-VOLUME ["/doidata"]
 
-ENTRYPOINT ./gin-doi --target /doidata
+VOLUME ["/doidata"]
+VOLUME ["/repos"]
+
+ENTRYPOINT ./gin-doi --debug --target /doidata --gitsource=/repos
 EXPOSE 8083
