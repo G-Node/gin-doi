@@ -10,12 +10,16 @@ var (
 	MS_NODOIFILE      = "Could not locate a datacite file. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
 	MS_URIINVALID     = "Please provide a valid repository URI"
-	MS_SERVERWORKS    = "The doi server has started doifying and archiving your repository. " +
-		"We will try to register the following doi: <div class =\"label label-default\">%s</div> " +
-		"for your dataset. Please note, however, that in rare cases the final doi might be different.<br>" +
-		"Please consider that there is a step of human intervention before the doi is registered." +
-		"It might therefore take a few hours until the doi page goes live. We will notify you" +
-		"via email once the process is finished."
+	MS_SERVERWORKS    = `<i class="notched circle loading icon"></i>
+		<div class="content">
+			<div class="header">The doi server has started doifying and archiving your repository.</div>
+		We will try to register the following doi:<br>
+		<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a></div><br>
+		for your dataset. Please note, however, that in rare cases the final doi might be different.<br>
+		Please consider that there is a step of human intervention before the doi is registered.
+		It might therefore take a few hours until the doi page goes live. We will notify you
+		via email once the process is finished.
+		</div>`
 	MS_NOLOGIN        = "You are not logged in with the gin service. Login at http://gin.g-node.org/"
 	MS_NOTOKEN        = "No authentication token provided"
 	MS_NOUSER         = "No username provided"

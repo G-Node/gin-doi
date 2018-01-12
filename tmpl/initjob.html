@@ -50,9 +50,9 @@
                 data: "{\"OauthLogin\":\"{{.OauthLogin}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
                 dataType: "text",
                 success: function (data) {
-                    $("#info").html(data);
+                    $("#info").html($.parseHTML(data));
                     $("#info").toggleClass("ui positive message");
-                    $("#info").toggleClass("ui info message");
+                    $("#info").toggleClass("ui info icon message");
                     $("#infotable").hide();
                     $("#warnung").hide();
                 },
