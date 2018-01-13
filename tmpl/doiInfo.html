@@ -63,7 +63,7 @@
                         {{range $index, $ref := .DoiInfo.References}}
                         {{ $ref.Name }}
                             {{if $ref.Doi}}
-                                [<a href=" http://{{$ref.Doi}}">{{$ref.Doi}}</a>]
+                                [<a href=" http://doi.org/{{$ref.Doi}}">{{$ref.Doi}}</a>]
                             {{end}}
                         <br>
                         {{end}}
