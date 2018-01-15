@@ -45,7 +45,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 			"source":  "DoDoiJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
-		dReq.Mess = MS_NOLOGIN
+		dReq.Mess = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -54,7 +54,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "DoDoiJob",
 		}).Debug("Token not valid")
-		dReq.Mess = MS_NOLOGIN
+		dReq.Mess = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -66,7 +66,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 			"source":  "DoDoiJob",
 			"error":   err,
 		}).Debug("Could not get userdata")
-		dReq.Mess = MS_NOLOGIN
+		dReq.Mess = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -134,7 +134,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"source":  "Init",
 			"error":   err,
 		}).Debug("No Repo URI provided")
-		dReq.Mess = MS_URIINVALID
+		dReq.Mess = template.HTML(MS_URIINVALID)
 		err := t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -149,7 +149,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 
 	// Test whether token was provided
 	if !(len(token) > 0) {
-		dReq.Mess = MS_NOTOKEN
+		dReq.Mess = template.HTML(MS_NOTOKEN)
 		log.WithFields(log.Fields{
 			"request": dReq,
 			"source":  "Init",
@@ -165,7 +165,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 
 	// Test whether username was provided
 	if !(len(username) > 0) {
-		dReq.Mess = MS_NOUSER
+		dReq.Mess = template.HTML(MS_NOUSER)
 		err := t.Execute(w, dReq)
 		if err != nil {
 			log.Print(err)
@@ -182,7 +182,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"source":  "InitDoiJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
-		dReq.Mess = MS_NOLOGIN
+		dReq.Mess = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -191,7 +191,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "InitDoiJob",
 		}).Debug("Token not valid")
-		dReq.Mess = MS_NOLOGIN
+		dReq.Mess = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		t.Execute(w, dReq)
 		return
@@ -205,7 +205,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"source":  "Init",
 			"error":   err,
 		}).Debug("Could not authenticate user")
-		dReq.Mess = MS_NOLOGIN
+		dReq.Mess = template.HTML(MS_NOLOGIN)
 		t.Execute(w, dReq)
 		return
 	}
@@ -233,9 +233,9 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"error":   err,
 		}).Debug("Doifile File invalid")
 		if doiInfo.Missing != nil {
-			dReq.Mess = MS_INVALIDDOIFILE + " Issue: " + doiInfo.Missing[0]
+			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + " <p>Issue:<i> " + doiInfo.Missing[0]+"</i>")
 		} else {
-			dReq.Mess = MS_INVALIDDOIFILE + MS_ENCODING
+			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + MS_ENCODING)
 		}
 		t.Execute(w, dReq)
 		if err != nil {
@@ -248,7 +248,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		}
 		return
 	} else {
-		dReq.Mess = MS_INVALIDDOIFILE
+		dReq.Mess = template.HTML(MS_INVALIDDOIFILE)
 		t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{

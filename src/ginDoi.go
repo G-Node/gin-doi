@@ -4,11 +4,12 @@ import (
 	"crypto/rsa"
 	"github.com/G-Node/gin-core/gin"
 	"regexp"
+	"html/template"
 )
 
 var (
-	MS_NODOIFILE      = "Could not locate a datacite file. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
-	MS_INVALIDDOIFILE = "The doi File was not Valid. Please visit https://web.gin.g-node.org/G-Node/Info/wiki/Doi for a guide"
+	MS_NODOIFILE      = `Could not locate a datacite file. Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions. `
+	MS_INVALIDDOIFILE = `The doi File was not valid. Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions. `
 	MS_URIINVALID     = "Please provide a valid repository URI"
 	MS_SERVERWORKS    = `<i class="notched circle loading icon"></i>
 		<div class="content">
@@ -20,7 +21,7 @@ var (
 		It might therefore take a few hours until the doi page goes live. We will notify you
 		via email once the process is finished.
 		</div>`
-	MS_NOLOGIN        = "You are not logged in with the gin service. Login at http://gin.g-node.org/"
+	MS_NOLOGIN        = `You are not logged in with the gin service. Login <a href="http://gin.g-node.org/">here</a>`
 	MS_NOTOKEN        = "No authentication token provided"
 	MS_NOUSER         = "No username provided"
 	MS_NOTITLE        = "No title provided."
@@ -31,7 +32,8 @@ var (
 	MS_REFERENCEWRONG = "A specified Reference is not valid (needs name and type)"
 	DSOURCELOGPREFIX  = "DataSource"
 	GINREPODOIPATH    = "/users/%s/repos/%s/browse/master/datacite.yml"
-	MS_ENCODING       = "There was an issue with the content of your doifile. This might mean that the encoding is wrong. please consult our FAQ or write an email to dev@g-node.org"
+	MS_ENCODING       = `There was an issue with the content of your doifile. This might mean that the encoding is wrong.
+						Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions or write an email to gin@g-node.org`
 )
 
 // Responsible for storing smth defined by source to a kind of Storage
@@ -79,7 +81,7 @@ type DoiReq struct {
 	User       DoiUser
 	OauthLogin string
 	Token      string
-	Mess       string
+	Mess       template.HTML
 	DoiInfo    CBerry
 }
 
@@ -103,4 +105,8 @@ func (d *DoiReq) GetdoiUri() string {
 	var re = regexp.MustCompile(`(.+)\/`)
 	return string(re.ReplaceAll([]byte(d.URI),[]byte("doi/")))
 
+}
+
+func (d *DoiReq) AsHtml() template.HTML {
+	return template.HTML(d.Mess)
 }

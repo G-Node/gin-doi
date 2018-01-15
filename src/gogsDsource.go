@@ -192,7 +192,9 @@ func (s *GogsDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CB
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
 		}).Error("Could not unmarshal doifile")
-		return false, &CBerry{}
+		res := CBerry{}
+		res.Missing=[]string{fmt.Sprintf("%s",err)}
+		return false, &res
 	}
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{

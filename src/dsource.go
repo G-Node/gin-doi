@@ -21,7 +21,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-
 type GinDataSource struct {
 	GinURL    string
 	GinGitURL string
@@ -224,13 +223,13 @@ type Author struct {
 }
 
 type NamedIdentifier struct {
-	URI string
+	URI    string
 	Scheme string
-	ID string
+	ID     string
 }
 
 func (c *Author) GetValidId() *NamedIdentifier {
-	if c.ID == ""{
+	if c.ID == "" {
 		return nil
 	}
 	if strings.Contains(c.ID, "orcid") {
