@@ -4,8 +4,8 @@
   <creators>{{range $index, $auth := .Authors}}
     <creator>
       <creatorName>{{$auth.LastName}}, {{$auth.FirstName}}</creatorName>
-      {{if $auth.Affiliation}}<affiliation>{{$auth.Affiliation}}</affiliation>{{end}}
-      {{if $auth.GetValidId}}<nameIdentifier schemeURI="{{$auth.GetValidId.URI}}" nameIdentifierScheme="{{$auth.GetValidId.Scheme}}">{{$auth.GetValidId.ID}}</nameIdentifier>{{end}}
+        {{if $auth.GetValidId}}<nameIdentifier schemeURI="{{$auth.GetValidId.URI}}" nameIdentifierScheme="{{$auth.GetValidId.Scheme}}">{{$auth.GetValidId.ID}}</nameIdentifier>{{end}}
+        {{if $auth.Affiliation}}<affiliation>{{$auth.Affiliation}}</affiliation>{{end}}
     </creator>{{end}}
   </creators>
   <titles>
