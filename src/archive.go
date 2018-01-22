@@ -109,6 +109,18 @@ func Zip(src string, writers ...io.Writer) error {
 		if fi.Mode().IsDir() {
 			return nil
 		}
+		mode := fi.Mode()
+		fmt.Print(mode)
+		if fi.Mode()&os.ModeSymlink != 0 {
+			data, err := os.Readlink(file)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(w, strings.NewReader(data)); err != nil {
+				return err
+			}
+			return nil
+		}
 
 		// open files for taring
 		f, err := os.Open(file)
