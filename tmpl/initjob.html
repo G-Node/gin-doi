@@ -191,12 +191,22 @@
                     </tbody>
                 </table>
             </div>
-            <div class="ui negative message" id="warnung">
-                <div>
-                    <b>Please be aware that all data in your repository will be part of the archived file that will be
-                        used for the DOI registration.</b>
+            <div class="ui negative icon message" id="warnung">
+                <i class="warning icon"></i>
+                <div class="content">
+                    <div class="header"> Please thouroughly check the following before proceeding</div>
+                    <ul>
+                        <li>Did you upload all data?</li>
+                        <li>Does your repository contain a LICENSE file and does the license in that file match the
+                            license you provided in the datacite.yml file?
+                        </li>
+                        <li>Does your repository contain a good description of the data?</li>
+                    </ul>
+                    Furthermore, <b>Please be aware that all data in your repository will be part of the archived
+                    file
+                    that will be used for the DOI registration.</b>
                     (Yes, that really means ALL data - including private files, ssh keys, address books, password
-                    collections and whatnot.
+                    collections, and whatnot.
                     If it happens to be in the repository, it will be in the archive).
                 </div>
             </div>
