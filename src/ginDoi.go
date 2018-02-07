@@ -11,6 +11,13 @@ var (
 	MS_NODOIFILE      = `Could not locate a datacite file. Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions. `
 	MS_INVALIDDOIFILE = `The doi File was not valid. Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions. `
 	MS_URIINVALID     = "Please provide a valid repository URI"
+	MS_DOIREG         = `<i class="info icon"></i>
+						<div class="content">
+							<div class="header"> A DOI is already registered for your dataset.</div>
+							Your DOI is: <br>
+								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a>
+							</div>.
+						</div>`
 	MS_SERVERWORKS    = `<i class="notched circle loading icon"></i>
 		<div class="content">
 			<div class="header">The doi server has started doifying and archiving your repository.</div>

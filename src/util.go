@@ -21,6 +21,19 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
+func IsRegsitredDoi(doi string) (bool) {
+	url := fmt.Sprintf("https://doi.org/%s", doi)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Errorf("Could not querry for doi:%d at %s", doi, url)
+		return false
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		return true
+	}
+	return false
+}
+
 func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, storage LocalStorage, op OauthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
@@ -90,16 +103,22 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		if IsRegsitredDoi(doi) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf(MS_DOIREG, doi, doi)))
+			return
+		}
 		job := DoiJob{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID, Key: *key}
 		jobQueue <- job
 		// Render success.
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi,doi)))
+		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi, doi)))
 	}
 }
 
 func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthProvider,
-	tp string) {
+	tp string, storage *LocalStorage) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
