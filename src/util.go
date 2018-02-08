@@ -8,6 +8,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"crypto/aes"
+	"crypto/rand"
+	"io"
+	"crypto/cipher"
+	"encoding/base64"
 )
 
 // Check the current user. Return a user if logged in
@@ -19,6 +24,55 @@ func readBody(r *http.Request) (*string, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	x := string(body)
 	return &x, err
+}
+
+// encrypt string to base64 crypto using AES
+func Encrypt(key []byte, text string) (string, error) {
+	plaintext := []byte(text)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	// The IV needs to be unique, but not secure. Therefore it's common to
+	// include it at the beginning of the ciphertext.
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+	iv := ciphertext[:aes.BlockSize]
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return "", err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+
+	// convert to base64
+	return base64.URLEncoding.EncodeToString(ciphertext), nil
+}
+
+// decrypt from base64 to decrypted string
+func Decrypt(key []byte, cryptoText string) (string, error) {
+	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	// The IV needs to be unique, but not secure. Therefore it's common to
+	// include it at the beginning of the ciphertext.
+	if len(ciphertext) < aes.BlockSize {
+		return "", err
+	}
+	iv := ciphertext[:aes.BlockSize]
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	stream := cipher.NewCFBDecrypter(block, iv)
+
+	// XORKeyStream can work in-place if the two arguments are the same.
+	stream.XORKeyStream(ciphertext, ciphertext)
+
+	return fmt.Sprintf("%s", ciphertext), nil
 }
 
 func IsRegsitredDoi(doi string) (bool) {
@@ -118,7 +172,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 }
 
 func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthProvider,
-	tp string, storage *LocalStorage) {
+	tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -129,6 +183,15 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 	URI := r.Form.Get("repo")
 	token := r.Form.Get("token")
+	token, err := Decrypt([]byte(key), token)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": "InitDoiJob",
+			"error":  err,
+		}).Error("Could not decrypt token")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	username := r.Form.Get("user")
 	dReq := DoiReq{URI: URI, OauthLogin: username, Token: token}
 	log.WithFields(log.Fields{
@@ -202,7 +265,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"error":   err,
 		}).Debug("User authentication Failed")
 		dReq.Mess = template.HTML(MS_NOLOGIN)
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	if ! ok {
@@ -211,7 +274,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"source":  "InitDoiJob",
 		}).Debug("Token not valid")
 		dReq.Mess = template.HTML(MS_NOLOGIN)
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusOK)
 		t.Execute(w, dReq)
 		return
 	}

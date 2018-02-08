@@ -16,7 +16,7 @@ Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --gitsource=<gitdsourceurl>
            --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
-           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath>]
+           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath>] --key=<key>
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
@@ -34,6 +34,7 @@ Options:
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
   --templates=<tmplpath>          Path to the Templates [default: tmpl]
+  --key=<key>                     Key used to decrypt token
  `
 
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -62,6 +63,8 @@ Options:
 		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oaAdress),
 	}
 
+	key := args["--key"].(string)
+
 	// Create the job queue.
 	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
 	if err != nil {
@@ -76,7 +79,7 @@ Options:
 
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.InitDoiJob(w, r, ds, &op, storage.TemplatePath, &storage)
+		ginDoi.InitDoiJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
 		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
