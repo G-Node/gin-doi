@@ -139,9 +139,12 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 	return string(out), nil
 }
 
-func (s *GogsDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
+func RepoP2UUID(URI string) string {
 	currMd5 := md5.Sum([]byte(URI))
-	return hex.EncodeToString(currMd5[:]), nil
+	return hex.EncodeToString(currMd5[:])
+}
+func (s *GogsDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
+	return RepoP2UUID(URI), nil
 }
 
 // Determine the lates commit id of the master branch

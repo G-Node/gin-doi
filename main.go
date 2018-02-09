@@ -30,7 +30,7 @@ Options:
   --mServer=<server>              The mailserver adress (:and port) [default: localhost:25]
   --mFrom=<from>                  The mail from adress [default: no-reply@g-node.org]
   --doiMaster=<master>            The mail adress to send info to [default: dev@g-node.org]
-  --doiBase=<base>                The first part of the DOI [default: 10.12751]
+  --doiBase=<base>                The first part of the DOI [default: 10.12751/g-node.]
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
   --templates=<tmplpath>          Path to the Templates [default: tmpl]

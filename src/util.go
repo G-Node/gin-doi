@@ -13,6 +13,7 @@ import (
 	"io"
 	"crypto/cipher"
 	"encoding/base64"
+	"time"
 )
 
 // Check the current user. Return a user if logged in
@@ -342,4 +343,84 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		}
 		return
 	}
+}
+
+type DoiMData struct {
+	Data struct {
+		ID   string `json:"id"`
+		Type string `json:"type"`
+		Attributes struct {
+			Doi        string      `json:"doi"`
+			Identifier string      `json:"identifier"`
+			URL        interface{} `json:"url"`
+			Author []struct {
+				Literal string `json:"literal"`
+			} `json:"author"`
+			Title               string      `json:"title"`
+			ContainerTitle      string      `json:"container-title"`
+			Description         string      `json:"description"`
+			ResourceTypeSubtype string      `json:"resource-type-subtype"`
+			DataCenterID        string      `json:"data-center-id"`
+			MemberID            string      `json:"member-id"`
+			ResourceTypeID      string      `json:"resource-type-id"`
+			Version             string      `json:"version"`
+			License             interface{} `json:"license"`
+			SchemaVersion       string      `json:"schema-version"`
+			Results []struct {
+				ID    string `json:"id"`
+				Title string `json:"title"`
+				Count int    `json:"count"`
+			} `json:"results"`
+			RelatedIdentifiers []struct {
+				RelationTypeID    string `json:"relation-type-id"`
+				RelatedIdentifier string `json:"related-identifier"`
+			} `json:"related-identifiers"`
+			Published  string      `json:"published"`
+			Registered time.Time   `json:"registered"`
+			Updated    time.Time   `json:"updated"`
+			Media      interface{} `json:"media"`
+			XML        string      `json:"xml"`
+		} `json:"attributes"`
+		Relationships struct {
+			DataCenter struct {
+				Meta struct {
+				} `json:"meta"`
+			} `json:"data-center"`
+			Member struct {
+				Meta struct {
+				} `json:"meta"`
+			} `json:"member"`
+			ResourceType struct {
+				Meta struct {
+				} `json:"meta"`
+			} `json:"resource-type"`
+		} `json:"relationships"`
+	} `json:"data"`
+}
+
+type DOIinvalid struct {
+	error
+}
+
+//https://api.datacite.org/works/
+func GDoiMData(doi, doireg string) (*DoiMData, error) {
+	url := fmt.Sprintf("%s%s", doireg, doi)
+	resp, err := http.Get(url)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, DOIinvalid{}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Resource not found")
+	}
+	d, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	data := &DoiMData{}
+	json.Unmarshal(d, data)
+	return data, nil
 }
