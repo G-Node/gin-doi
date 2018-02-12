@@ -10,6 +10,7 @@ import (
 
 var LOGPREFIX = "GnodeDoiProvider"
 
+
 type GnodeDoiProvider struct {
 	//https://mds.datacite.org/static/apidoc
 	ApiURI  string

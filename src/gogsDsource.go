@@ -139,7 +139,18 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 	return string(out), nil
 }
 
+var UUIDMap = map[string]string{
+	"INT/multielectrode_grasp":                   "f83565d148510fede8a277f660e1a419",
+	"ajkumaraswamy/HB-PAC_disinhibitory_network": "1090f803258557299d287c4d44a541b2",
+	"steffi/Kleineidam_et_al_2017":               "f53069de4c4921a3cfa8f17d55ef98bb",
+	"Churan/Morris_et_al_Frontiers_2016":         "97bc1456d3f4bca2d945357b3ec92029",
+	"fabee/efish_locking":                        "6953bbf0087ba444b2d549b759de4a06",
+}
+
 func RepoP2UUID(URI string) string {
+	if doi, ok := UUIDMap[URI]; ok {
+		return doi
+	}
 	currMd5 := md5.Sum([]byte(URI))
 	return hex.EncodeToString(currMd5[:])
 }
