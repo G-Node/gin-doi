@@ -5,7 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"path/filepath"
-	"text/template"
+	"html/template"
 )
 
 var LOGPREFIX = "GnodeDoiProvider"

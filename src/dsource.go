@@ -241,7 +241,7 @@ func (c *Author) GetValidId() *NamedIdentifier {
 	return nil
 }
 func (a *Author) RenderAuthor() string {
-	auth := fmt.Sprintf("%s,%s:%s:%s", a.LastName, a.FirstName, a.Affiliation, a.ID)
+	auth := fmt.Sprintf("%s,%s;%s;%s", a.LastName, a.FirstName, a.Affiliation, a.ID)
 	return strings.TrimRight(auth, ";")
 }
 
