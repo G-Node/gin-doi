@@ -3,30 +3,30 @@
   <identifier identifierType="DOI">{{.DOI}}</identifier>
   <creators>{{range $index, $auth := .Authors}}
     <creator>
-      <creatorName>{{$auth.LastName}}, {{$auth.FirstName}}</creatorName>
-        {{if $auth.GetValidId}}<nameIdentifier schemeURI="{{$auth.GetValidId.URI}}" nameIdentifierScheme="{{$auth.GetValidId.Scheme}}">{{$auth.GetValidId.ID}}</nameIdentifier>{{end}}
-        {{if $auth.Affiliation}}<affiliation>{{$auth.Affiliation}}</affiliation>{{end}}
+      <creatorName>{{$.EscXML $auth.LastName}}, {{$.EscXML $auth.FirstName}}</creatorName>
+        {{if $auth.GetValidId}}<nameIdentifier schemeURI="{{$auth.GetValidId.URI}}" nameIdentifierScheme="{{$auth.GetValidId.Scheme}}">{{$.EscXML $auth.GetValidId.ID}}</nameIdentifier>{{end}}
+        {{if $auth.Affiliation}}<affiliation>{{$.EscXML $auth.Affiliation}}</affiliation>{{end}}
     </creator>{{end}}
   </creators>
   <titles>
-    <title>{{.Title}}</title>
+    <title>{{.EscXML .Title}}</title>
   </titles>
   {{if .Description}}<descriptions>
     <description descriptionType="Abstract">
-    {{.Description}}
+    {{.EscXML  .Description}}
     </description>
   </descriptions>{{end}}
   {{if .License}}<rightsList>
-    <rights {{if .License.Url}}rightsURI="{{.License.Url}}"{{end}}> {{.License.Name}}</rights>
+    <rights {{if .License.Url}}rightsURI="{{.License.Url}}"{{end}}> {{$.EscXML .License.Name}}</rights>
   </rightsList>{{end}}
   {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
-     <subject>{{$kw}}</subject>{{end}}
+     <subject>{{$.EscXML $kw}}</subject>{{end}}
   </subjects>{{end}}
   {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
-  <relatedIdentifier relatedIdentifierType="Handle" relationType="{{$ref.Reftype}}">{{$ref.Name}}</relatedIdentifier>{{end}}
+  <relatedIdentifier relatedIdentifierType="Handle" relationType="{{$ref.Reftype}}">{{$.EscXML $ref.Name}}</relatedIdentifier>{{end}}
   </relatedIdentifiers>{{end}}
   {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
-  <fundingReference><funderName>{{$fu}}</funderName></fundingReference>{{end}}
+  <fundingReference><funderName>{{$.EscXML $fu}}</funderName></fundingReference>{{end}}
 </fundingReferences>{{end}}
   <contributors>
     <contributor contributorType="HostingInstitution">
