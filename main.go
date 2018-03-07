@@ -16,7 +16,7 @@ Usage:
   gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --gitsource=<gitdsourceurl>
            --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
-           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath>] --key=<key>
+           --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath> --scpURL=<scpURL>] --key=<key>
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
@@ -34,6 +34,7 @@ Options:
   --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
   --debug                         Whether debug messages shall be printed
   --templates=<tmplpath>          Path to the Templates [default: tmpl]
+  --scpURL=<scpURL>               URI for scp copping of the datacit XML [default: gin.g-node.org:/data/doid]
   --key=<key>                     Key used to decrypt token
  `
 
@@ -53,7 +54,8 @@ Options:
 		DoSend:                      args["--sendMail"].(bool),
 		Master:                      args["--doiMaster"].(string)}
 	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
-		DProvider:                   dp, MServer: &mServer, TemplatePath: args["--templates"].(string)}
+		DProvider: dp, MServer: &mServer, TemplatePath: args["--templates"].(string),
+		SCPURL: args["--scpURL"].(string)}
 
 	// setup authentication
 	oaAdress := args["--oauthserver"].(string)

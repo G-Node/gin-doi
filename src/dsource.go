@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"regexp"
 	"gopkg.in/yaml.v2"
+	"encoding/xml"
 )
 
 type GinDataSource struct {
@@ -215,6 +216,15 @@ func (c *CBerry) GetCitation() string {
 	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
 }
 
+func (c *CBerry) EscXML(txt string) string {
+	buf := new(bytes.Buffer)
+	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
+		log.Errorf("Could not escape:%s, %+v", txt, err)
+		return ""
+	}
+	return buf.String()
+
+}
 type Author struct {
 	FirstName   string
 	LastName    string

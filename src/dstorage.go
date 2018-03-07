@@ -23,6 +23,7 @@ type LocalStorage struct {
 	HttpBase     string
 	MServer      *MailServer
 	TemplatePath string
+	SCPURL       string
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {
@@ -190,12 +191,16 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 	}
 	return nil
 }
-
+func (ls LocalStorage) getSCP(dReq *DoiReq) string {
+	return fmt.Sprintf("%s/%s/doi.xml", ls.SCPURL, dReq.DoiInfo.UUID)
+}
 func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
+
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
-			"Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s",
-			dReq.DoiInfo.UUID, dReq.User.MainOId.Email.Email, dReq.User.MainOId.Login))
+			`Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s
+The Doi xml can be found here: %s`,
+			dReq.DoiInfo.UUID, dReq.User.MainOId.Account.Email.Email, dReq.User.MainOId.Login, ls.getSCP(dReq)))
 }
 
 func (ls LocalStorage) poerl(target string) error {
