@@ -66,7 +66,7 @@ func (pr *GogsOauthProvider) ValidateToken(userName string, token string) (bool,
 
 func (pr *GogsOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/%s", pr.Uri, userName), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("%s", pr.Uri), nil)
 	req.Header.Set("Cookie", fmt.Sprintf("i_like_gogits=%s", token))
 	resp, err := client.Do(req)
 	if err != nil {

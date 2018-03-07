@@ -60,7 +60,7 @@ Options:
 	// setup authentication
 	oaAdress := args["--oauthserver"].(string)
 	op := ginDoi.GogsOauthProvider{
-		Uri:      fmt.Sprintf("%s/api/v1/users", oaAdress),
+		Uri:      fmt.Sprintf("%s/api/v1/user", oaAdress),
 		TokenURL: "",
 		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oaAdress),
 	}
