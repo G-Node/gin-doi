@@ -199,8 +199,9 @@ func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
 	return ls.MServer.ToMaster(
 		fmt.Sprintf(
 			`Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s
-The Doi xml can be found here: %s`,
-			dReq.DoiInfo.UUID, dReq.User.MainOId.Account.Email.Email, dReq.User.MainOId.Login, ls.getSCP(dReq)))
+The Doi xml can be found here: %s. The DOI shall point to:%s/%s`,
+			dReq.DoiInfo.UUID, dReq.User.MainOId.Account.Email.Email, dReq.User.MainOId.Login, ls.getSCP(dReq),
+			ls.HttpBase, dReq.DoiInfo.UUID))
 }
 
 func (ls LocalStorage) poerl(target string) error {
