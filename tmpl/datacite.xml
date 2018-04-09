@@ -36,6 +36,6 @@
   <publisher>G-Node</publisher>
   <publicationYear>2018</publicationYear>
   <language>eng</language>
-  <resourceType resourceTypeGeneral="Dataset">Dataset</resourceType>
+  <resourceType resourceTypeGeneral="{{.GetType}}">{{.GetType}}</resourceType>
   <version>1</version>
 </resource>

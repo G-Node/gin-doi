@@ -202,6 +202,14 @@ type CBerry struct {
 	References  []Reference
 	Funding     []string
 	License     *License
+	DType       string
+}
+
+func (c *CBerry) GetType() string {
+	if c.DType != "" {
+		return c.DType
+	}
+	return "Dataset"
 }
 
 func (c *CBerry) GetCitation() string {
