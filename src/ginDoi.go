@@ -27,7 +27,7 @@ var (
 		Please consider that there is a step of human intervention before the doi is registered.
 		It might therefore take a few hours until the doi page goes live. We will notify you
 		via email once the process is finished.<br>
-		This page can safely be closed. You do not need to keep it open
+		<b>This page can safely be closed. You do not need to keep it open</b>
 		</div>`
 	MS_NOLOGIN        = `You are not logged in with the gin service. Login <a href="http://gin.g-node.org/">here</a>`
 	MS_NOTOKEN        = "No authentication token provided"
