@@ -38,7 +38,7 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	//todo do this better
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
-	ls.prepDir(target, &dReq.DoiInfo)
+	ls.prepDir(target, dReq.DoiInfo)
 	ds, _ := ls.GetDataSource()
 
 	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
@@ -71,7 +71,7 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	}
 	defer fp.Close()
 	// No registering. But the xml is provided with everything
-	data, err := ls.DProvider.GetXml(&dReq.DoiInfo)
+	data, err := ls.DProvider.GetXml(dReq.DoiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,

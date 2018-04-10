@@ -90,7 +90,7 @@ type DoiReq struct {
 	OauthLogin string
 	Token      string
 	Mess       template.HTML
-	DoiInfo    CBerry
+	DoiInfo    *CBerry
 }
 
 type OauthIdentity struct {

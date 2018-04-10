@@ -233,6 +233,7 @@ func (c *CBerry) EscXML(txt string) string {
 	return buf.String()
 
 }
+
 type Author struct {
 	FirstName   string
 	LastName    string

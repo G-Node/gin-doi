@@ -148,7 +148,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 	} else {
 		doiInfo.UUID = uuid
 		doi := storage.DProvider.MakeDoi(doiInfo)
-		dReq.DoiInfo = *doiInfo
+		dReq.DoiInfo = doiInfo
 		key, err := op.AuthorizePull(user)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -299,7 +299,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"doiInfo": doiInfo,
 			"source":  "Init",
 		}).Debug("Received Doi information")
-		dReq.DoiInfo = *doiInfo
+		dReq.DoiInfo = doiInfo
 		err := t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
