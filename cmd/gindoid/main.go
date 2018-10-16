@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/G-Node/gin-doi/src"
-	log "github.com/Sirupsen/logrus"
-	"github.com/docopt/docopt-go"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
-	"fmt"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/docopt/docopt-go"
 )
 
 func main() {
@@ -44,22 +44,22 @@ Options:
 		os.Exit(-1)
 	}
 	// Setup data source
-	ds := &ginDoi.GogsDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
+	ds := &GogsDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
 
 	// doi provider
-	dp := ginDoi.GnodeDoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
+	dp := GnodeDoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
 
 	//Setup storage
-	mServer := ginDoi.MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
-		DoSend:                      args["--sendMail"].(bool),
-		Master:                      args["--doiMaster"].(string)}
-	storage := ginDoi.LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
+	mServer := MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
+		DoSend: args["--sendMail"].(bool),
+		Master: args["--doiMaster"].(string)}
+	storage := LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
 		DProvider: dp, MServer: &mServer, TemplatePath: args["--templates"].(string),
 		SCPURL: args["--scpURL"].(string)}
 
 	// setup authentication
 	oaAdress := args["--oauthserver"].(string)
-	op := ginDoi.GogsOauthProvider{
+	op := GogsOauthProvider{
 		Uri:      fmt.Sprintf("%s/api/v1/user", oaAdress),
 		TokenURL: "",
 		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oaAdress),
@@ -73,18 +73,18 @@ Options:
 		log.Printf("Error while parsing command line: %+v", err)
 		os.Exit(-1)
 	}
-	jobQueue := make(chan ginDoi.DoiJob, maxQ)
+	jobQueue := make(chan DoiJob, maxQ)
 	// Start the dispatcher.
 	maxW, err := strconv.Atoi(args["--max_workers"].(string))
-	dispatcher := ginDoi.NewDispatcher(jobQueue, maxW)
-	dispatcher.Run(ginDoi.NewWorker)
+	dispatcher := NewDispatcher(jobQueue, maxW)
+	dispatcher.Run(NewWorker)
 
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.InitDoiJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
+		InitDoiJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		ginDoi.DoDoiJob(w, r, jobQueue, storage, &op)
+		DoDoiJob(w, r, jobQueue, storage, &op)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))

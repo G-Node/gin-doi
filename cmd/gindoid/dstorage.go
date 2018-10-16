@@ -1,4 +1,4 @@
-package ginDoi
+package main
 
 import (
 	"fmt"

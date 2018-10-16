@@ -2,7 +2,7 @@
 // (http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/)
 // The dispatching is kept (coudl be removed see https://gist.github.com/harlow/dbcd639cf8d396a2ab73)
 // but as we might move to more advanced cross entity dispatching its still here
-package ginDoi
+package main
 
 import (
 	_ "expvar"
