@@ -11,30 +11,30 @@ import (
 )
 
 func main() {
-	usage := `gin doi.
+	usage := `gindoid: DOI service for preparing GIN repositories for publication
 Usage:
-  gin-doi [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
+  gindoid [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --gitsource=<gitdsourceurl>
            --oauthserver=<oserv> --target=<target> --storeURL=<url> --mServer=<server> --mFrom=<from>
            --doiMaster=<master> --doiBase=<base> --sendMail --debug --templates=<tmplpath> --scpURL=<scpURL>] --key=<key>
 
 Options:
   --max_workers=<max_workers>     The number of workers to start [default: 3]
-  --max_queue_size=<max_quesize>  The The size of the job queue [default: 100]
+  --max_queue_size=<max_quesize>  The size of the job queue [default: 100]
   --port=<port>                   The server port [default: 8083]
-  --source=<dsourceurl>           The Server adress from which data can be read [default: https://web.gin.g-node.org]
-  --gitsource=<gitdsourceurl>     The git Server adress from which data can be cloned [default: ssh://git@gin.g-node.org]
-  --oauthserver=<repo>            The Server aof the repo service [default: https://web.gin.g-node.org]
-  --target=<target>               The Location for long term storgae [default: data]
-  --storeURL=<url>                The base url for storage [default: http://doid.gin.g-node.org/]
-  --mServer=<server>              The mailserver adress (:and port) [default: localhost:25]
-  --mFrom=<from>                  The mail from adress [default: no-reply@g-node.org]
-  --doiMaster=<master>            The mail adress to send info to [default: dev@g-node.org]
-  --doiBase=<base>                The first part of the DOI [default: 10.12751/g-node.]
-  --sendMail                      Whether Mail Noticiations should really be send (Otherwise just print them)
+  --source=<dsourceurl>           The server address from which data can be read [default: https://web.gin.g-node.org]
+  --gitsource=<gitdsourceurl>     The git server address from which data can be cloned [default: ssh://git@gin.g-node.org]
+  --oauthserver=<repo>            The server of the repo service [default: https://web.gin.g-node.org]
+  --target=<target>               The location for long term storage [default: data]
+  --storeURL=<url>                The base URL for storage [default: http://doid.gin.g-node.org/]
+  --mServer=<server>              The mail server address (:and port) [default: localhost:25]
+  --mFrom=<from>                  The mail from address [default: no-reply@g-node.org]
+  --doiMaster=<master>            The mail address to send info to [default: dev@g-node.org]
+  --doiBase=<base>                The DOI prefix [default: 10.12751/g-node.]
+  --sendMail                      Whether mail notifications should really be sent (otherwise just print them)
   --debug                         Whether debug messages shall be printed
-  --templates=<tmplpath>          Path to the Templates [default: tmpl]
-  --scpURL=<scpURL>               URI for scp copping of the datacit XML [default: gin.g-node.org:/data/doid]
+  --templates=<tmplpath>          Path to the templates [default: tmpl]
+  --scpURL=<scpURL>               URI for SCP copying of the datacite XML [default: gin.g-node.org:/data/doid]
   --key=<key>                     Key used to decrypt token
  `
 
