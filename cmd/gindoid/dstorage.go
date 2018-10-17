@@ -11,7 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-var (
+const (
 	STORLOGPRE = "Storage"
 	tmpdir     = "tmp"
 )
@@ -19,8 +19,8 @@ var (
 type LocalStorage struct {
 	Path         string
 	Source       DataSource
-	DProvider    DoiProvider
-	HttpBase     string
+	DProvider    DOIProvider
+	HTTPBase     string
 	MServer      *MailServer
 	TemplatePath string
 	SCPURL       string
@@ -30,15 +30,15 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 	return false, nil
 }
 
-func (ls LocalStorage) Put(job DoiJob) error {
+func (ls LocalStorage) Put(job DOIJob) error {
 	source := job.Source
 	target := job.Name
-	dReq := &job.DoiReq
+	dReq := &job.Request
 
 	//todo do this better
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
-	ls.prepDir(target, dReq.DoiInfo)
+	ls.prepDir(target, dReq.DOIInfo)
 	ds, _ := ls.GetDataSource()
 
 	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
@@ -58,7 +58,7 @@ func (ls LocalStorage) Put(job DoiJob) error {
 		}).Error("Could not zip the data")
 	}
 	// +1 to report something with small datsets
-	dReq.DoiInfo.FileSize = fSize/(1024*1000) + 1
+	dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
@@ -71,7 +71,7 @@ func (ls LocalStorage) Put(job DoiJob) error {
 	}
 	defer fp.Close()
 	// No registering. But the xml is provided with everything
-	data, err := ls.DProvider.GetXml(dReq.DoiInfo)
+	data, err := ls.DProvider.GetXML(dReq.DOIInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,
@@ -139,7 +139,7 @@ func (ls LocalStorage) GetDataSource() (DataSource, error) {
 	return ls.Source, nil
 }
 
-func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
+func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.html"))
 	if err != nil {
 		if err != nil {
@@ -147,7 +147,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 				"source": STORLOGPRE,
 				"error":  err,
 				"target": target,
-			}).Error("Could not parse the doi template")
+			}).Error("Could not parse the DOI template")
 			return err
 		}
 		return err
@@ -159,7 +159,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 			"source": STORLOGPRE,
 			"error":  err,
 			"target": target,
-		}).Error("Could not create the doi index.html")
+		}).Error("Could not create the DOI index.html")
 		return err
 	}
 	defer fp.Close()
@@ -168,7 +168,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DoiReq) error {
 			"source":   STORLOGPRE,
 			"error":    err,
 			"doiInfoo": info,
-		}).Error("Could not execute the doi template")
+		}).Error("Could not execute the DOI template")
 		return err
 	}
 	return nil
@@ -207,17 +207,17 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 	}
 	return nil
 }
-func (ls LocalStorage) getSCP(dReq *DoiReq) string {
-	return fmt.Sprintf("%s/%s/doi.xml", ls.SCPURL, dReq.DoiInfo.UUID)
+func (ls LocalStorage) getSCP(dReq *DOIReq) string {
+	return fmt.Sprintf("%s/%s/doi.xml", ls.SCPURL, dReq.DOIInfo.UUID)
 }
-func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
+func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 
 	return ls.MServer.SendMail(
 		fmt.Sprintf(
 			`Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s
-The Doi xml can be found here: %s. The DOI shall point to:%s/%s`,
-			dReq.DoiInfo.UUID, dReq.User.MainOId.Account.Email.Email, dReq.User.MainOId.Login, ls.getSCP(dReq),
-			ls.HttpBase, dReq.DoiInfo.UUID))
+The DOI xml can be found here: %s. The DOI shall point to:%s/%s`,
+			dReq.DOIInfo.UUID, dReq.User.MainOId.Account.Email.Email, dReq.User.MainOId.Login, ls.getSCP(dReq),
+			ls.HTTPBase, dReq.DOIInfo.UUID))
 }
 
 func (ls LocalStorage) poerl(target string) error {
@@ -258,7 +258,7 @@ func (ls LocalStorage) poerl(target string) error {
 	return err
 }
 
-func (ls LocalStorage) mkUpdIndexScript(target string, dReq *DoiReq) error {
+func (ls LocalStorage) mkUpdIndexScript(target string, dReq *DOIReq) error {
 	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
 	if err != nil {
 		log.WithFields(log.Fields{

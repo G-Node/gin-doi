@@ -10,8 +10,7 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
-func main() {
-	usage := `gindoid: DOI service for preparing GIN repositories for publication
+const usage = `gindoid: DOI service for preparing GIN repositories for publication
 Usage:
   gindoid [--max_workers=<max_workers> --max_queue_size=<max_queue_size> --port=<port> --source=<source>
            --gitsource=<gitdsourceurl>
@@ -36,8 +35,9 @@ Options:
   --templates=<tmplpath>          Path to the templates [default: tmpl]
   --scpURL=<scpURL>               URI for SCP copying of the datacite XML [default: gin.g-node.org:/data/doid]
   --key=<key>                     Key used to decrypt token
- `
+`
 
+func main() {
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
 	if err != nil {
 		log.Printf("Error while parsing command line: %+v", err)
@@ -47,22 +47,22 @@ Options:
 	ds := &GogsDataSource{GinURL: args["--source"].(string), GinGitURL: args["--gitsource"].(string)}
 
 	// doi provider
-	dp := GnodeDoiProvider{ApiURI: "", DOIBase: args["--doiBase"].(string)}
+	dp := GnodeDOIProvider{APIURI: "", DOIBase: args["--doiBase"].(string)}
 
 	//Setup storage
 	mServer := MailServer{Adress: args["--mServer"].(string), From: args["--mFrom"].(string),
 		DoSend: args["--sendMail"].(bool),
 		Master: args["--doiMaster"].(string)}
-	storage := LocalStorage{Path: args["--target"].(string), Source: ds, HttpBase: args["--storeURL"].(string),
+	storage := LocalStorage{Path: args["--target"].(string), Source: ds, HTTPBase: args["--storeURL"].(string),
 		DProvider: dp, MServer: &mServer, TemplatePath: args["--templates"].(string),
 		SCPURL: args["--scpURL"].(string)}
 
 	// setup authentication
-	oaAdress := args["--oauthserver"].(string)
-	op := GogsOauthProvider{
-		Uri:      fmt.Sprintf("%s/api/v1/user", oaAdress),
+	oAuthAddress := args["--oauthserver"].(string)
+	op := GogsOAuthProvider{
+		URI:      fmt.Sprintf("%s/api/v1/user", oAuthAddress),
 		TokenURL: "",
-		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oaAdress),
+		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oAuthAddress),
 	}
 
 	key := args["--key"].(string)
@@ -70,21 +70,28 @@ Options:
 	// Create the job queue.
 	maxQ, err := strconv.Atoi(args["--max_queue_size"].(string))
 	if err != nil {
-		log.Printf("Error while parsing command line: %+v", err)
-		os.Exit(-1)
+		log.Printf("Error while parsing command line: %s", err.Error())
+		log.Print("Using default")
+		maxQ = 100
 	}
-	jobQueue := make(chan DoiJob, maxQ)
+	jobQueue := make(chan DOIJob, maxQ)
 	// Start the dispatcher.
 	maxW, err := strconv.Atoi(args["--max_workers"].(string))
+	if err != nil {
+		log.Printf("Error while parsing max_workers flag: %s", err.Error())
+		log.Print("Using default")
+		maxW = 3
+	}
+
 	dispatcher := NewDispatcher(jobQueue, maxW)
 	dispatcher.Run(NewWorker)
 
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		InitDoiJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
+		InitDOIJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		DoDoiJob(w, r, jobQueue, storage, &op)
+		DoDOIJob(w, r, jobQueue, storage, &op)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))

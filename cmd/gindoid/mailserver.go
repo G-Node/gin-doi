@@ -7,7 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-var (
+const (
 	MAILLOG = "MailServer"
 )
 

@@ -46,7 +46,7 @@ func Tar(src string, writers ...io.Writer) error {
 		header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
 
 		// write the header
-		if err := tw.WriteHeader(header); err != nil {
+		if err = tw.WriteHeader(header); err != nil {
 			return err
 		}
 

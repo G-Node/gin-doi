@@ -1,20 +1,21 @@
 package main
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"os"
-	"crypto/rsa"
+
 	"github.com/G-Node/gin-core/gin"
 )
 
 type MockDataSource struct {
 	calls        []string
-	validDoiFile bool
+	validDOIFile bool
 	Berry        CBerry
 }
 
-func (ds *MockDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry) {
-	return ds.validDoiFile, &ds.Berry
+func (ds *MockDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBerry) {
+	return ds.validDOIFile, &ds.Berry
 }
 func (ds *MockDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
 	os.Mkdir(To, os.ModePerm)
@@ -22,40 +23,40 @@ func (ds *MockDataSource) Get(URI string, To string, key *rsa.PrivateKey) (strin
 	return "", nil
 }
 
-func (ds *MockDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
+func (ds *MockDataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
 	return "123", nil
 }
 
-type MockDoiProvider struct {
+type MockDOIProvider struct {
 }
 
-func (dp MockDoiProvider) MakeDoi(doiInfo *CBerry) string {
+func (dp MockDOIProvider) MakeDOI(doiInfo *CBerry) string {
 	return "133"
 }
-func (dp MockDoiProvider) GetXml(doiInfo *CBerry) (string, error) {
+func (dp MockDOIProvider) GetXML(doiInfo *CBerry) (string, error) {
 	return "xml", nil
 }
-func (dp MockDoiProvider) RegDoi(doiInfo CBerry) (string, error) {
+func (dp MockDOIProvider) RegDOI(doiInfo CBerry) (string, error) {
 	return "", nil
 }
 
-type MockOauthProvider struct {
+type MockOAuthProvider struct {
 	ValidToken bool
-	User       OauthIdentity
+	User       OAuthIdentity
 }
 
-func (op MockOauthProvider) ValidateToken(userName string, token string) (bool, error) {
+func (op MockOAuthProvider) ValidateToken(userName string, token string) (bool, error) {
 	return op.ValidToken, nil
 }
 
-func (op MockOauthProvider) getUser(userName string, token string) (OauthIdentity, error) {
+func (op MockOAuthProvider) getUser(userName string, token string) (OAuthIdentity, error) {
 	return op.User, nil
 }
 
-func (op MockOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, error) {
+func (op MockOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey, error) {
 	return &rsa.PrivateKey{}, nil
 }
 
-func (op MockOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
+func (op MockOAuthProvider) DeAuthorizePull(user OAuthIdentity, key gin.SSHKey) error {
 	return nil
 }

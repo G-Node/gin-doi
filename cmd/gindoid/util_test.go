@@ -13,16 +13,16 @@ type MockStorage struct {
 	LocalStorage
 }
 
-func getInit(querrySting string, ds DataSource, pr OauthProvider) string {
+func getInit(querrySting string, ds DataSource, pr OAuthProvider) string {
 	rec := httptest.NewRecorder()
 	// req := httptest.NewRequest(http.MethodPost, "/"+querrySting, bytes.NewReader([]byte("")))
-	// InitDoiJob(rec, req, ds, pr, "../tmpl")
+	// InitDOIJob(rec, req, ds, pr, "../tmpl")
 	body, _ := ioutil.ReadAll(rec.Body)
 	return string(body)
 }
 
 //https://doi.gin.g-node.org/?repo=master%3Atesti%2Ftest&user=testi&token=123"
-func TestInitDoiJob(t *testing.T) {
+func TestInitDOIJob(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 	if !strings.Contains(getInit("", &GinDataSource{}, nil), MS_URIINVALID) {
 		t.Log("[Err] No URI should complain")
@@ -42,20 +42,20 @@ func TestInitDoiJob(t *testing.T) {
 		return
 	}
 	if !strings.Contains(getInit("?repo=master&token=Bearer%20123&user=chris", &GinDataSource{},
-		MockOauthProvider{ValidToken: false}), MS_NOLOGIN) {
+		MockOAuthProvider{ValidToken: false}), MS_NOLOGIN) {
 		t.Log("[Err] No valid token should complain")
 		t.Fail()
 		return
 	}
 
 	if !strings.Contains(getInit("?repo=master&token=Bearer%20123&user=chris",
-		&MockDataSource{validDoiFile: false, Berry: CBerry{Missing: []string{"sads"}}},
-		MockOauthProvider{ValidToken: true}), MS_INVALIDDOIFILE) {
+		&MockDataSource{validDOIFile: false, Berry: CBerry{Missing: []string{"sads"}}},
+		MockOAuthProvider{ValidToken: true}), MS_INVALIDDOIFILE) {
 		t.Log("[Err] No valid doifile should complain")
 		t.Fail()
 		return
 	}
-	t.Log("[Ok] Init Doi Job")
+	t.Log("[Ok] Init DOI Job")
 	return
 
 }

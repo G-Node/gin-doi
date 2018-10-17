@@ -33,15 +33,15 @@ func TestGet(t *testing.T) {
 	//todo test annex
 }
 
-func TestValidDoiFile(t *testing.T) {
+func TestValidDOIFile(t *testing.T) {
 	ds := GogsDataSource{GinURL: "https://gin.g-node.org/"}
-	ok, cb := ds.ValidDoiFile("G-Node/Info", OauthIdentity{})
+	ok, cb := ds.ValidDOIFile("G-Node/Info", OAuthIdentity{})
 	if !ok {
-		log.Printf("[Err] Could not get valid Doifile")
+		log.Printf("[Err] Could not get valid DOI file")
 		t.Fail()
 		return
 	}
 	if cb.Authors[0].FirstName == "Max" {
-		t.Log("[Ok]: Getting doifile seems fine")
+		t.Log("[OK]: Getting DOI file seems fine")
 	}
 }
