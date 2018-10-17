@@ -212,8 +212,8 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 		return
 	}
 
-	// Test whether URi was provided
-	if !(len(URI) > 0) {
+	// Test whether URI was provided
+	if len(URI) == 0 {
 		log.WithFields(log.Fields{
 			"request": dReq,
 			"source":  "Init",
