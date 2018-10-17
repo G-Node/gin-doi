@@ -212,13 +212,16 @@ func (ls LocalStorage) getSCP(dReq *DOIReq) string {
 }
 func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 
+	repopath := dReq.URI
 	userlogin := dReq.User.MainOId.Login
 	useremail := dReq.User.MainOId.Account.Email.Email
 	xmlurl := ls.getSCP(dReq)
 	uuid := dReq.DOIInfo.UUID
 	doitarget := fmt.Sprintf("%s/%s", ls.HTTPBase, uuid)
 
-	body := `A new DOI registration request has arrived.
+	body := `Subject: New DOI registration request: %s
+
+A new DOI registration request has been received.
 
 	User: %s
 	Email address: %s
@@ -226,7 +229,7 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 	DOI target URL: %s
 	UUID: %s
 `
-	body = fmt.Sprintf(body, userlogin, useremail, xmlurl, doitarget, uuid)
+	body = fmt.Sprintf(body, repopath, userlogin, useremail, xmlurl, doitarget, uuid)
 	return ls.MServer.SendMail(body)
 }
 

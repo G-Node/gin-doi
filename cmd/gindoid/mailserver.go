@@ -18,7 +18,7 @@ type MailServer struct {
 	Recipient string
 }
 
-func (ms *MailServer) SendMail(content string) error {
+func (ms *MailServer) SendMail(body string) error {
 	if ms.DoSend {
 		c, err := smtp.Dial(ms.Address)
 		if err != nil {
@@ -42,7 +42,7 @@ func (ms *MailServer) SendMail(content string) error {
 			return err
 		}
 		defer wc.Close()
-		buf := bytes.NewBufferString(content)
+		buf := bytes.NewBufferString(body)
 		if _, err = buf.WriteTo(wc); err != nil {
 			log.WithFields(log.Fields{
 				"source": MAILLOG,
@@ -52,7 +52,7 @@ func (ms *MailServer) SendMail(content string) error {
 	} else {
 		log.WithFields(log.Fields{
 			"source": MAILLOG,
-		}).Infof("Fake Mail to: %s, content: %s", ms.Recipient, content)
+		}).Infof("Fake Mail to: %s, body: %s", ms.Recipient, body)
 	}
 	return nil
 }
