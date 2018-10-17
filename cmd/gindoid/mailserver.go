@@ -1,9 +1,10 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"net/smtp"
 	"bytes"
+	"net/smtp"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -17,7 +18,7 @@ type MailServer struct {
 	Master string
 }
 
-func (ms *MailServer) ToMaster(content string) error {
+func (ms *MailServer) SendMail(content string) error {
 	if ms.DoSend {
 		c, err := smtp.Dial(ms.Adress)
 		if err != nil {
@@ -48,7 +49,7 @@ func (ms *MailServer) ToMaster(content string) error {
 				"error":  err,
 			}).Errorf("Could not write Mail")
 		}
-	} else{
+	} else {
 		log.WithFields(log.Fields{
 			"source": MAILLOG,
 		}).Infof("Fake Mail to: %s, content: %s, Auth:%+v", ms.Master, content)

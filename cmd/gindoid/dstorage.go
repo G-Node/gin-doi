@@ -196,7 +196,7 @@ func (ls LocalStorage) getSCP(dReq *DoiReq) string {
 }
 func (ls LocalStorage) sendMaster(dReq *DoiReq) error {
 
-	return ls.MServer.ToMaster(
+	return ls.MServer.SendMail(
 		fmt.Sprintf(
 			`Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s
 The Doi xml can be found here: %s. The DOI shall point to:%s/%s`,
