@@ -1,18 +1,19 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	log "github.com/Sirupsen/logrus"
-	"io/ioutil"
-	"net/http"
-	"github.com/G-Node/gin-core/gin"
 	"bytes"
 	"crypto/rsa"
-	"golang.org/x/crypto/ssh"
 	"crypto/sha256"
-	"strings"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+
+	"github.com/G-Node/gin-core/gin"
+	log "github.com/Sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 )
 
 var (
@@ -37,8 +38,8 @@ type GogsOauthProvider struct {
 }
 
 type GogsPublicKey struct {
-	Key   string    `json:"key"`
-	Title string    `json:"title,omitempty"`
+	Key   string `json:"key"`
+	Title string `json:"title,omitempty"`
 }
 
 func (pr *GogsOauthProvider) ValidateToken(userName string, token string) (bool, error) {
@@ -55,8 +56,8 @@ func (pr *GogsOauthProvider) ValidateToken(userName string, token string) (bool,
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
-			"source": gogsOAPLOGP,
-			"token":  token,
+			"source":  gogsOAPLOGP,
+			"token":   token,
 			"request": req,
 		}).Debug("Token Validation failed")
 		return false, nil
@@ -106,7 +107,7 @@ func (pr *GogsOauthProvider) getUser(userName string, token string) (OauthIdenti
 	user.Token = token
 	user.Login = gogsuser.UserName
 	user.LastName = gogsuser.FullName
-	user.UUID = fmt.Sprintf("fromgogs:%s", gogsuser.ID)
+	user.UUID = fmt.Sprintf("fromgogs: %d", gogsuser.ID)
 	user.Email = &gin.Email{}
 	user.Email.Email = gogsuser.Email
 	return user, err
@@ -168,7 +169,7 @@ func (pr *GogsOauthProvider) AuthorizePull(user OauthIdentity) (*rsa.PrivateKey,
 	return rsaKey, nil
 }
 
-func (pr *GogsOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error) {
+func (pr *GogsOauthProvider) DeAuthorizePull(user OauthIdentity, key gin.SSHKey) error {
 	return nil
 }
 

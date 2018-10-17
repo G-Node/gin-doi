@@ -1,19 +1,20 @@
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	"crypto/aes"
-	"crypto/rand"
-	"io"
-	"crypto/cipher"
-	"encoding/base64"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Check the current user. Return a user if logged in
@@ -76,11 +77,11 @@ func Decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
-func IsRegsitredDoi(doi string) (bool) {
+func IsRegsitredDoi(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Errorf("Could not querry for doi:%d at %s", doi, url)
+		log.Errorf("Could not query for doi: %s at %s", doi, url)
 		return false
 	}
 	if resp.StatusCode != http.StatusNotFound {
@@ -117,7 +118,7 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	if ! ok {
+	if !ok {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "DoDoiJob",
@@ -269,7 +270,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	if ! ok {
+	if !ok {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "InitDoiJob",
@@ -316,7 +317,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"error":   err,
 		}).Debug("Doifile File invalid")
 		if doiInfo.Missing != nil {
-			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + " <p>Issue:<i> " + doiInfo.Missing[0]+"</i>")
+			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
 		} else {
 			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + MS_ENCODING)
 		}
@@ -347,13 +348,13 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 
 type DoiMData struct {
 	Data struct {
-		ID   string `json:"id"`
-		Type string `json:"type"`
+		ID         string `json:"id"`
+		Type       string `json:"type"`
 		Attributes struct {
 			Doi        string      `json:"doi"`
 			Identifier string      `json:"identifier"`
 			URL        interface{} `json:"url"`
-			Author []struct {
+			Author     []struct {
 				Literal string `json:"literal"`
 			} `json:"author"`
 			Title               string      `json:"title"`
@@ -366,7 +367,7 @@ type DoiMData struct {
 			Version             string      `json:"version"`
 			License             interface{} `json:"license"`
 			SchemaVersion       string      `json:"schema-version"`
-			Results []struct {
+			Results             []struct {
 				ID    string `json:"id"`
 				Title string `json:"title"`
 				Count int    `json:"count"`

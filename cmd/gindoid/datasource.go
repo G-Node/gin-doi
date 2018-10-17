@@ -1,19 +1,20 @@
 package main
 
 import (
+	"crypto/md5"
+	"crypto/rsa"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"os/exec"
-	"crypto/rsa"
 	"os"
-	"crypto/md5"
-	"encoding/hex"
-	"gopkg.in/yaml.v2"
+	"os/exec"
 	"strings"
-	"encoding/json"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/gogits/go-gogs-client"
+	"gopkg.in/yaml.v2"
 )
 
 type GogsDataSource struct {
@@ -43,7 +44,7 @@ func (s *GogsDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get doifile:%+v,%s", resp.Status)
+		return nil, fmt.Errorf("could not get doifile: %s", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -207,7 +208,7 @@ func (s *GogsDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CB
 			"error":  err,
 		}).Error("Could not unmarshal doifile")
 		res := CBerry{}
-		res.Missing=[]string{fmt.Sprintf("%s",err)}
+		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return false, &res
 	}
 	if !hasValues(&doiInfo) {

@@ -3,11 +3,13 @@ package main
 import (
 	"io/ioutil"
 	"testing"
+
 	//log "github.com/Sirupsen/logrus"
 	"os"
 	"path/filepath"
-	"github.com/G-Node/gin-core/gin"
 	"strings"
+
+	"github.com/G-Node/gin-core/gin"
 )
 
 func TestPrepDir(t *testing.T) {
@@ -28,21 +30,20 @@ func TestPrepDir(t *testing.T) {
 	}
 	fp, err := os.Open(filepath.Join(tmpDir, "test1", ".htaccess"))
 	if err != nil {
-		t.Log("[Err] Could not open .httaccess: %+v", err)
+		t.Logf("[Err] Could not open .httaccess: %s", err.Error())
 		return
 	}
 	ct, err := ioutil.ReadAll(fp)
 	if err != nil {
-		t.Log("[Err] Could not read form .httaccess: %+v", err)
+		t.Logf("[Err] Could not read form .httaccess: %s", err.Error())
 		return
 	}
 	if string(ct) == "deny from all" {
 		t.Log("[OK] Prepare Dir works")
 		return
-	} else {
-		t.Fail()
-		return
 	}
+	t.Fail()
+	return
 }
 
 func fileThere(fn string, tmpDir string, t *testing.T) {
@@ -65,12 +66,11 @@ func TestPut(t *testing.T) {
 	}
 	ds := &MockDataSource{validDoiFile: true, Berry: CBerry{}}
 	ls := LocalStorage{Path: tmpDir, Source: ds, DProvider: MockDoiProvider{},
-		MServer:         &MailServer{}}
+		MServer: &MailServer{}}
 	dReq := DoiReq{}
 	dReq.User.MainOId.Email = &gin.Email{Email: "123"}
 
-	mJob := DoiJob{Name: "123", Source: "nowhere",
-		DoiReq:      dReq}
+	mJob := DoiJob{Name: "123", Source: "nowhere", DoiReq: dReq}
 
 	ls.Put(mJob)
 
