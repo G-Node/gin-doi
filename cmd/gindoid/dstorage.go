@@ -212,12 +212,22 @@ func (ls LocalStorage) getSCP(dReq *DOIReq) string {
 }
 func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 
-	return ls.MServer.SendMail(
-		fmt.Sprintf(
-			`Hello. the fellowing Archives are ready for doification:%s. Creator:%s,%s
-The DOI xml can be found here: %s. The DOI shall point to:%s/%s`,
-			dReq.DOIInfo.UUID, dReq.User.MainOId.Account.Email.Email, dReq.User.MainOId.Login, ls.getSCP(dReq),
-			ls.HTTPBase, dReq.DOIInfo.UUID))
+	userlogin := dReq.User.MainOId.Login
+	useremail := dReq.User.MainOId.Account.Email.Email
+	xmlurl := ls.getSCP(dReq)
+	uuid := dReq.DOIInfo.UUID
+	doitarget := fmt.Sprintf("%s/%s", ls.HTTPBase, uuid)
+
+	body := `A new DOI registration request has arrived.
+
+	User: %s
+	Email address: %s
+	DOI XML: %s
+	DOI target URL: %s
+	UUID: %s
+`
+	body = fmt.Sprintf(body, userlogin, useremail, xmlurl, doitarget, uuid)
+	return ls.MServer.SendMail(body)
 }
 
 func (ls LocalStorage) writeRegScript(target string) error {
