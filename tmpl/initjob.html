@@ -216,8 +216,8 @@
             <div class="ui primary button" id="doify">Request DOI Now</div>
         {{else}}
             <div class="ui warning message">
-                <div><b>This did not work. The Server seems to be angry with you and won't doify this request!</b>
-                    <p> {{.Mess}}</div>
+                <div><b>DOI request failed</b>
+                    <p> {{.Message}}</div>
             </div>
         {{end}}
         </div>
