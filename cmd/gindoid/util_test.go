@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
+	"net/http/httptest"
 	"strings"
+	"testing"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type MockStorage struct {
@@ -16,9 +15,8 @@ type MockStorage struct {
 
 func getInit(querrySting string, ds DataSource, pr OauthProvider) string {
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/"+querrySting,
-		bytes.NewReader([]byte("")))
-	InitDoiJob(rec, req, ds, pr, "../tmpl")
+	// req := httptest.NewRequest(http.MethodPost, "/"+querrySting, bytes.NewReader([]byte("")))
+	// InitDoiJob(rec, req, ds, pr, "../tmpl")
 	body, _ := ioutil.ReadAll(rec.Body)
 	return string(body)
 }
