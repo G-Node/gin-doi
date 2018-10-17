@@ -87,8 +87,8 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"target": target,
 		}).Error("Could not write to the metadata file")
 	}
-	ls.poerl(to)
-	ls.mkUpdIndexScript(to, dReq)
+	ls.writeRegScript(to)
+	ls.writeUpdIndexScript(to, dReq)
 	ls.sendMaster(dReq)
 	return err
 }
@@ -220,7 +220,7 @@ The DOI xml can be found here: %s. The DOI shall point to:%s/%s`,
 			ls.HTTPBase, dReq.DOIInfo.UUID))
 }
 
-func (ls LocalStorage) poerl(target string) error {
+func (ls LocalStorage) writeRegScript(target string) error {
 	pScriptF, err := os.Open(filepath.Join(ls.TemplatePath, "mds-suite_test.pl"))
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -232,7 +232,7 @@ func (ls LocalStorage) poerl(target string) error {
 	}
 	defer pScriptF.Close()
 
-	pScriptT, err := os.Create(filepath.Join(target, "resgister.pl"))
+	pScriptT, err := os.Create(filepath.Join(target, "register.pl"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": STORLOGPRE,
@@ -258,7 +258,7 @@ func (ls LocalStorage) poerl(target string) error {
 	return err
 }
 
-func (ls LocalStorage) mkUpdIndexScript(target string, dReq *DOIReq) error {
+func (ls LocalStorage) writeUpdIndexScript(target string, dReq *DOIReq) error {
 	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
 	if err != nil {
 		log.WithFields(log.Fields{
