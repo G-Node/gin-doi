@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	STORLOGPRE = "Storage"
-	tmpdir     = "tmp"
+	logprefix = "Storage"
+	tmpdir    = "tmp"
 )
 
 type LocalStorage struct {
@@ -43,7 +43,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 
 	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"out":    out,
 			"target": target,
@@ -52,7 +52,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	fSize, err := ls.zip(target)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not zip the data")
@@ -64,7 +64,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create parse the metadata template")
@@ -74,7 +74,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	data, err := ls.DProvider.GetXML(dReq.DOIInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the metadata file")
@@ -82,7 +82,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	_, err = fp.Write([]byte(data))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to the metadata file")
@@ -96,13 +96,13 @@ func (ls LocalStorage) Put(job DOIJob) error {
 func (ls *LocalStorage) zip(target string) (int64, error) {
 	to := filepath.Join(ls.Path, target)
 	log.WithFields(log.Fields{
-		"source": STORLOGPRE,
+		"source": logprefix,
 		"to":     to,
 	}).Debug("Started zipping")
 	fp, err := os.Create(filepath.Join(to, target+".zip"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"to":     to,
 		}).Error("Could not create zip file")
@@ -117,13 +117,13 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 func (ls *LocalStorage) tar(target string) (int64, error) {
 	to := filepath.Join(ls.Path, target)
 	log.WithFields(log.Fields{
-		"source": STORLOGPRE,
+		"source": logprefix,
 		"to":     to,
 	}).Debug("Started taring")
 	fp, err := os.Create(filepath.Join(to, target+".tar.gz"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"to":     to,
 		}).Error("Could not create zip file")
@@ -144,7 +144,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
-				"source": STORLOGPRE,
+				"source": logprefix,
 				"error":  err,
 				"target": target,
 			}).Error("Could not parse the DOI template")
@@ -156,7 +156,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	fp, err := os.Create(filepath.Join(ls.Path, target, "index.html"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the DOI index.html")
@@ -165,7 +165,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
 		log.WithFields(log.Fields{
-			"source":   STORLOGPRE,
+			"source":   logprefix,
 			"error":    err,
 			"doiInfoo": info,
 		}).Error("Could not execute the DOI template")
@@ -178,7 +178,7 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the target directory")
@@ -188,7 +188,7 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 	file, err := os.Create(filepath.Join(ls.Path, target, ".htaccess"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create .httaccess")
@@ -199,7 +199,7 @@ func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
 	_, err = file.Write([]byte("deny from all"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to .httaccess")
@@ -224,7 +224,7 @@ func (ls LocalStorage) writeRegScript(target string) error {
 	pScriptF, err := os.Open(filepath.Join(ls.TemplatePath, "mds-suite_test.pl"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Debug("The ugly Perls script is not there. Fuck it")
@@ -235,7 +235,7 @@ func (ls LocalStorage) writeRegScript(target string) error {
 	pScriptT, err := os.Create(filepath.Join(target, "register.pl"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Debug("The ugly Perls script cannot be created. Screw it")
@@ -246,7 +246,7 @@ func (ls LocalStorage) writeRegScript(target string) error {
 	_, err = io.Copy(pScriptT, pScriptF)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Debug("The ugly Perl script cannot be written. HATE IT")
@@ -262,7 +262,7 @@ func (ls LocalStorage) writeUpdIndexScript(target string, dReq *DOIReq) error {
 	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not parse the update index template")
@@ -271,7 +271,7 @@ func (ls LocalStorage) writeUpdIndexScript(target string, dReq *DOIReq) error {
 	fp, _ := os.Create(filepath.Join(target, "updIndex.sh"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": STORLOGPRE,
+			"source": logprefix,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create update index script")
@@ -281,7 +281,7 @@ func (ls LocalStorage) writeUpdIndexScript(target string, dReq *DOIReq) error {
 	err = t.Execute(fp, dReq)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source":  STORLOGPRE,
+			"source":  logprefix,
 			"error":   err,
 			"target":  target,
 			"request": dReq,
