@@ -52,7 +52,7 @@ func (ms *MailServer) SendMail(content string) error {
 	} else {
 		log.WithFields(log.Fields{
 			"source": MAILLOG,
-		}).Infof("Fake Mail to: %s, content: %s, Auth:%+v", ms.Master, content)
+		}).Infof("Fake Mail to: %s, content: %s", ms.Master, content)
 	}
 	return nil
 }
