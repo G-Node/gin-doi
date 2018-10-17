@@ -12,15 +12,15 @@ const (
 )
 
 type MailServer struct {
-	Adress string
-	From   string
-	DoSend bool
-	Master string
+	Address   string
+	From      string
+	DoSend    bool
+	Recipient string
 }
 
 func (ms *MailServer) SendMail(content string) error {
 	if ms.DoSend {
-		c, err := smtp.Dial(ms.Adress)
+		c, err := smtp.Dial(ms.Address)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"source": MAILLOG,
@@ -31,7 +31,7 @@ func (ms *MailServer) SendMail(content string) error {
 		defer c.Close()
 		// Set the sender and recipient.
 		c.Mail(ms.From)
-		c.Rcpt(ms.Master)
+		c.Rcpt(ms.Recipient)
 		// Send the email body.
 		wc, err := c.Data()
 		if err != nil {
@@ -52,7 +52,7 @@ func (ms *MailServer) SendMail(content string) error {
 	} else {
 		log.WithFields(log.Fields{
 			"source": MAILLOG,
-		}).Infof("Fake Mail to: %s, content: %s", ms.Master, content)
+		}).Infof("Fake Mail to: %s, content: %s", ms.Recipient, content)
 	}
 	return nil
 }
