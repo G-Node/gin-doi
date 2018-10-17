@@ -100,6 +100,14 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 		"to":     to,
 	}).Debug("Started zipping")
 	fp, err := os.Create(filepath.Join(to, target+".zip"))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"to":     to,
+		}).Error("Could not create zip file")
+		return 0, err
+	}
 	defer fp.Close()
 	err = Zip(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
@@ -113,6 +121,14 @@ func (ls *LocalStorage) tar(target string) (int64, error) {
 		"to":     to,
 	}).Debug("Started taring")
 	fp, err := os.Create(filepath.Join(to, target+".tar.gz"))
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": STORLOGPRE,
+			"error":  err,
+			"to":     to,
+		}).Error("Could not create zip file")
+		return 0, err
+	}
 	defer fp.Close()
 	err = Tar(filepath.Join(to, tmpdir), fp)
 	stat, _ := fp.Stat()
