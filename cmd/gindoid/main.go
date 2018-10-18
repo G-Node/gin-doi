@@ -123,6 +123,7 @@ func main() {
 
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("Got request: %s", r.URL.String())
 		InitDOIJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
