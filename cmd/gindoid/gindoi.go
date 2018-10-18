@@ -68,15 +68,15 @@ type Storage interface {
 }
 
 type DataSource interface {
-	ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBerry)
+	ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo)
 	Get(URI string, To string, key *rsa.PrivateKey) (string, error)
 	MakeUUID(URI string, user OAuthIdentity) (string, error)
 }
 
 type DOIProvider interface {
-	MakeDOI(doiInfo *CBerry) string
-	GetXML(doiInfo *CBerry) (string, error)
-	RegDOI(doiInfo CBerry) (string, error)
+	MakeDOI(doiInfo *DOIRegInfo) string
+	GetXML(doiInfo *DOIRegInfo) (string, error)
+	RegDOI(doiInfo DOIRegInfo) (string, error)
 }
 
 type DOIUser struct {
@@ -91,7 +91,7 @@ type DOIReq struct {
 	OAuthLogin string
 	Token      string
 	Message    template.HTML
-	DOIInfo    *CBerry
+	DOIInfo    *DOIRegInfo
 }
 
 type OAuthIdentity struct {

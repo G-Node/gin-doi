@@ -174,7 +174,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	return nil
 }
 
-func (ls *LocalStorage) prepDir(target string, info *CBerry) error {
+func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
 	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil {
 		log.WithFields(log.Fields{

@@ -22,12 +22,12 @@ func MakeDOI(UUID, DOIBase string) string {
 	return DOIBase + UUID[:6]
 }
 
-func (dp GnodeDOIProvider) MakeDOI(doiInfo *CBerry) string {
+func (dp GnodeDOIProvider) MakeDOI(doiInfo *DOIRegInfo) string {
 	doiInfo.DOI = MakeDOI(doiInfo.UUID[:6], dp.DOIBase)
 	return doiInfo.DOI
 }
 
-func (dp GnodeDOIProvider) GetXML(doiInfo *CBerry) (string, error) {
+func (dp GnodeDOIProvider) GetXML(doiInfo *DOIRegInfo) (string, error) {
 	dp.MakeDOI(doiInfo)
 	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
 	if err != nil {
@@ -49,7 +49,7 @@ func (dp GnodeDOIProvider) GetXML(doiInfo *CBerry) (string, error) {
 	return buff.String(), err
 }
 
-func (dp GnodeDOIProvider) RegDOI(doiInfo CBerry) (string, error) {
+func (dp GnodeDOIProvider) RegDOI(doiInfo DOIRegInfo) (string, error) {
 	data, err := dp.GetXML(&doiInfo)
 	if err != nil {
 		return "", err

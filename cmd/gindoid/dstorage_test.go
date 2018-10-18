@@ -63,7 +63,7 @@ func TestPut(t *testing.T) {
 		t.Fail()
 		return
 	}
-	ds := &MockDataSource{validDOIFile: true, Berry: CBerry{}}
+	ds := &MockDataSource{validDOIFile: true, Berry: DOIRegInfo{}}
 	ls := LocalStorage{Path: tmpDir, Source: ds, DProvider: MockDOIProvider{},
 		MServer: &MailServer{}}
 	dReq := DOIReq{}

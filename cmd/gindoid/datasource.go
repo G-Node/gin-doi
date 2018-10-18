@@ -52,7 +52,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 			"path":   fetchRepoPath,
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
-		}).Debug("Could not read from received Cloudberry")
+		}).Debug("Could not read from received datacite.yml file")
 		return nil, err
 	}
 	return body, nil
@@ -189,7 +189,7 @@ func (s *GogsDataSource) GetMasterCommit(URI string, user OAuthIdentity) (string
 }
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBerry) {
+func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
 	in, err := s.getDOIFile(URI, user)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -199,7 +199,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CB
 		}).Error("Could not get the DOI file")
 		return false, nil
 	}
-	doiInfo := CBerry{}
+	doiInfo := DOIRegInfo{}
 	err = yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -207,7 +207,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CB
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
 		}).Error("Could not unmarshal DOI file")
-		res := CBerry{}
+		res := DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return false, &res
 	}

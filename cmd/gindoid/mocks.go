@@ -11,10 +11,10 @@ import (
 type MockDataSource struct {
 	calls        []string
 	validDOIFile bool
-	Berry        CBerry
+	Berry        DOIRegInfo
 }
 
-func (ds *MockDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBerry) {
+func (ds *MockDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
 	return ds.validDOIFile, &ds.Berry
 }
 func (ds *MockDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
@@ -30,13 +30,13 @@ func (ds *MockDataSource) MakeUUID(URI string, user OAuthIdentity) (string, erro
 type MockDOIProvider struct {
 }
 
-func (dp MockDOIProvider) MakeDOI(doiInfo *CBerry) string {
+func (dp MockDOIProvider) MakeDOI(doiInfo *DOIRegInfo) string {
 	return "133"
 }
-func (dp MockDOIProvider) GetXML(doiInfo *CBerry) (string, error) {
+func (dp MockDOIProvider) GetXML(doiInfo *DOIRegInfo) (string, error) {
 	return "xml", nil
 }
-func (dp MockDOIProvider) RegDOI(doiInfo CBerry) (string, error) {
+func (dp MockDOIProvider) RegDOI(doiInfo DOIRegInfo) (string, error) {
 	return "", nil
 }
 

@@ -159,7 +159,7 @@ func (s *GinDataSource) MakeUUID(URI string, user OAuthIdentity) (string, error)
 }
 
 // ValidDOIFile resturns true if the specified URI has a DOI file containing all necessary information.
-func (s *GinDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBerry) {
+func (s *GinDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
 	in, err := s.getDOIFile(URI, user)
 	if err != nil {
 		return false, nil
@@ -169,7 +169,7 @@ func (s *GinDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBe
 	re := regexp.MustCompile(`blob\W\d+`)
 	in = re.ReplaceAll(in, []byte(""))
 
-	doiInfo := CBerry{}
+	doiInfo := DOIRegInfo{}
 	err = yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -177,7 +177,7 @@ func (s *GinDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBe
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
 		}).Error("Could not unmarshal doifile")
-		return false, &CBerry{}
+		return false, &DOIRegInfo{}
 	}
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{
@@ -191,7 +191,7 @@ func (s *GinDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *CBe
 	return true, &doiInfo
 }
 
-type CBerry struct {
+type DOIRegInfo struct {
 	Missing     []string
 	DOI         string
 	UUID        string
@@ -206,14 +206,14 @@ type CBerry struct {
 	DType       string
 }
 
-func (c *CBerry) GetType() string {
+func (c *DOIRegInfo) GetType() string {
 	if c.DType != "" {
 		return c.DType
 	}
 	return "Dataset"
 }
 
-func (c *CBerry) GetCitation() string {
+func (c *DOIRegInfo) GetCitation() string {
 	var authors string
 	for _, auth := range c.Authors {
 		if len(auth.FirstName) > 0 {
@@ -225,7 +225,7 @@ func (c *CBerry) GetCitation() string {
 	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
 }
 
-func (c *CBerry) EscXML(txt string) string {
+func (c *DOIRegInfo) EscXML(txt string) string {
 	buf := new(bytes.Buffer)
 	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
 		log.Errorf("Could not escape:%s, %+v", txt, err)
@@ -276,7 +276,7 @@ type License struct {
 	URL  string
 }
 
-func hasValues(s *CBerry) bool {
+func hasValues(s *DOIRegInfo) bool {
 	if s.Title == "" {
 		s.Missing = append(s.Missing, MS_NOTITLE)
 	}

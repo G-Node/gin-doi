@@ -49,7 +49,7 @@ func TestInitDOIJob(t *testing.T) {
 	}
 
 	if !strings.Contains(getInit("?repo=master&token=Bearer%20123&user=chris",
-		&MockDataSource{validDOIFile: false, Berry: CBerry{Missing: []string{"sads"}}},
+		&MockDataSource{validDOIFile: false, Berry: DOIRegInfo{Missing: []string{"sads"}}},
 		MockOAuthProvider{ValidToken: true}), MS_INVALIDDOIFILE) {
 		t.Log("[Err] No valid doifile should complain")
 		t.Fail()
