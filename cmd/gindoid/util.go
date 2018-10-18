@@ -77,7 +77,7 @@ func Decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
-func IsRegsitredDOI(doi string) bool {
+func IsRegisteredDOI(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -162,7 +162,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		return
 	}
 
-	if IsRegsitredDOI(doi) {
+	if IsRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(MS_DOIREG, doi, doi)))
 		return
