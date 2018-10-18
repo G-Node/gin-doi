@@ -71,15 +71,15 @@ func (pr *GogsOAuthProvider) getUser(userName string, token string) (OAuthIdenti
 		log.WithFields(log.Fields{
 			"source": gogsOAPLOGP,
 			"error":  err,
-		}).Debug("Authorisation server reponse malformed")
+		}).Debug("Authorisation server response malformed")
 		return OAuthIdentity{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
 			"source":  gogsOAPLOGP,
 			"request": req,
-		}).Debug("Authorisation server reponse malformed")
-		return OAuthIdentity{}, fmt.Errorf("[%s] Server reponse malformed", gogsOAPLOGP)
+		}).Debug("Authorisation server response malformed")
+		return OAuthIdentity{}, fmt.Errorf("[%s] Server response malformed", gogsOAPLOGP)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

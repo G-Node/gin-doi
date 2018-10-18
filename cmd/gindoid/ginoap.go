@@ -56,15 +56,15 @@ func (pr *GinOAuthProvider) getUser(userName string, token string) (OAuthIdentit
 		log.WithFields(log.Fields{
 			"source": gOAPLOGP,
 			"error":  err,
-		}).Debug("Authorisation server reponse malformed")
+		}).Debug("Authorisation server response malformed")
 		return OAuthIdentity{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
 			"source":  gOAPLOGP,
 			"request": req,
-		}).Debug("Authorisation server reponse malformed")
-		return OAuthIdentity{}, fmt.Errorf("[%s] Server reponse malformed", gOAPLOGP)
+		}).Debug("Authorisation server response malformed")
+		return OAuthIdentity{}, fmt.Errorf("[%s] Server response malformed", gOAPLOGP)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
