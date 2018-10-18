@@ -233,7 +233,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 	}
 
 	// Test whether token was provided
-	if !(len(token) > 0) {
+	if len(token) == 0 {
 		dReq.Message = template.HTML(MS_NOTOKEN)
 		log.WithFields(log.Fields{
 			"request": dReq,
@@ -249,7 +249,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 	}
 
 	// Test whether username was provided
-	if !(len(username) > 0) {
+	if len(username) == 0 {
 		dReq.Message = template.HTML(MS_NOUSER)
 		err = t.Execute(w, dReq)
 		if err != nil {
