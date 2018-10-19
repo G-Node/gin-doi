@@ -120,7 +120,9 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	if err != nil {
 		return nil, err
 	}
-	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: "GIN DOI"}
+
+	title := fmt.Sprintf("GIN DOI: %s", ssh.FingerprintSHA256(pub))
+	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: title}
 	log.WithFields(log.Fields{
 		"source": gogsOAPLOGP,
 		"Key":    key,

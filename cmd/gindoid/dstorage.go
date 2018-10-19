@@ -55,7 +55,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"target": target,
 		}).Error("Could not zip the data")
 	}
-	// +1 to report something with small datsets
+	// +1 to report something with small datasets
 	dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
