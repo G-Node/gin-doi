@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -187,12 +188,25 @@ func (ls LocalStorage) getSCP(dReq *DOIReq) string {
 }
 func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 
+	urljoin := func(a, b string) string {
+		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
+		base, err := url.Parse(a)
+		if err != nil {
+			return fallback
+		}
+		suffix, err := url.Parse(b)
+		if err != nil {
+			return fallback
+		}
+		return base.ResolveReference(suffix).String()
+	}
+
 	repopath := dReq.URI
 	userlogin := dReq.User.MainOId.Login
 	useremail := dReq.User.MainOId.Account.Email.Email
 	xmlurl := ls.getSCP(dReq)
 	uuid := dReq.DOIInfo.UUID
-	doitarget := fmt.Sprintf("%s/%s", ls.HTTPBase, uuid)
+	doitarget := urljoin(ls.HTTPBase, uuid)
 
 	body := `Subject: New DOI registration request: %s
 
