@@ -104,19 +104,19 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 	}
 	out, err := cmd.CombinedOutput()
 	log.WithFields(log.Fields{
-		"URI":     URI,
-		"gin_uri": ginURI,
-		"to":      To,
-		"out":     string(out),
-		"source":  DSOURCELOGPREFIX,
+		"URI":    URI,
+		"GINURI": ginURI,
+		"to":     To,
+		"out":    string(out),
+		"source": DSOURCELOGPREFIX,
 	}).Debug("Done with cloning")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"URI":     URI,
-			"gin_uri": ginURI,
-			"to":      To,
-			"source":  DSOURCELOGPREFIX,
-			"error":   string(out),
+			"URI":    URI,
+			"GINURI": ginURI,
+			"to":     To,
+			"source": DSOURCELOGPREFIX,
+			"error":  string(out),
 		}).Debug("Cloning did not work")
 		return string(out), err
 	}
