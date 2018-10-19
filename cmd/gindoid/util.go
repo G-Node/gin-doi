@@ -198,7 +198,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 	username := r.Form.Get("user")
 	dReq := DOIReq{URI: URI, OAuthLogin: username, Token: token}
 	log.WithFields(log.Fields{
-		"request": fmt.Sprintf("%+v", dReq),
+		"request": fmt.Sprintf("%s (from: %s)", URI, username),
 		"source":  "Init",
 	}).Debug("Got DOI Request")
 
