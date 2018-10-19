@@ -23,5 +23,5 @@ RUN go build
 VOLUME ["/doidata"]
 VOLUME ["/repos"]
 
-ENTRYPOINT ./gindoid --debug --target=/doidata --templates=/tmpl --key=nothing --port=10443
+ENTRYPOINT ./gindoid --debug --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443
 EXPOSE 10443
