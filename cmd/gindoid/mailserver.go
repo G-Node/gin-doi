@@ -20,6 +20,7 @@ type MailServer struct {
 
 func (ms *MailServer) SendMail(body string) error {
 	if ms.DoSend {
+		log.Debug("Preparing mail")
 		c, err := smtp.Dial(ms.Address)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -33,6 +34,7 @@ func (ms *MailServer) SendMail(body string) error {
 		c.Mail(ms.From)
 		c.Rcpt(ms.Recipient)
 		// Send the email body.
+		log.Debug("Sending mail")
 		wc, err := c.Data()
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -49,6 +51,7 @@ func (ms *MailServer) SendMail(body string) error {
 				"error":  err,
 			}).Errorf("Could not write Mail")
 		}
+		log.Debug("SendMail Done")
 	} else {
 		log.WithFields(log.Fields{
 			"source": MAILLOG,
