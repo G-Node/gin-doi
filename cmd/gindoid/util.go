@@ -174,8 +174,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi, doi)))
 }
 
-func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthProvider,
-	tp string, storage *LocalStorage, key string) {
+func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthProvider, tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{

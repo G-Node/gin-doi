@@ -66,7 +66,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 	return body, nil
 }
 
-func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
+func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey) (string, error) {
 	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
 		"URI":    URI,
