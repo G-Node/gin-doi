@@ -1,25 +1,26 @@
-package ginDoi
+package main
 
 import (
+	"bytes"
+	"crypto/md5"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
+	"encoding/xml"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
-	"crypto/rsa"
-	"os"
-	"path/filepath"
-	"encoding/pem"
-	"crypto/x509"
+
+	log "github.com/Sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
-	"crypto/md5"
-	"encoding/hex"
-	"bytes"
-	"regexp"
 	"gopkg.in/yaml.v2"
-	"encoding/xml"
 )
 
 type GinDataSource struct {
@@ -28,14 +29,14 @@ type GinDataSource struct {
 	pubKey    string
 }
 
-func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, error) {
+func (s *GinDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
 	//git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	//https://github.com/go-yaml/yaml.git
 	//git@github.com:go-yaml/yaml.git
 	fetchRepoPath := ""
-	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
-		uname := strings.Split(splUri[0], ":")[1]
-		repo := splUri[1]
+	if splURI := strings.Split(URI, "/"); len(splURI) > 1 {
+		uname := strings.Split(splURI[0], ":")[1]
+		repo := splURI[1]
 		fetchRepoPath = fmt.Sprintf(GINREPODOIPATH, uname, repo)
 	} else {
 		return nil, nil
@@ -67,10 +68,10 @@ func (s *GinDataSource) getDoiFile(URI string, user OauthIdentity) ([]byte, erro
 }
 
 func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
-	gin_uri := strings.Replace(URI, "master:", s.GinGitURL, 1)
+	ginURI := strings.Replace(URI, "master:", s.GinGitURL, 1)
 	log.WithFields(log.Fields{
 		"URI":     URI,
-		"gin_uri": gin_uri,
+		"gin_uri": ginURI,
 		"to":      To,
 		"source":  DSOURCELOGPREFIX,
 	}).Debug("Start cloning")
@@ -85,11 +86,11 @@ func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string,
 		return "", err
 	}
 
-	cmd := exec.Command("git", "clone", "--depth", "1", gin_uri, To)
+	cmd := exec.Command("git", "clone", "--depth", "1", ginURI, To)
 	env := os.Environ()
 	// If a key was provided we need to use that with nthe ssh
 	if key != nil {
-		_, priv_path, err := WriteSSHKeyPair(tmpDir, key)
+		_, privPath, err := WriteSSHKeyPair(tmpDir, key)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"source": DSOURCELOGPREFIX,
@@ -97,13 +98,13 @@ func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string,
 			}).Error("SSH key storing failed")
 			return "", err
 		}
-		env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", priv_path))
+		env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", privPath))
 		cmd.Env = env
 	}
 	out, err := cmd.CombinedOutput()
 	log.WithFields(log.Fields{
 		"URI":     URI,
-		"gin_uri": gin_uri,
+		"gin_uri": ginURI,
 		"to":      To,
 		"out":     string(out),
 		"source":  DSOURCELOGPREFIX,
@@ -111,7 +112,7 @@ func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string,
 	if err != nil {
 		log.WithFields(log.Fields{
 			"URI":     URI,
-			"gin_uri": gin_uri,
+			"gin_uri": ginURI,
 			"to":      To,
 			"source":  DSOURCELOGPREFIX,
 			"error":   string(out),
@@ -127,7 +128,7 @@ func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string,
 		// todo
 		log.WithFields(log.Fields{
 			"URI":     URI,
-			"gin_uri": gin_uri,
+			"gin_uri": ginURI,
 			"to":      To,
 			"source":  DSOURCELOGPREFIX,
 			"error":   string(out),
@@ -137,11 +138,11 @@ func (s *GinDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string,
 	return string(out), nil
 }
 
-func (s *GinDataSource) MakeUUID(URI string, user OauthIdentity) (string, error) {
+func (s *GinDataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
 	fetchRepoPath := ""
-	if splUri := strings.Split(URI, "/"); len(splUri) > 1 {
-		uname := strings.Split(splUri[0], ":")[1]
-		repo := splUri[1]
+	if splURI := strings.Split(URI, "/"); len(splURI) > 1 {
+		uname := strings.Split(splURI[0], ":")[1]
+		repo := splURI[1]
 		fetchRepoPath = fmt.Sprintf("/users/%s/repos/%s/browse/master", uname, repo)
 	}
 	resp, err := http.Get(fmt.Sprintf("%s%s", s.GinURL, fetchRepoPath))
@@ -149,17 +150,17 @@ func (s *GinDataSource) MakeUUID(URI string, user OauthIdentity) (string, error)
 	if err != nil {
 		return "", err
 	}
-	if bd, err := ioutil.ReadAll(resp.Body); err != nil {
+	bd, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return "", err
-	} else {
-		currMd5 := md5.Sum(bd)
-		return hex.EncodeToString(currMd5[:]), nil
 	}
+	currMd5 := md5.Sum(bd)
+	return hex.EncodeToString(currMd5[:]), nil
 }
 
-// Return true if the specifies URI "has" a doi File containing all nec. information
-func (s *GinDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry) {
-	in, err := s.getDoiFile(URI, user)
+// ValidDOIFile resturns true if the specified URI has a DOI file containing all necessary information.
+func (s *GinDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
+	in, err := s.getDOIFile(URI, user)
 	if err != nil {
 		return false, nil
 	}
@@ -168,7 +169,7 @@ func (s *GinDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBe
 	re := regexp.MustCompile(`blob\W\d+`)
 	in = re.ReplaceAll(in, []byte(""))
 
-	doiInfo := CBerry{}
+	doiInfo := DOIRegInfo{}
 	err = yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -176,7 +177,7 @@ func (s *GinDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBe
 			"source": DSOURCELOGPREFIX,
 			"error":  err,
 		}).Error("Could not unmarshal doifile")
-		return false, &CBerry{}
+		return false, &DOIRegInfo{}
 	}
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{
@@ -184,13 +185,13 @@ func (s *GinDataSource) ValidDoiFile(URI string, user OauthIdentity) (bool, *CBe
 			"doiInfo": doiInfo,
 			"source":  DSOURCELOGPREFIX,
 			"error":   err,
-		}).Debug("Doi File misses entries")
+		}).Debug("DOI File misses entries")
 		return false, &doiInfo
 	}
 	return true, &doiInfo
 }
 
-type CBerry struct {
+type DOIRegInfo struct {
 	Missing     []string
 	DOI         string
 	UUID        string
@@ -205,14 +206,14 @@ type CBerry struct {
 	DType       string
 }
 
-func (c *CBerry) GetType() string {
+func (c *DOIRegInfo) GetType() string {
 	if c.DType != "" {
 		return c.DType
 	}
 	return "Dataset"
 }
 
-func (c *CBerry) GetCitation() string {
+func (c *DOIRegInfo) GetCitation() string {
 	var authors string
 	for _, auth := range c.Authors {
 		if len(auth.FirstName) > 0 {
@@ -224,7 +225,7 @@ func (c *CBerry) GetCitation() string {
 	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
 }
 
-func (c *CBerry) EscXML(txt string) string {
+func (c *DOIRegInfo) EscXML(txt string) string {
 	buf := new(bytes.Buffer)
 	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
 		log.Errorf("Could not escape:%s, %+v", txt, err)
@@ -247,7 +248,7 @@ type NamedIdentifier struct {
 	ID     string
 }
 
-func (c *Author) GetValidId() *NamedIdentifier {
+func (c *Author) GetValidID() *NamedIdentifier {
 	if c.ID == "" {
 		return nil
 	}
@@ -267,15 +268,15 @@ func (a *Author) RenderAuthor() string {
 type Reference struct {
 	Reftype string
 	Name    string
-	Doi     string
+	DOI     string
 }
 
 type License struct {
 	Name string
-	Url  string
+	URL  string
 }
 
-func hasValues(s *CBerry) bool {
+func hasValues(s *DOIRegInfo) bool {
 	if s.Title == "" {
 		s.Missing = append(s.Missing, MS_NOTITLE)
 	}
@@ -291,7 +292,7 @@ func hasValues(s *CBerry) bool {
 	if s.Description == "" {
 		s.Missing = append(s.Missing, MS_NODESC)
 	}
-	if s.License == nil || s.License.Name == "" || s.License.Url == "" {
+	if s.License == nil || s.License.Name == "" || s.License.URL == "" {
 		s.Missing = append(s.Missing, MS_NOLIC)
 	}
 	if s.References != nil {
@@ -306,15 +307,15 @@ func hasValues(s *CBerry) bool {
 
 func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
 	// generate and write private key as PEM
-	priv_path := filepath.Join(path, "id_rsa")
-	pub_path := filepath.Join(path, "id_rsa.pub")
-	privateKeyFile, err := os.Create(priv_path)
+	privPath := filepath.Join(path, "id_rsa")
+	pubPath := filepath.Join(path, "id_rsa.pub")
+	privateKeyFile, err := os.Create(privPath)
 	defer privateKeyFile.Close()
 	if err != nil {
 		return "", "", err
 	}
 	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(PrKey)}
-	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+	if err = pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
 		return "", "", err
 	}
 	privateKeyFile.Chmod(0600)
@@ -323,10 +324,10 @@ func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error)
 	if err != nil {
 		return "", "", err
 	}
-	err = ioutil.WriteFile(pub_path, ssh.MarshalAuthorizedKey(pub), 0600)
+	err = ioutil.WriteFile(pubPath, ssh.MarshalAuthorizedKey(pub), 0600)
 	if err != nil {
 		return "", "", err
 	}
 
-	return pub_path, priv_path, nil
+	return pubPath, privPath, nil
 }

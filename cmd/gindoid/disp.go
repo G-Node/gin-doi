@@ -2,28 +2,29 @@
 // (http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/)
 // The dispatching is kept (coudl be removed see https://gist.github.com/harlow/dbcd639cf8d396a2ab73)
 // but as we might move to more advanced cross entity dispatching its still here
-package ginDoi
+package main
 
 import (
 	_ "expvar"
-	log "github.com/Sirupsen/logrus"
 	_ "net/http/pprof"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan DoiJob) Worker {
+func NewWorker(id int, workerPool chan chan DOIJob) Worker {
 	return Worker{
-		Id:         id,
-		JobQueue:   make(chan DoiJob),
+		ID:         id,
+		JobQueue:   make(chan DOIJob),
 		WorkerPool: workerPool,
 		QuitChan:   make(chan bool),
 	}
 }
 
 type Worker struct {
-	Id         int
-	JobQueue   chan DoiJob
-	WorkerPool chan chan DoiJob
+	ID         int
+	JobQueue   chan DOIJob
+	WorkerPool chan chan DOIJob
 	QuitChan   chan bool
 }
 
@@ -38,7 +39,7 @@ func (w *Worker) start() {
 				job.Storage.Put(job)
 				log.WithFields(log.Fields{
 					"source": "Worker",
-				}).Debugf("Worker %d Completed %s!\n", w.Id, job.Name)
+				}).Debugf("Worker %d Completed %s!\n", w.ID, job.Name)
 			case <-w.QuitChan:
 				// We have been asked to stop.
 				return
@@ -54,8 +55,8 @@ func (w *Worker) stop() {
 }
 
 // NewDispatcher creates, and returns a new Dispatcher object.
-func NewDispatcher(jobQueue chan DoiJob, maxWorkers int) *Dispatcher {
-	workerPool := make(chan chan DoiJob, maxWorkers)
+func NewDispatcher(jobQueue chan DOIJob, maxWorkers int) *Dispatcher {
+	workerPool := make(chan chan DOIJob, maxWorkers)
 
 	return &Dispatcher{
 		jobQueue:   jobQueue,
@@ -65,12 +66,12 @@ func NewDispatcher(jobQueue chan DoiJob, maxWorkers int) *Dispatcher {
 }
 
 type Dispatcher struct {
-	workerPool chan chan DoiJob
+	workerPool chan chan DOIJob
 	maxWorkers int
-	jobQueue   chan DoiJob
+	jobQueue   chan DOIJob
 }
 
-func (d *Dispatcher) Run(makeWorker func(int, chan chan DoiJob) Worker) {
+func (d *Dispatcher) Run(makeWorker func(int, chan chan DOIJob) Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := makeWorker(i+1, d.workerPool)
 		worker.start()

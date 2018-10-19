@@ -1,24 +1,25 @@
-package ginDoi
+package main
 
 import (
 	"io/ioutil"
 	"testing"
-	//log "github.com/Sirupsen/logrus"
+
 	"os"
 	"path/filepath"
-	"github.com/G-Node/gin-core/gin"
 	"strings"
+
+	"github.com/G-Node/gin-core/gin"
 )
 
 func TestPrepDir(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "TestGin")
 	defer os.RemoveAll(tmpDir)
 	if err != nil {
-		t.Log("[Err] Could nor create tempory directory for prep test")
+		t.Log("[Err] Could nor create temporary directory for prep test")
 		t.Fail()
 		return
 	}
-	dp := MockDoiProvider{}
+	dp := MockDOIProvider{}
 	ds := LocalStorage{Path: tmpDir, DProvider: dp}
 
 	if err := ds.prepDir("test1", nil); err != nil {
@@ -28,21 +29,20 @@ func TestPrepDir(t *testing.T) {
 	}
 	fp, err := os.Open(filepath.Join(tmpDir, "test1", ".htaccess"))
 	if err != nil {
-		t.Log("[Err] Could not open .httaccess: %+v", err)
+		t.Logf("[Err] Could not open .htaccess: %s", err.Error())
 		return
 	}
 	ct, err := ioutil.ReadAll(fp)
 	if err != nil {
-		t.Log("[Err] Could not read form .httaccess: %+v", err)
+		t.Logf("[Err] Could not read form .htaccess: %s", err.Error())
 		return
 	}
 	if string(ct) == "deny from all" {
 		t.Log("[OK] Prepare Dir works")
 		return
-	} else {
-		t.Fail()
-		return
 	}
+	t.Fail()
+	return
 }
 
 func fileThere(fn string, tmpDir string, t *testing.T) {
@@ -59,18 +59,17 @@ func TestPut(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "TestGin")
 	defer os.RemoveAll(tmpDir)
 	if err != nil {
-		t.Log("[Err] Could nor create tempory directory for prep test")
+		t.Log("[Err] Could nor create temporary directory for prep test")
 		t.Fail()
 		return
 	}
-	ds := &MockDataSource{validDoiFile: true, Berry: CBerry{}}
-	ls := LocalStorage{Path: tmpDir, Source: ds, DProvider: MockDoiProvider{},
-		MServer:         &MailServer{}}
-	dReq := DoiReq{}
+	ds := &MockDataSource{validDOIFile: true, Berry: DOIRegInfo{}}
+	ls := LocalStorage{Path: tmpDir, Source: ds, DProvider: MockDOIProvider{},
+		MServer: &MailServer{}}
+	dReq := DOIReq{}
 	dReq.User.MainOId.Email = &gin.Email{Email: "123"}
 
-	mJob := DoiJob{Name: "123", Source: "nowhere",
-		DoiReq:      dReq}
+	mJob := DOIJob{Name: "123", Source: "nowhere", Request: dReq}
 
 	ls.Put(mJob)
 
@@ -78,7 +77,7 @@ func TestPut(t *testing.T) {
 	fileThere("doi.xml", tmpDir, t)
 	fileThere(".htaccess", tmpDir, t)
 	if strings.Contains(ds.calls[0], "nowhere") {
-		t.Log("[OK] Get was calles properly")
+		t.Log("[OK] Get was called properly")
 	} else {
 		t.Log("[ERR] Get was not called properly")
 		t.Fail()

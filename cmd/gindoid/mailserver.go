@@ -1,25 +1,26 @@
-package ginDoi
+package main
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"net/smtp"
 	"bytes"
+	"net/smtp"
+
+	log "github.com/Sirupsen/logrus"
 )
 
-var (
+const (
 	MAILLOG = "MailServer"
 )
 
 type MailServer struct {
-	Adress string
-	From   string
-	DoSend bool
-	Master string
+	Address   string
+	From      string
+	DoSend    bool
+	Recipient string
 }
 
-func (ms *MailServer) ToMaster(content string) error {
+func (ms *MailServer) SendMail(body string) error {
 	if ms.DoSend {
-		c, err := smtp.Dial(ms.Adress)
+		c, err := smtp.Dial(ms.Address)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"source": MAILLOG,
@@ -30,7 +31,7 @@ func (ms *MailServer) ToMaster(content string) error {
 		defer c.Close()
 		// Set the sender and recipient.
 		c.Mail(ms.From)
-		c.Rcpt(ms.Master)
+		c.Rcpt(ms.Recipient)
 		// Send the email body.
 		wc, err := c.Data()
 		if err != nil {
@@ -41,17 +42,17 @@ func (ms *MailServer) ToMaster(content string) error {
 			return err
 		}
 		defer wc.Close()
-		buf := bytes.NewBufferString(content)
+		buf := bytes.NewBufferString(body)
 		if _, err = buf.WriteTo(wc); err != nil {
 			log.WithFields(log.Fields{
 				"source": MAILLOG,
 				"error":  err,
 			}).Errorf("Could not write Mail")
 		}
-	} else{
+	} else {
 		log.WithFields(log.Fields{
 			"source": MAILLOG,
-		}).Infof("Fake Mail to: %s, content: %s, Auth:%+v", ms.Master, content)
+		}).Infof("Fake Mail to: %s, body: %s", ms.Recipient, body)
 	}
 	return nil
 }

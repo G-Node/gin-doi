@@ -1,24 +1,25 @@
-package ginDoi
+package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	"crypto/aes"
-	"crypto/rand"
-	"io"
-	"crypto/cipher"
-	"encoding/base64"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // Check the current user. Return a user if logged in
-func loggedInUser(r *http.Request, pr *OauthProvider) (*DoiUser, error) {
-	return &DoiUser{}, nil
+func loggedInUser(r *http.Request, pr *OAuthProvider) (*DOIUser, error) {
+	return &DOIUser{}, nil
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -27,7 +28,7 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-// encrypt string to base64 crypto using AES
+// Encrypt string to base64 crypto using AES
 func Encrypt(key []byte, text string) (string, error) {
 	plaintext := []byte(text)
 
@@ -51,7 +52,7 @@ func Encrypt(key []byte, text string) (string, error) {
 	return base64.URLEncoding.EncodeToString(ciphertext), nil
 }
 
-// decrypt from base64 to decrypted string
+// Decrypt from base64 to decrypted string
 func Decrypt(key []byte, cryptoText string) (string, error) {
 	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
 
@@ -76,11 +77,11 @@ func Decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
-func IsRegsitredDoi(doi string) (bool) {
+func IsRegisteredDOI(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Errorf("Could not querry for doi:%d at %s", doi, url)
+		log.Errorf("Could not query for doi: %s at %s", doi, url)
 		return false
 	}
 	if resp.StatusCode != http.StatusNotFound {
@@ -89,7 +90,7 @@ func IsRegsitredDoi(doi string) (bool) {
 	return false
 }
 
-func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, storage LocalStorage, op OauthProvider) {
+func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op OAuthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -97,82 +98,83 @@ func DoDoiJob(w http.ResponseWriter, r *http.Request, jobQueue chan DoiJob, stor
 		return
 	}
 
-	dReq := DoiReq{}
-	//ToDo Error checking
+	dReq := DOIReq{}
+	// TODO: Error checking
 	body, _ := ioutil.ReadAll(r.Body)
 	json.Unmarshal(body, &dReq)
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
-		"source":  "DoDoiJob",
-	}).Debug("Unmarshaled a doi request")
+		"source":  "DoDOIJob",
+	}).Debug("Unmarshaled a DOI request")
 
-	ok, err := op.ValidateToken(dReq.OauthLogin, dReq.Token)
+	ok, err := op.ValidateToken(dReq.OAuthLogin, dReq.Token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDoiJob",
+			"source":  "DoDOIJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
-		dReq.Mess = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	if ! ok {
+	if !ok {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDoiJob",
+			"source":  "DoDOIJob",
 		}).Debug("Token not valid")
-		dReq.Mess = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	user, err := op.getUser(dReq.OauthLogin, dReq.Token)
+	user, err := op.getUser(dReq.OAuthLogin, dReq.Token)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDoiJob",
+			"source":  "DoDOIJob",
 			"error":   err,
 		}).Debug("Could not get userdata")
-		dReq.Mess = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	dReq.User = DoiUser{MainOId: user}
-	//ToDo Error checking
+	dReq.User = DOIUser{MainOId: user}
+	// TODO Error checking
 	ds, _ := storage.GetDataSource()
 	uuid, _ := ds.MakeUUID(dReq.URI, user)
-	if ok, doiInfo := ds.ValidDoiFile(dReq.URI, user); !ok {
+	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user)
+	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	} else {
-		doiInfo.UUID = uuid
-		doi := storage.DProvider.MakeDoi(doiInfo)
-		dReq.DoiInfo = doiInfo
-		key, err := op.AuthorizePull(user)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"source": "DoDoiJob",
-				"error":  err,
-			}).Error("Could not Authorize Pull")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 
-		if IsRegsitredDoi(doi) {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(MS_DOIREG, doi, doi)))
-			return
-		}
-		job := DoiJob{Source: dReq.URI, Storage: storage, User: user, DoiReq: dReq, Name: doiInfo.UUID, Key: *key}
-		jobQueue <- job
-		// Render success.
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi, doi)))
 	}
+	doiInfo.UUID = uuid
+	doi := storage.DProvider.MakeDOI(doiInfo)
+	dReq.DOIInfo = doiInfo
+	key, err := op.AuthorizePull(user)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": "DoDOIJob",
+			"error":  err,
+		}).Error("Could not Authorize Pull")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if IsRegisteredDOI(doi) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf(MS_DOIREG, doi, doi)))
+		return
+	}
+	job := DOIJob{Source: dReq.URI, Storage: storage, User: user, Request: dReq, Name: doiInfo.UUID, Key: *key}
+	jobQueue <- job
+	// Render success.
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi, doi)))
 }
 
-func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthProvider,
+func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthProvider,
 	tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
@@ -187,14 +189,14 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	token, err := Decrypt([]byte(key), token)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": "InitDoiJob",
+			"source": "InitDOIJob",
 			"error":  err,
 		}).Error("Could not decrypt token")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	username := r.Form.Get("user")
-	dReq := DoiReq{URI: URI, OauthLogin: username, Token: token}
+	dReq := DOIReq{URI: URI, OAuthLogin: username, Token: token}
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "Init",
@@ -203,22 +205,22 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	t, err := template.ParseFiles(filepath.Join(tp, "initjob.html")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": "DoDoiJob",
+			"source": "DoDOIJob",
 			"error":  err,
 		}).Debug("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	// Test whether URi was provided
-	if !(len(URI) > 0) {
+	// Test whether URI was provided
+	if len(URI) == 0 {
 		log.WithFields(log.Fields{
 			"request": dReq,
 			"source":  "Init",
 			"error":   err,
 		}).Debug("No Repo URI provided")
-		dReq.Mess = template.HTML(MS_URIINVALID)
-		err := t.Execute(w, dReq)
+		dReq.Message = template.HTML(MS_URIINVALID)
+		err = t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"request": dReq,
@@ -231,14 +233,14 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 
 	// Test whether token was provided
-	if !(len(token) > 0) {
-		dReq.Mess = template.HTML(MS_NOTOKEN)
+	if len(token) == 0 {
+		dReq.Message = template.HTML(MS_NOTOKEN)
 		log.WithFields(log.Fields{
 			"request": dReq,
 			"source":  "Init",
 			"error":   err,
 		}).Debug("No Token provided")
-		err := t.Execute(w, dReq)
+		err = t.Execute(w, dReq)
 		if err != nil {
 			log.Print(err)
 			return
@@ -247,9 +249,9 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 
 	// Test whether username was provided
-	if !(len(username) > 0) {
-		dReq.Mess = template.HTML(MS_NOUSER)
-		err := t.Execute(w, dReq)
+	if len(username) == 0 {
+		dReq.Message = template.HTML(MS_NOUSER)
+		err = t.Execute(w, dReq)
 		if err != nil {
 			log.Print(err)
 			return
@@ -262,19 +264,19 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "InitDoiJob",
+			"source":  "InitDOIJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
-		dReq.Mess = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	if ! ok {
+	if !ok {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "InitDoiJob",
+			"source":  "InitDOIJob",
 		}).Debug("Token not valid")
-		dReq.Mess = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(MS_NOLOGIN)
 		w.WriteHeader(http.StatusOK)
 		t.Execute(w, dReq)
 		return
@@ -288,19 +290,19 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"source":  "Init",
 			"error":   err,
 		}).Debug("Could not authenticate user")
-		dReq.Mess = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(MS_NOLOGIN)
 		t.Execute(w, dReq)
 		return
 	}
 
 	// check for doifile
-	if ok, doiInfo := ds.ValidDoiFile(URI, user); ok {
+	if ok, doiInfo := ds.ValidDOIFile(URI, user); ok {
 		log.WithFields(log.Fields{
 			"doiInfo": doiInfo,
 			"source":  "Init",
-		}).Debug("Received Doi information")
-		dReq.DoiInfo = doiInfo
-		err := t.Execute(w, dReq)
+		}).Debug("Received DOI information")
+		dReq.DOIInfo = doiInfo
+		err = t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"request": dReq,
@@ -314,11 +316,11 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 			"doiInfo": doiInfo,
 			"source":  "Init",
 			"error":   err,
-		}).Debug("Doifile File invalid")
+		}).Debug("DOIfile File invalid")
 		if doiInfo.Missing != nil {
-			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + " <p>Issue:<i> " + doiInfo.Missing[0]+"</i>")
+			dReq.Message = template.HTML(MS_INVALIDDOIFILE + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
 		} else {
-			dReq.Mess = template.HTML(MS_INVALIDDOIFILE + MS_ENCODING)
+			dReq.Message = template.HTML(MS_INVALIDDOIFILE + MS_ENCODING)
 		}
 		t.Execute(w, dReq)
 		if err != nil {
@@ -331,7 +333,7 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 		}
 		return
 	} else {
-		dReq.Mess = template.HTML(MS_INVALIDDOIFILE)
+		dReq.Message = template.HTML(MS_INVALIDDOIFILE)
 		t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -345,15 +347,15 @@ func InitDoiJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OauthP
 	}
 }
 
-type DoiMData struct {
+type DOIMData struct {
 	Data struct {
-		ID   string `json:"id"`
-		Type string `json:"type"`
+		ID         string `json:"id"`
+		Type       string `json:"type"`
 		Attributes struct {
-			Doi        string      `json:"doi"`
+			DOI        string      `json:"doi"`
 			Identifier string      `json:"identifier"`
 			URL        interface{} `json:"url"`
-			Author []struct {
+			Author     []struct {
 				Literal string `json:"literal"`
 			} `json:"author"`
 			Title               string      `json:"title"`
@@ -366,7 +368,7 @@ type DoiMData struct {
 			Version             string      `json:"version"`
 			License             interface{} `json:"license"`
 			SchemaVersion       string      `json:"schema-version"`
-			Results []struct {
+			Results             []struct {
 				ID    string `json:"id"`
 				Title string `json:"title"`
 				Count int    `json:"count"`
@@ -402,14 +404,14 @@ type DOIinvalid struct {
 	error
 }
 
-//https://api.datacite.org/works/
-func GDoiMData(doi, doireg string) (*DoiMData, error) {
+// https://api.datacite.org/works/
+func GDOIMData(doi, doireg string) (*DOIMData, error) {
 	url := fmt.Sprintf("%s%s", doireg, doi)
 	resp, err := http.Get(url)
-	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, DOIinvalid{}
 	}
@@ -420,7 +422,7 @@ func GDoiMData(doi, doireg string) (*DoiMData, error) {
 	if err != nil {
 		return nil, err
 	}
-	data := &DoiMData{}
+	data := &DOIMData{}
 	json.Unmarshal(d, data)
 	return data, nil
 }

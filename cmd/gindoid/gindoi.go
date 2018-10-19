@@ -1,13 +1,14 @@
-package ginDoi
+package main
 
 import (
 	"crypto/rsa"
-	"github.com/G-Node/gin-core/gin"
-	"regexp"
 	"html/template"
+	"regexp"
+
+	"github.com/G-Node/gin-core/gin"
 )
 
-var (
+const (
 	MS_NODOIFILE      = `Could not locate a datacite file. Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions. `
 	MS_INVALIDDOIFILE = `The doi File was not valid. Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions. `
 	MS_URIINVALID     = "Please provide a valid repository URI"
@@ -18,7 +19,7 @@ var (
 								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a>
 							</div>.
 						</div>`
-	MS_SERVERWORKS    = `<i class="notched circle loading icon"></i>
+	MS_SERVERWORKS = `<i class="notched circle loading icon"></i>
 		<div class="content">
 			<div class="header">The doi server has started doifying and archiving your repository.</div>
 		We will try to register the following doi:<br>
@@ -44,77 +45,76 @@ var (
 						Please check <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">here</a> for detailed instructions or write an email to gin@g-node.org`
 )
 
-// Responsible for storing smth defined by source to a kind of Storage
+// StorageElement is responsible for storing elements defined by source to a kind of Storage
 // defined by target
 type StorageElement interface {
-	// Should return true if the target location is alredy there
+	// Should return true if the target location is already there
 	Exists(target string) (bool, error)
-	// Store the things specifies by source in target
+	// Store the things specified by source in target
 	Put(source string, target string) (bool, error)
 	GetDataSource() (*DataSource, error)
 }
 
-type OauthProvider interface {
+type OAuthProvider interface {
 	ValidateToken(userName string, token string) (bool, error)
-	getUser(userName string, token string) (OauthIdentity, error)
-	AuthorizePull(user OauthIdentity) (*rsa.PrivateKey, error)
-	DeAuthorizePull(user OauthIdentity, key gin.SSHKey) (error)
+	getUser(userName string, token string) (OAuthIdentity, error)
+	AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey, error)
+	DeAuthorizePull(user OAuthIdentity, key gin.SSHKey) error
 }
 
 type Storage interface {
-	Put(job DoiJob) error
+	Put(job DOIJob) error
 	GetDataSource() (*DataSource, error)
 }
 
 type DataSource interface {
-	ValidDoiFile(URI string, user OauthIdentity) (bool, *CBerry)
+	ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo)
 	Get(URI string, To string, key *rsa.PrivateKey) (string, error)
-	MakeUUID(URI string, user OauthIdentity) (string, error)
+	MakeUUID(URI string, user OAuthIdentity) (string, error)
 }
 
-type DoiProvider interface {
-	MakeDoi(doiInfo *CBerry) string
-	GetXml(doiInfo *CBerry) (string, error)
-	RegDoi(doiInfo CBerry) (string, error)
+type DOIProvider interface {
+	MakeDOI(doiInfo *DOIRegInfo) string
+	GetXML(doiInfo *DOIRegInfo) (string, error)
+	RegDOI(doiInfo DOIRegInfo) (string, error)
 }
 
-type DoiUser struct {
+type DOIUser struct {
 	Name       string
-	Identities []OauthIdentity
-	MainOId    OauthIdentity
+	Identities []OAuthIdentity
+	MainOId    OAuthIdentity
 }
 
-type DoiReq struct {
+type DOIReq struct {
 	URI        string
-	User       DoiUser
-	OauthLogin string
+	User       DOIUser
+	OAuthLogin string
 	Token      string
-	Mess       template.HTML
-	DoiInfo    *CBerry
+	Message    template.HTML
+	DOIInfo    *DOIRegInfo
 }
 
-type OauthIdentity struct {
+type OAuthIdentity struct {
 	gin.Account
 	Token string
 }
 
-// DoiJob holds the attributes needed to perform unit of work.
-type DoiJob struct {
+// DOIJob holds the attributes needed to perform unit of work.
+type DOIJob struct {
 	Name    string
 	Source  string
 	Storage LocalStorage
-	User    OauthIdentity
-	DoiReq  DoiReq
+	User    OAuthIdentity
+	Request DOIReq
 	Key     rsa.PrivateKey
 }
 
-
-func (d *DoiReq) GetdoiUri() string {
+func (d *DOIReq) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
-	return string(re.ReplaceAll([]byte(d.URI),[]byte("doi/")))
+	return string(re.ReplaceAll([]byte(d.URI), []byte("doi/")))
 
 }
 
-func (d *DoiReq) AsHtml() template.HTML {
-	return template.HTML(d.Mess)
+func (d *DOIReq) AsHTML() template.HTML {
+	return template.HTML(d.Message)
 }

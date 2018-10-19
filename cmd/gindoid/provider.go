@@ -1,34 +1,34 @@
-package ginDoi
+package main
 
 import (
 	"bytes"
-	log "github.com/Sirupsen/logrus"
 	"net/http"
 	"path/filepath"
 	"text/template"
+
+	log "github.com/Sirupsen/logrus"
 )
 
-var LOGPREFIX = "GnodeDoiProvider"
+const LOGPREFIX = "GnodeDOIProvider"
 
-
-type GnodeDoiProvider struct {
+type GnodeDOIProvider struct {
 	//https://mds.datacite.org/static/apidoc
-	ApiURI  string
+	APIURI  string
 	Pwd     string
 	DOIBase string
 }
 
-func MakeDoi(UUID, DOIBase string) string {
+func MakeDOI(UUID, DOIBase string) string {
 	return DOIBase + UUID[:6]
 }
 
-func (dp GnodeDoiProvider) MakeDoi(doiInfo *CBerry) string {
-	doiInfo.DOI = MakeDoi(doiInfo.UUID[:6], dp.DOIBase)
+func (dp GnodeDOIProvider) MakeDOI(doiInfo *DOIRegInfo) string {
+	doiInfo.DOI = MakeDOI(doiInfo.UUID[:6], dp.DOIBase)
 	return doiInfo.DOI
 }
 
-func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) (string, error) {
-	dp.MakeDoi(doiInfo)
+func (dp GnodeDOIProvider) GetXML(doiInfo *DOIRegInfo) (string, error) {
+	dp.MakeDOI(doiInfo)
 	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -49,12 +49,12 @@ func (dp GnodeDoiProvider) GetXml(doiInfo *CBerry) (string, error) {
 	return buff.String(), err
 }
 
-func (dp GnodeDoiProvider) RegDoi(doiInfo CBerry) (string, error) {
-	data, err := dp.GetXml(&doiInfo)
+func (dp GnodeDOIProvider) RegDOI(doiInfo DOIRegInfo) (string, error) {
+	data, err := dp.GetXML(&doiInfo)
 	if err != nil {
 		return "", err
 	}
-	if r, err := http.Post(dp.ApiURI+"/metadata", "text/plain;charset=UTF-8",
+	if r, err := http.Post(dp.APIURI+"/metadata", "text/plain;charset=UTF-8",
 		bytes.NewReader([]byte(data))); err != nil {
 		return "", err
 	} else {
