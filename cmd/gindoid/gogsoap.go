@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
@@ -119,7 +120,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	if err != nil {
 		return nil, err
 	}
-	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: ssh.FingerprintSHA256(pub)}
+	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: "GIN DOI"}
 	log.WithFields(log.Fields{
 		"source": gogsOAPLOGP,
 		"Key":    key,
@@ -131,7 +132,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	}
 	log.WithFields(log.Fields{
 		"source":        gogsOAPLOGP,
-		"MarshallesKey": string(bd),
+		"MarshalledKey": string(bd),
 	}).Debug("About to send Marshalled Key")
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL), bytes.NewReader(bd))
 	req.Header.Set("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
@@ -168,4 +169,12 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 
 func (pr *GogsOAuthProvider) DeAuthorizePull(user OAuthIdentity, key gin.SSHKey) error {
 	return nil
+}
+
+func genSSHKey() (*rsa.PrivateKey, error) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		return nil, err
+	}
+	return rsaKey, nil
 }
