@@ -4,7 +4,7 @@
   <creators>{{range $index, $auth := .Authors}}
     <creator>
       <creatorName>{{$.EscXML $auth.LastName}}, {{$.EscXML $auth.FirstName}}</creatorName>
-        {{if $auth.GetValidId}}<nameIdentifier schemeURI="{{$auth.GetValidId.URI}}" nameIdentifierScheme="{{$auth.GetValidId.Scheme}}">{{$.EscXML $auth.GetValidId.ID}}</nameIdentifier>{{end}}
+        {{if $auth.GetValidID}}<nameIdentifier schemeURI="{{$auth.GetValidID.URI}}" nameIdentifierScheme="{{$auth.GetValidID.Scheme}}">{{$.EscXML $auth.GetValidID.ID}}</nameIdentifier>{{end}}
         {{if $auth.Affiliation}}<affiliation>{{$.EscXML $auth.Affiliation}}</affiliation>{{end}}
     </creator>{{end}}
   </creators>
@@ -17,7 +17,7 @@
     </description>
   </descriptions>{{end}}
   {{if .License}}<rightsList>
-    <rights {{if .License.Url}}rightsURI="{{.License.Url}}"{{end}}> {{$.EscXML .License.Name}}</rights>
+    <rights {{if .License.URL}}rightsURI="{{.License.URL}}"{{end}}> {{$.EscXML .License.Name}}</rights>
   </rightsList>{{end}}
   {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
      <subject>{{$.EscXML $kw}}</subject>{{end}}
