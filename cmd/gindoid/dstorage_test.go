@@ -2,11 +2,10 @@ package main
 
 import (
 	"io/ioutil"
-	"testing"
-
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 
 	"github.com/G-Node/gin-core/gin"
 )

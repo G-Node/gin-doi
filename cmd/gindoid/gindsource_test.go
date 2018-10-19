@@ -14,7 +14,7 @@ func TestGet(t *testing.T) {
 		t.Fail()
 		return
 	}
-	ds := GinDataSource{GinGitURL: ""}
+	ds := GogsDataSource{GinGitURL: ""}
 	out, err := ds.Get("master:../contrib/test", tmpLoc, nil)
 	defer os.RemoveAll(tmpLoc)
 	if err != nil {

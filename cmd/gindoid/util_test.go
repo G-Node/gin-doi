@@ -24,24 +24,24 @@ func getInit(querrySting string, ds DataSource, pr OAuthProvider) string {
 //https://doi.gin.g-node.org/?repo=master%3Atesti%2Ftest&user=testi&token=123"
 func TestInitDOIJob(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
-	if !strings.Contains(getInit("", &GinDataSource{}, nil), MS_URIINVALID) {
+	if !strings.Contains(getInit("", &GogsDataSource{}, nil), MS_URIINVALID) {
 		t.Log("[Err] No URI should complain")
 		t.Fail()
 		return
 	}
-	if !strings.Contains(getInit("?repo=master", &GinDataSource{}, nil),
+	if !strings.Contains(getInit("?repo=master", &GogsDataSource{}, nil),
 		MS_NOTOKEN) {
 		t.Log("[Err] No Token should complain")
 		t.Fail()
 		return
 	}
-	if !strings.Contains(getInit("?repo=master&token=123", &GinDataSource{},
+	if !strings.Contains(getInit("?repo=master&token=123", &GogsDataSource{},
 		nil), MS_NOUSER) {
 		t.Log("[Err] No User should complain")
 		t.Fail()
 		return
 	}
-	if !strings.Contains(getInit("?repo=master&token=Bearer%20123&user=chris", &GinDataSource{},
+	if !strings.Contains(getInit("?repo=master&token=Bearer%20123&user=chris", &GogsDataSource{},
 		MockOAuthProvider{ValidToken: false}), MS_NOLOGIN) {
 		t.Log("[Err] No valid token should complain")
 		t.Fail()
