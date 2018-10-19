@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io"
 	"os"
 	"path/filepath"
-	txtTemplate "text/template"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -87,8 +85,6 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"target": target,
 		}).Error("Could not write to the metadata file")
 	}
-	ls.writeRegScript(to)
-	ls.writeUpdIndexScript(to, dReq)
 	ls.sendMaster(dReq)
 	return err
 }
@@ -231,78 +227,4 @@ A new DOI registration request has been received.
 `
 	body = fmt.Sprintf(body, repopath, userlogin, useremail, xmlurl, doitarget, uuid)
 	return ls.MServer.SendMail(body)
-}
-
-func (ls LocalStorage) writeRegScript(target string) error {
-	pScriptF, err := os.Open(filepath.Join(ls.TemplatePath, "mds-suite_test.pl"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Debug("The ugly Perls script is not there. Fuck it")
-		return err
-	}
-	defer pScriptF.Close()
-
-	pScriptT, err := os.Create(filepath.Join(target, "register.pl"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Debug("The ugly Perls script cannot be created. Screw it")
-		return err
-	}
-	defer pScriptT.Close()
-
-	_, err = io.Copy(pScriptT, pScriptF)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Debug("The ugly Perl script cannot be written. HATE IT")
-		return err
-	}
-	// todo error
-	pScriptT.Chmod(0777)
-
-	return err
-}
-
-func (ls LocalStorage) writeUpdIndexScript(target string, dReq *DOIReq) error {
-	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Error("Could not parse the update index template")
-		return err
-	}
-	fp, _ := os.Create(filepath.Join(target, "updIndex.sh"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Error("Could not create update index script")
-		return err
-	}
-	defer fp.Close()
-	err = t.Execute(fp, dReq)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source":  logprefix,
-			"error":   err,
-			"target":  target,
-			"request": dReq,
-		}).Error("Could not execute the update index template")
-		return err
-	}
-	// todo error
-	fp.Chmod(0777)
-
-	return err
 }
