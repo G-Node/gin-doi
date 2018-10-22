@@ -75,8 +75,8 @@ type DataSource interface {
 
 type DOIProvider interface {
 	MakeDOI(doiInfo *DOIRegInfo) string
-	GetXML(doiInfo *DOIRegInfo) (string, error)
-	RegDOI(doiInfo DOIRegInfo) (string, error)
+	GetXML(doiInfo *DOIRegInfo, doixml string) (string, error)
+	RegDOI(doiInfo DOIRegInfo, doixml string) (string, error)
 }
 
 type DOIUser struct {

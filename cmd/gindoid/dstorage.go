@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	logprefix = "Storage"
-	tmpdir    = "tmp"
+	logprefix   = "Storage"
+	tmpdir      = "tmp"
+	doixmlfname = "datacite.xml"
 )
 
 type LocalStorage struct {
@@ -46,7 +47,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"error":  err,
 			"out":    out,
 			"target": target,
-		}).Error("Could not Get the data")
+		}).Error("Repository cloning failed")
 	}
 	fSize, err := ls.zip(target)
 	if err != nil {
@@ -69,8 +70,10 @@ func (ls LocalStorage) Put(job DOIJob) error {
 		}).Error("Could not create parse the metadata template")
 	}
 	defer fp.Close()
-	// No registering. But the xml is provided with everything
-	data, err := ls.DProvider.GetXML(dReq.DOIInfo)
+	// No registering. But the XML is provided with everything
+
+	doixml := filepath.Join(ls.TemplatePath, doixmlfname)
+	data, err := ls.DProvider.GetXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": logprefix,

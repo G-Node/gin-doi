@@ -33,7 +33,7 @@ type MockDOIProvider struct {
 func (dp MockDOIProvider) MakeDOI(doiInfo *DOIRegInfo) string {
 	return "133"
 }
-func (dp MockDOIProvider) GetXML(doiInfo *DOIRegInfo) (string, error) {
+func (dp MockDOIProvider) GetXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
 	return "xml", nil
 }
 func (dp MockDOIProvider) RegDOI(doiInfo DOIRegInfo) (string, error) {
