@@ -15,12 +15,13 @@ RUN go get github.com/G-Node/gin-core/gin
 RUN go get golang.org/x/crypto/ssh
 RUN go get github.com/gogits/go-gogs-client
 
-ADD ./cmd/gindoid /gindoid
+COPY ./cmd/gindoid /gindoid
+COPY ./tmpl /tmpl
 WORKDIR /gindoid
 RUN go build
 
 VOLUME ["/doidata"]
 VOLUME ["/repos"]
 
-ENTRYPOINT ./gindoid --debug --target /doidata --gitsource=/repos
+ENTRYPOINT ./gindoid --debug --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443
 EXPOSE 10443

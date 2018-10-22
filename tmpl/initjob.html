@@ -54,14 +54,14 @@
                     $("#info").toggleClass("ui positive message");
                     $("#info").toggleClass("ui info icon message");
                     $("#infotable").hide();
-                    $("#warnung").hide();
+                    $("#warning").hide();
                 },
                 error: function (data) {
                     $("#info").html("This did not work and the reasons are somewhat unclear. Please consider <a href=\"https://web.gin.g-node.org/G-Node/Info/wiki#i-found-a-bug-something-is-not-working-or-i-dont-know-what-to-do\">contacting us</a>");
                     $("#info").toggleClass("ui positive message");
                     $("#info").toggleClass("ui negative message");
                     $("#infotable").hide();
-                    $("#warnung").hide();
+                    $("#warning").hide();
                 }
             });
         }
@@ -155,7 +155,7 @@
                     {{if .DOIInfo.License}}
                     <tr>
                         <td>License</td>
-                        <td>{{.DOIInfo.License.Name}} ({{.DOIInfo.License.Url}})
+                        <td>{{.DOIInfo.License.Name}} ({{.DOIInfo.License.URL}})
                         </td>
                     </tr>
                     {{end}}
@@ -197,20 +197,19 @@
                     </tbody>
                 </table>
             </div>
-            <div class="ui negative icon message" id="warnung">
+            <div class="ui negative icon message" id="warning">
                 <i class="warning icon"></i>
                 <div class="content">
-                    <div class="header"> Please thoroughly check the following before proceeding</div>
-                    <ul>
+                    <div class="header">Please thoroughly check the following before proceeding</div>
+                    <ul align="left">
                         <li>Did you upload all data?</li>
-                        <li>Does your repository contain a LICENSE file and does the license in that file match the
-                            license you provided in the datacite.yml file?
-                        </li>
+                        <li>Does your repository contain a LICENSE file?</li>
+                        <li> Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
                         <li>Does your repository contain a good description of the data?</li>
                     </ul>
-                    Furthermore, <b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b>
+                    Furthermore, <p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
                     Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
-                    All files and data in the repository will be part of the public archive!
+                    <p><b>All files and data in the repository will be part of the public archive!</b></p>
                 </div>
             </div>
             <div class="ui primary button" id="doify">Request DOI Now</div>
