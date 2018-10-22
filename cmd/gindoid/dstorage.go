@@ -24,6 +24,7 @@ type LocalStorage struct {
 	MServer      *MailServer
 	TemplatePath string
 	SCPURL       string
+	KnownHosts   string
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {
@@ -41,7 +42,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	ls.prepDir(target, dReq.DOIInfo)
 	ds, _ := ls.GetDataSource()
 
-	if out, err := ds.CloneRepository(source, tmpDir, &job.Key); err != nil {
+	if out, err := ds.CloneRepository(source, tmpDir, &job.Key, ls.KnownHosts); err != nil {
 		log.WithFields(log.Fields{
 			"source": logprefix,
 			"error":  err,

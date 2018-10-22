@@ -66,7 +66,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 	return body, nil
 }
 
-func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey) (string, error) {
+func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
 	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
 		"URI":    URI,
@@ -97,7 +97,9 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 			}).Error("SSH key storing failed")
 			return "", err
 		}
-		env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", privPath))
+		sshcommand := fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o UserKnownHostsFile=%s", privPath, hostsfile)
+		log.Debugf("GIT_SSH_COMMAND=%s", sshcommand)
+		env = append(env, sshcommand)
 		env = append(env, "GIT_COMMITTER_NAME=GINDOI")
 		env = append(env, "GIT_COMMITTER_EMAIL=doi@g-node.org")
 		cmd.Env = env

@@ -69,7 +69,7 @@ type Storage interface {
 
 type DataSource interface {
 	ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo)
-	CloneRepository(URI string, To string, key *rsa.PrivateKey) (string, error)
+	CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error)
 	MakeUUID(URI string, user OAuthIdentity) (string, error)
 }
 

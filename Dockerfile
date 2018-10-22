@@ -17,11 +17,12 @@ RUN go get github.com/gogits/go-gogs-client
 
 COPY ./cmd/gindoid /gindoid
 COPY ./tmpl /tmpl
+COPY ./hostkey /hostkey
 WORKDIR /gindoid
 RUN go build
 
 VOLUME ["/doidata"]
 VOLUME ["/repos"]
 
-ENTRYPOINT ./gindoid --debug --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailto=$notifyemail --mailserver=$mailserver
+ENTRYPOINT ./gindoid --debug --knownhosts=/hostkey --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailto=$notifyemail --mailserver=$mailserver
 EXPOSE 10443

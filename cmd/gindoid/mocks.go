@@ -17,7 +17,7 @@ type MockDataSource struct {
 func (ds *MockDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
 	return ds.validDOIFile, &ds.Berry
 }
-func (ds *MockDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey) (string, error) {
+func (ds *MockDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
 	os.Mkdir(To, os.ModePerm)
 	ds.calls = append(ds.calls, fmt.Sprintf("%s, %s", URI, To))
 	return "", nil

@@ -15,7 +15,7 @@ func TestGet(t *testing.T) {
 		return
 	}
 	ds := GogsDataSource{GinGitURL: ""}
-	out, err := ds.CloneRepository("master:../contrib/test", tmpLoc, nil)
+	out, err := ds.CloneRepository("master:../contrib/test", tmpLoc, nil, "")
 	defer os.RemoveAll(tmpLoc)
 	if err != nil {
 		t.Log(out)
@@ -24,7 +24,7 @@ func TestGet(t *testing.T) {
 	}
 	t.Log("[OK] Data source seems to clone")
 
-	out, err = ds.CloneRepository("../test_data/test21", "", nil)
+	out, err = ds.CloneRepository("../test_data/test21", "", nil, "")
 	if err == nil {
 		t.Log(out)
 		t.Fail()
