@@ -212,10 +212,11 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 	uuid := dReq.DOIInfo.UUID
 	doitarget := urljoin(ls.HTTPBase, uuid)
 
-	body := `Subject: New DOI registration request: %s
+	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
-A new DOI registration request has been received.
+	body := `A new DOI registration request has been received.
 
+	Repository: %s
 	User: %s
 	Email address: %s
 	DOI XML: %s
@@ -223,5 +224,5 @@ A new DOI registration request has been received.
 	UUID: %s
 `
 	body = fmt.Sprintf(body, repopath, userlogin, useremail, xmlurl, doitarget, uuid)
-	return ls.MServer.SendMail(body)
+	return ls.MServer.SendMail(subject, body)
 }

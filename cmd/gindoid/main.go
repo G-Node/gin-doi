@@ -14,7 +14,7 @@ const usage = `gindoid: DOI service for preparing GIN repositories for publicati
 Usage:
   gindoid [--maxworkers=<n> --maxqueue=<n> --port=<port> --source=<url> --gitsource=<url>
            --oauthserver=<url> --target=<dir> --storeurl=<url> --mailserver=<host:port> --mailfrom=<address>
-           --mailto=<address> --doibase=<prefix> --sendmail --debug --templates=<path> --xmlurl=<url>
+           --mailtofile=<path> --doibase=<prefix> --sendmail --debug --templates=<path> --xmlurl=<url>
            --knownhosts=<path>] --key=<key>
 
 Options:
@@ -28,7 +28,7 @@ Options:
   --storeurl=<url>                 The base URL for storage [default: http://doid.gin.g-node.org/]
   --mailserver=<host:port>         The mail server address (:and port) [default: localhost:25]
   --mailfrom=<address>             The mail from address [default: no-reply@g-node.org]
-  --mailto=<address>               The mail address to send info to [default: dev@g-node.org]
+  --mailtofile=<path>              A file containing email addresses (one per line) to notify of new requests
   --doibase=<prefix>               The DOI prefix [default: 10.12751/g-node.]
   --sendmail                       Whether mail notifications should really be sent (otherwise just print them)
   --debug                          Whether debug messages shall be printed
@@ -64,16 +64,16 @@ func main() {
 	log.Debugf("doibase: %s", doibase)
 	dp := GnodeDOIProvider{APIURI: "", DOIBase: doibase}
 
-	//Setup storage
+	// Setup storage
 	mailserver := args["--mailserver"].(string)
 	mailfrom := args["--mailfrom"].(string)
-	mailto := args["--mailto"].(string)
 	sendmail := args["--sendmail"].(bool)
+	mailtofile := args["--mailtofile"].(string)
 	mServer := MailServer{
 		Address:   mailserver,
 		From:      mailfrom,
 		DoSend:    sendmail,
-		Recipient: mailto,
+		EmailList: mailtofile,
 	}
 	log.Debugf("Mail configuration: %+v", mServer)
 
