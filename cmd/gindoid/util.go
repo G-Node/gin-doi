@@ -325,9 +325,11 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 		} else {
 			dReq.Message = template.HTML(MS_INVALIDDOIFILE + MS_ENCODING)
 		}
-		t.Execute(w, dReq)
+		dReq.DOIInfo = &DOIRegInfo{}
+		err = t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
+				"doiInfo": doiInfo,
 				"request": dReq,
 				"source":  "Init",
 				"error":   err,

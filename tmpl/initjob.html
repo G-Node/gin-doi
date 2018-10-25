@@ -109,7 +109,7 @@
         {{if .DOIInfo.Title}}
             <div class="ui positive message" id="info">
                 <div>
-                    <b>Well Done!</b> Your repository "{{.DOIInfo.Title}}" fulfills all necessary requirements!
+                    Your repository "{{.DOIInfo.Title}}" fulfills all necessary requirements!
                     Click the button below to start the DOI request.
                 </div>
             </div>
@@ -216,7 +216,8 @@
         {{else}}
             <div class="ui warning message">
                 <div><b>DOI request failed</b>
-                    <p> {{.Message}}</div>
+                    <p>{{.Message}}</p>
+                </div>
             </div>
         {{end}}
         </div>
