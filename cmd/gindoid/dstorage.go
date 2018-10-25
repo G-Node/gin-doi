@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"io"
+	"net/url"
 	"os"
 	"path/filepath"
-	txtTemplate "text/template"
 
 	log "github.com/Sirupsen/logrus"
 )
 
 const (
-	logprefix = "Storage"
-	tmpdir    = "tmp"
+	logprefix   = "Storage"
+	tmpdir      = "tmp"
+	doixmlfname = "datacite.xml"
 )
 
 type LocalStorage struct {
@@ -24,6 +24,7 @@ type LocalStorage struct {
 	MServer      *MailServer
 	TemplatePath string
 	SCPURL       string
+	KnownHosts   string
 }
 
 func (ls *LocalStorage) Exists(target string) (bool, error) {
@@ -39,15 +40,15 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
 	ls.prepDir(target, dReq.DOIInfo)
-	ds, _ := ls.GetDataSource()
+	ds := ls.GetDataSource()
 
-	if out, err := ds.Get(source, tmpDir, &job.Key); err != nil {
+	if out, err := ds.CloneRepository(source, tmpDir, &job.Key, ls.KnownHosts); err != nil {
 		log.WithFields(log.Fields{
 			"source": logprefix,
 			"error":  err,
 			"out":    out,
 			"target": target,
-		}).Error("Could not Get the data")
+		}).Error("Repository cloning failed")
 	}
 	fSize, err := ls.zip(target)
 	if err != nil {
@@ -57,7 +58,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"target": target,
 		}).Error("Could not zip the data")
 	}
-	// +1 to report something with small datsets
+	// +1 to report something with small datasets
 	dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
@@ -70,8 +71,10 @@ func (ls LocalStorage) Put(job DOIJob) error {
 		}).Error("Could not create parse the metadata template")
 	}
 	defer fp.Close()
-	// No registering. But the xml is provided with everything
-	data, err := ls.DProvider.GetXML(dReq.DOIInfo)
+	// No registering. But the XML is provided with everything
+
+	doixml := filepath.Join(ls.TemplatePath, doixmlfname)
+	data, err := ls.DProvider.GetXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": logprefix,
@@ -87,8 +90,6 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"target": target,
 		}).Error("Could not write to the metadata file")
 	}
-	ls.writeRegScript(to)
-	ls.writeUpdIndexScript(to, dReq)
 	ls.sendMaster(dReq)
 	return err
 }
@@ -114,29 +115,8 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	return stat.Size(), err
 }
 
-func (ls *LocalStorage) tar(target string) (int64, error) {
-	to := filepath.Join(ls.Path, target)
-	log.WithFields(log.Fields{
-		"source": logprefix,
-		"to":     to,
-	}).Debug("Started taring")
-	fp, err := os.Create(filepath.Join(to, target+".tar.gz"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"to":     to,
-		}).Error("Could not create zip file")
-		return 0, err
-	}
-	defer fp.Close()
-	err = Tar(filepath.Join(to, tmpdir), fp)
-	stat, _ := fp.Stat()
-	return stat.Size(), err
-}
-
-func (ls LocalStorage) GetDataSource() (DataSource, error) {
-	return ls.Source, nil
+func (ls LocalStorage) GetDataSource() DataSource {
+	return ls.Source
 }
 
 func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
@@ -212,12 +192,25 @@ func (ls LocalStorage) getSCP(dReq *DOIReq) string {
 }
 func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 
+	urljoin := func(a, b string) string {
+		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
+		base, err := url.Parse(a)
+		if err != nil {
+			return fallback
+		}
+		suffix, err := url.Parse(b)
+		if err != nil {
+			return fallback
+		}
+		return base.ResolveReference(suffix).String()
+	}
+
 	repopath := dReq.URI
 	userlogin := dReq.User.MainOId.Login
 	useremail := dReq.User.MainOId.Account.Email.Email
 	xmlurl := ls.getSCP(dReq)
 	uuid := dReq.DOIInfo.UUID
-	doitarget := fmt.Sprintf("%s/%s", ls.HTTPBase, uuid)
+	doitarget := urljoin(ls.HTTPBase, uuid)
 
 	body := `Subject: New DOI registration request: %s
 
@@ -231,78 +224,4 @@ A new DOI registration request has been received.
 `
 	body = fmt.Sprintf(body, repopath, userlogin, useremail, xmlurl, doitarget, uuid)
 	return ls.MServer.SendMail(body)
-}
-
-func (ls LocalStorage) writeRegScript(target string) error {
-	pScriptF, err := os.Open(filepath.Join(ls.TemplatePath, "mds-suite_test.pl"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Debug("The ugly Perls script is not there. Fuck it")
-		return err
-	}
-	defer pScriptF.Close()
-
-	pScriptT, err := os.Create(filepath.Join(target, "register.pl"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Debug("The ugly Perls script cannot be created. Screw it")
-		return err
-	}
-	defer pScriptT.Close()
-
-	_, err = io.Copy(pScriptT, pScriptF)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Debug("The ugly Perl script cannot be written. HATE IT")
-		return err
-	}
-	// todo error
-	pScriptT.Chmod(0777)
-
-	return err
-}
-
-func (ls LocalStorage) writeUpdIndexScript(target string, dReq *DOIReq) error {
-	t, err := txtTemplate.ParseFiles(filepath.Join(ls.TemplatePath, "updIndex.sh"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Error("Could not parse the update index template")
-		return err
-	}
-	fp, _ := os.Create(filepath.Join(target, "updIndex.sh"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": logprefix,
-			"error":  err,
-			"target": target,
-		}).Error("Could not create update index script")
-		return err
-	}
-	defer fp.Close()
-	err = t.Execute(fp, dReq)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source":  logprefix,
-			"error":   err,
-			"target":  target,
-			"request": dReq,
-		}).Error("Could not execute the update index template")
-		return err
-	}
-	// todo error
-	fp.Chmod(0777)
-
-	return err
 }

@@ -1,9 +1,7 @@
 package main
 
 import (
-	"archive/tar"
 	"archive/zip"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
@@ -11,71 +9,12 @@ import (
 	"strings"
 )
 
-// Tar takes a source and variable writers and walks 'source' writing each file
-// found to the tar writer; the purpose for accepting multiple writers is to allow
-// for multiple outputs (for example a file, or md5 hash)
-func Tar(src string, writers ...io.Writer) error {
-
-	// ensure the src actually exists before trying to tar it
-	if _, err := os.Stat(src); err != nil {
-		return fmt.Errorf("Unable to tar files - %v", err.Error())
-	}
-
-	mw := io.MultiWriter(writers...)
-
-	gzw := gzip.NewWriter(mw)
-	defer gzw.Close()
-
-	tw := tar.NewWriter(gzw)
-	defer tw.Close()
-
-	// walk path
-	return filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
-
-		// return on any error
-		if err != nil {
-			return err
-		}
-
-		// create a new dir/file header
-		header, err := tar.FileInfoHeader(fi, fi.Name())
-		if err != nil {
-			return err
-		}
-		// update the name to correctly reflect the desired destination when untaring
-		header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
-
-		// write the header
-		if err = tw.WriteHeader(header); err != nil {
-			return err
-		}
-
-		// return on directories since there will be no content to tar
-		if fi.Mode().IsDir() {
-			return nil
-		}
-
-		// open files for taring
-		f, err := os.Open(file)
-		defer f.Close()
-		if err != nil {
-			return err
-		}
-
-		// copy file data into tar writer
-		if _, err := io.Copy(tw, f); err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
+// Zip walks the directory tree rooted at src and writes each file found to the given writers.
+// The function accepts multiple writers to allow for multiple outputs (e.g., a file or md5 hash).
 func Zip(src string, writers ...io.Writer) error {
-
-	// ensure the src actually exists before trying to tar it
+	// ensure the src actually exists before trying to zip it
 	if _, err := os.Stat(src); err != nil {
-		return fmt.Errorf("Unable to tar files - %v", err.Error())
+		return fmt.Errorf("Unable to zip files: %s", err.Error())
 	}
 
 	mw := io.MultiWriter(writers...)
@@ -96,7 +35,7 @@ func Zip(src string, writers ...io.Writer) error {
 		if err != nil {
 			return err
 		}
-		// update the name to correctly reflect the desired destination when untaring
+		// update the name to correctly reflect the desired destination when unzipping
 		header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
 
 		// write the header
@@ -105,7 +44,7 @@ func Zip(src string, writers ...io.Writer) error {
 			return err
 		}
 
-		// return on directories since there will be no content to tar
+		// return on directories since there will be no content to zip
 		if fi.Mode().IsDir() {
 			return nil
 		}
@@ -122,14 +61,14 @@ func Zip(src string, writers ...io.Writer) error {
 			return nil
 		}
 
-		// open files for taring
+		// open files for zipping
 		f, err := os.Open(file)
 		defer f.Close()
 		if err != nil {
 			return err
 		}
 
-		// copy file data into tar writer
+		// copy file data into zip writer
 		if _, err := io.Copy(w, f); err != nil {
 			return err
 		}

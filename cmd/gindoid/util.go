@@ -4,17 +4,22 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 )
 
 // Check the current user. Return a user if logged in
@@ -141,7 +146,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	}
 	dReq.User = DOIUser{MainOId: user}
 	// TODO Error checking
-	ds, _ := storage.GetDataSource()
+	ds := storage.GetDataSource()
 	uuid, _ := ds.MakeUUID(dReq.URI, user)
 	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user)
 	if !ok {
@@ -174,8 +179,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi, doi)))
 }
 
-func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthProvider,
-	tp string, storage *LocalStorage, key string) {
+func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthProvider, tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -425,4 +429,31 @@ func GDOIMData(doi, doireg string) (*DOIMData, error) {
 	data := &DOIMData{}
 	json.Unmarshal(d, data)
 	return data, nil
+}
+
+func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
+	// generate and write private key as PEM
+	privPath := filepath.Join(path, "id_rsa")
+	pubPath := filepath.Join(path, "id_rsa.pub")
+	privateKeyFile, err := os.Create(privPath)
+	defer privateKeyFile.Close()
+	if err != nil {
+		return "", "", err
+	}
+	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(PrKey)}
+	if err = pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+		return "", "", err
+	}
+	privateKeyFile.Chmod(0600)
+	// generate and write public key
+	pub, err := ssh.NewPublicKey(&PrKey.PublicKey)
+	if err != nil {
+		return "", "", err
+	}
+	err = ioutil.WriteFile(pubPath, ssh.MarshalAuthorizedKey(pub), 0600)
+	if err != nil {
+		return "", "", err
+	}
+
+	return pubPath, privPath, nil
 }

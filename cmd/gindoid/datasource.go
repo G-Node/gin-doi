@@ -1,19 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/gogits/go-gogs-client"
+	gogs "github.com/gogits/go-gogs-client"
 	"gopkg.in/yaml.v2"
 )
 
@@ -58,7 +62,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 	return body, nil
 }
 
-func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string, error) {
+func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
 	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
 		"URI":    URI,
@@ -89,26 +93,28 @@ func (s *GogsDataSource) Get(URI string, To string, key *rsa.PrivateKey) (string
 			}).Error("SSH key storing failed")
 			return "", err
 		}
-		env = append(env, fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s", privPath))
+		sshcommand := fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o UserKnownHostsFile=%s", privPath, hostsfile)
+		log.Debugf("GIT_SSH_COMMAND=%s", sshcommand)
+		env = append(env, sshcommand)
 		env = append(env, "GIT_COMMITTER_NAME=GINDOI")
 		env = append(env, "GIT_COMMITTER_EMAIL=doi@g-node.org")
 		cmd.Env = env
 	}
 	out, err := cmd.CombinedOutput()
 	log.WithFields(log.Fields{
-		"URI":     URI,
-		"gin_uri": ginURI,
-		"to":      To,
-		"out":     string(out),
-		"source":  DSOURCELOGPREFIX,
+		"URI":    URI,
+		"GINURI": ginURI,
+		"to":     To,
+		"out":    string(out),
+		"source": DSOURCELOGPREFIX,
 	}).Debug("Done with cloning")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"URI":     URI,
-			"gin_uri": ginURI,
-			"to":      To,
-			"source":  DSOURCELOGPREFIX,
-			"error":   string(out),
+			"URI":    URI,
+			"GINURI": ginURI,
+			"to":     To,
+			"source": DSOURCELOGPREFIX,
+			"error":  string(out),
 		}).Debug("Cloning did not work")
 		return string(out), err
 	}
@@ -221,4 +227,118 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 		return false, &doiInfo
 	}
 	return true, &doiInfo
+}
+
+type DOIRegInfo struct {
+	Missing     []string
+	DOI         string
+	UUID        string
+	FileSize    int64
+	Title       string
+	Authors     []Author
+	Description string
+	Keywords    []string
+	References  []Reference
+	Funding     []string
+	License     *License
+	DType       string
+}
+
+func (c *DOIRegInfo) GetType() string {
+	if c.DType != "" {
+		return c.DType
+	}
+	return "Dataset"
+}
+
+func (c *DOIRegInfo) GetCitation() string {
+	var authors string
+	for _, auth := range c.Authors {
+		if len(auth.FirstName) > 0 {
+			authors += fmt.Sprintf("%s %s, ", auth.LastName, string(auth.FirstName[0]))
+		} else {
+			authors += fmt.Sprintf("%s, ", auth.LastName)
+		}
+	}
+	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
+}
+
+func (c *DOIRegInfo) EscXML(txt string) string {
+	buf := new(bytes.Buffer)
+	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
+		log.Errorf("Could not escape:%s, %+v", txt, err)
+		return ""
+	}
+	return buf.String()
+
+}
+
+type Author struct {
+	FirstName   string
+	LastName    string
+	Affiliation string
+	ID          string
+}
+
+type NamedIdentifier struct {
+	URI    string
+	Scheme string
+	ID     string
+}
+
+func (c *Author) GetValidID() *NamedIdentifier {
+	if c.ID == "" {
+		return nil
+	}
+	if strings.Contains(strings.ToLower(c.ID), "orcid") {
+		// assume the orcid id is a four block number thing eg. 0000-0002-5947-9939
+		var re = regexp.MustCompile(`(\d+-\d+-\d+-\d+)`)
+		nid := string(re.Find([]byte(c.ID)))
+		return &NamedIdentifier{URI: "https://orcid.org/", Scheme: "ORCID", ID: nid}
+	}
+	return nil
+}
+func (a *Author) RenderAuthor() string {
+	auth := fmt.Sprintf("%s,%s;%s;%s", a.LastName, a.FirstName, a.Affiliation, a.ID)
+	return strings.TrimRight(auth, ";")
+}
+
+type Reference struct {
+	Reftype string
+	Name    string
+	DOI     string
+}
+
+type License struct {
+	Name string
+	URL  string
+}
+
+func hasValues(s *DOIRegInfo) bool {
+	if s.Title == "" {
+		s.Missing = append(s.Missing, MS_NOTITLE)
+	}
+	if len(s.Authors) == 0 {
+		s.Missing = append(s.Missing, MS_NOAUTHORS)
+	} else {
+		for _, auth := range s.Authors {
+			if auth.LastName == "" || auth.FirstName == "" {
+				s.Missing = append(s.Missing, MS_AUTHORWRONG)
+			}
+		}
+	}
+	if s.Description == "" {
+		s.Missing = append(s.Missing, MS_NODESC)
+	}
+	if s.License == nil || s.License.Name == "" || s.License.URL == "" {
+		s.Missing = append(s.Missing, MS_NOLIC)
+	}
+	if s.References != nil {
+		for _, ref := range s.References {
+			if ref.Name == "" || ref.Reftype == "" {
+				s.Missing = append(s.Missing, MS_REFERENCEWRONG)
+			}
+		}
+	}
+	return len(s.Missing) == 0
 }

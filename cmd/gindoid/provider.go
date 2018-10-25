@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"net/http"
-	"path/filepath"
 	"text/template"
 
 	log "github.com/Sirupsen/logrus"
@@ -27,9 +26,9 @@ func (dp GnodeDOIProvider) MakeDOI(doiInfo *DOIRegInfo) string {
 	return doiInfo.DOI
 }
 
-func (dp GnodeDOIProvider) GetXML(doiInfo *DOIRegInfo) (string, error) {
+func (dp GnodeDOIProvider) GetXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
 	dp.MakeDOI(doiInfo)
-	t, err := template.ParseFiles(filepath.Join("tmpl", "datacite.xml"))
+	t, err := template.ParseFiles(doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": LOGPREFIX,
@@ -49,8 +48,8 @@ func (dp GnodeDOIProvider) GetXML(doiInfo *DOIRegInfo) (string, error) {
 	return buff.String(), err
 }
 
-func (dp GnodeDOIProvider) RegDOI(doiInfo DOIRegInfo) (string, error) {
-	data, err := dp.GetXML(&doiInfo)
+func (dp GnodeDOIProvider) RegDOI(doiInfo DOIRegInfo, doixml string) (string, error) {
+	data, err := dp.GetXML(&doiInfo, doixml)
 	if err != nil {
 		return "", err
 	}

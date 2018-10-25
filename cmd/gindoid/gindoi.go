@@ -21,14 +21,14 @@ const (
 						</div>`
 	MS_SERVERWORKS = `<i class="notched circle loading icon"></i>
 		<div class="content">
-			<div class="header">The doi server has started doifying and archiving your repository.</div>
-		We will try to register the following doi:<br>
+			<div class="header">The DOI server has started archiving your repository.</div>
+		We will try to register the following DOI for your dataset:<br>
 		<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a></div><br>
-		for your dataset. Please note, however, that in rare cases the final doi might be different.<br>
-		Please consider that there is a step of human intervention before the doi is registered.
-		It might therefore take a few hours until the doi page goes live. We will notify you
-		via email once the process is finished.<br>
-		<b>This page can safely be closed. You do not need to keep it open</b>
+		In rare cases the final DOI might be different.<br>
+		Please note that the final step in the registration process requires us to manually review your request.
+		It may therefore take a few hours until the DOI is finally registered and your data becomes available.
+		We will notify you via email once the process is finished.<br>
+		<b>This page can safely be closed. You do not need to keep it open.</b>
 		</div>`
 	MS_NOLOGIN        = `You are not logged in with the gin service. Login <a href="http://gin.g-node.org/">here</a>`
 	MS_NOTOKEN        = "No authentication token provided"
@@ -52,7 +52,7 @@ type StorageElement interface {
 	Exists(target string) (bool, error)
 	// Store the things specified by source in target
 	Put(source string, target string) (bool, error)
-	GetDataSource() (*DataSource, error)
+	GetDataSource() *DataSource
 }
 
 type OAuthProvider interface {
@@ -64,19 +64,19 @@ type OAuthProvider interface {
 
 type Storage interface {
 	Put(job DOIJob) error
-	GetDataSource() (*DataSource, error)
+	GetDataSource() *DataSource
 }
 
 type DataSource interface {
 	ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo)
-	Get(URI string, To string, key *rsa.PrivateKey) (string, error)
+	CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error)
 	MakeUUID(URI string, user OAuthIdentity) (string, error)
 }
 
 type DOIProvider interface {
 	MakeDOI(doiInfo *DOIRegInfo) string
-	GetXML(doiInfo *DOIRegInfo) (string, error)
-	RegDOI(doiInfo DOIRegInfo) (string, error)
+	GetXML(doiInfo *DOIRegInfo, doixml string) (string, error)
+	RegDOI(doiInfo DOIRegInfo, doixml string) (string, error)
 }
 
 type DOIUser struct {

@@ -14,7 +14,8 @@ const usage = `gindoid: DOI service for preparing GIN repositories for publicati
 Usage:
   gindoid [--maxworkers=<n> --maxqueue=<n> --port=<port> --source=<url> --gitsource=<url>
            --oauthserver=<url> --target=<dir> --storeurl=<url> --mailserver=<host:port> --mailfrom=<address>
-           --mailto=<address> --doibase=<prefix> --sendmail --debug --templates=<path> --xmlurl=<url>] --key=<key>
+           --mailto=<address> --doibase=<prefix> --sendmail --debug --templates=<path> --xmlurl=<url>
+           --knownhosts=<path>] --key=<key>
 
 Options:
   --maxworkers=<n>                 The number of workers to start [default: 3]
@@ -33,6 +34,7 @@ Options:
   --debug                          Whether debug messages shall be printed
   --templates=<path>               Path to the templates [default: tmpl]
   --xmlurl=<url>                   URI of the datacite XML [default: gin.g-node.org:/data/doid]
+  --knownhosts=<path>              Path to SSH known hosts file [default: .ssh/known_hosts]
   --key=<key>                      Key used to decrypt token
 `
 
@@ -79,6 +81,7 @@ func main() {
 	storeurl := args["--storeurl"].(string)
 	templates := args["--templates"].(string)
 	xmlurl := args["--xmlurl"].(string)
+	knownhosts := args["--knownhosts"].(string)
 	storage := LocalStorage{
 		Path:   target,
 		Source: ds, HTTPBase: storeurl,
@@ -86,6 +89,7 @@ func main() {
 		MServer:      &mServer,
 		TemplatePath: templates,
 		SCPURL:       xmlurl,
+		KnownHosts:   knownhosts,
 	}
 	log.Debugf("LocalStorage configuration: %+v", storage)
 
