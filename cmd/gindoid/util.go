@@ -146,7 +146,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	}
 	dReq.User = DOIUser{MainOId: user}
 	// TODO Error checking
-	ds, _ := storage.GetDataSource()
+	ds := storage.GetDataSource()
 	uuid, _ := ds.MakeUUID(dReq.URI, user)
 	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user)
 	if !ok {

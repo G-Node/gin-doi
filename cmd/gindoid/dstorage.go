@@ -40,7 +40,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
 	ls.prepDir(target, dReq.DOIInfo)
-	ds, _ := ls.GetDataSource()
+	ds := ls.GetDataSource()
 
 	if out, err := ds.CloneRepository(source, tmpDir, &job.Key, ls.KnownHosts); err != nil {
 		log.WithFields(log.Fields{
@@ -115,8 +115,8 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	return stat.Size(), err
 }
 
-func (ls LocalStorage) GetDataSource() (DataSource, error) {
-	return ls.Source, nil
+func (ls LocalStorage) GetDataSource() DataSource {
+	return ls.Source
 }
 
 func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {

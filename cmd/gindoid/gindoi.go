@@ -52,7 +52,7 @@ type StorageElement interface {
 	Exists(target string) (bool, error)
 	// Store the things specified by source in target
 	Put(source string, target string) (bool, error)
-	GetDataSource() (*DataSource, error)
+	GetDataSource() *DataSource
 }
 
 type OAuthProvider interface {
@@ -64,7 +64,7 @@ type OAuthProvider interface {
 
 type Storage interface {
 	Put(job DOIJob) error
-	GetDataSource() (*DataSource, error)
+	GetDataSource() *DataSource
 }
 
 type DataSource interface {
