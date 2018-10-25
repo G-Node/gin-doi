@@ -21,7 +21,6 @@ WORKDIR /gindoid
 RUN go build
 
 VOLUME ["/doidata"]
-VOLUME ["/repos"]
 VOLUME ["/gindoid/config"]
 
 ENTRYPOINT ./gindoid --debug --knownhosts=/gindoid/config/hostkey --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailtofile=/gindoid/config/emails --mailserver=$mailserver

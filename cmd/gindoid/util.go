@@ -152,7 +152,6 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
-
 	}
 	doiInfo.UUID = uuid
 	doi := storage.DProvider.MakeDOI(doiInfo)

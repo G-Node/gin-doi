@@ -219,11 +219,11 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 	}
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{
-			"data":    in,
+			"data":    string(in),
 			"doiInfo": doiInfo,
 			"source":  DSOURCELOGPREFIX,
 			"error":   err,
-		}).Debug("DOI file misses entries")
+		}).Debug("DOI file is missing entries")
 		return false, &doiInfo
 	}
 	return true, &doiInfo
