@@ -4,24 +4,20 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	gogs "github.com/gogits/go-gogs-client"
-	"golang.org/x/crypto/ssh"
 	"gopkg.in/yaml.v2"
 )
 
@@ -345,31 +341,4 @@ func hasValues(s *DOIRegInfo) bool {
 		}
 	}
 	return len(s.Missing) == 0
-}
-
-func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
-	// generate and write private key as PEM
-	privPath := filepath.Join(path, "id_rsa")
-	pubPath := filepath.Join(path, "id_rsa.pub")
-	privateKeyFile, err := os.Create(privPath)
-	defer privateKeyFile.Close()
-	if err != nil {
-		return "", "", err
-	}
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(PrKey)}
-	if err = pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
-		return "", "", err
-	}
-	privateKeyFile.Chmod(0600)
-	// generate and write public key
-	pub, err := ssh.NewPublicKey(&PrKey.PublicKey)
-	if err != nil {
-		return "", "", err
-	}
-	err = ioutil.WriteFile(pubPath, ssh.MarshalAuthorizedKey(pub), 0600)
-	if err != nil {
-		return "", "", err
-	}
-
-	return pubPath, privPath, nil
 }
