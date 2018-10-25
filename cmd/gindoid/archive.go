@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
+// Zip walks the directory tree rooted at src and writes each file found to the given writers.
+// The function accepts multiple writers to allow for multiple outputs (e.g., a file or md5 hash).
 func Zip(src string, writers ...io.Writer) error {
-
-	// ensure the src actually exists before trying to tar it
+	// ensure the src actually exists before trying to zip it
 	if _, err := os.Stat(src); err != nil {
 		return fmt.Errorf("Unable to zip files: %s", err.Error())
 	}
@@ -34,7 +35,7 @@ func Zip(src string, writers ...io.Writer) error {
 		if err != nil {
 			return err
 		}
-		// update the name to correctly reflect the desired destination when untaring
+		// update the name to correctly reflect the desired destination when unzipping
 		header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
 
 		// write the header
@@ -43,7 +44,7 @@ func Zip(src string, writers ...io.Writer) error {
 			return err
 		}
 
-		// return on directories since there will be no content to tar
+		// return on directories since there will be no content to zip
 		if fi.Mode().IsDir() {
 			return nil
 		}
@@ -60,14 +61,14 @@ func Zip(src string, writers ...io.Writer) error {
 			return nil
 		}
 
-		// open files for taring
+		// open files for zipping
 		f, err := os.Open(file)
 		defer f.Close()
 		if err != nil {
 			return err
 		}
 
-		// copy file data into tar writer
+		// copy file data into zip writer
 		if _, err := io.Copy(w, f); err != nil {
 			return err
 		}
