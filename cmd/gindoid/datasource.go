@@ -298,7 +298,7 @@ func (c *Author) GetValidID() *NamedIdentifier {
 		// assume the orcid id is a four block number thing eg. 0000-0002-5947-9939
 		var re = regexp.MustCompile(`(\d+-\d+-\d+-\d+)`)
 		nid := string(re.Find([]byte(c.ID)))
-		return &NamedIdentifier{URI: "http://orcid.org/", Scheme: "ORCID", ID: nid}
+		return &NamedIdentifier{URI: "https://orcid.org/", Scheme: "ORCID", ID: nid}
 	}
 	return nil
 }
