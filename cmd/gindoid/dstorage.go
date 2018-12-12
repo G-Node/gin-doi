@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/G-Node/libgin/libgin"
 	log "github.com/Sirupsen/logrus"
 )
 
@@ -110,7 +111,7 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 		return 0, err
 	}
 	defer fp.Close()
-	err = Zip(filepath.Join(to, tmpdir), fp)
+	err = libgin.MakeZip(fp, filepath.Join(to, tmpdir))
 	stat, _ := fp.Stat()
 	return stat.Size(), err
 }
