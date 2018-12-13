@@ -10,7 +10,7 @@ import (
 	"net/http"
 
 	"github.com/G-Node/gin-core/gin"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
 

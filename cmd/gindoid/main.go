@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/docopt/docopt-go"
+	docopt "github.com/docopt/docopt-go"
+	log "github.com/sirupsen/logrus"
 )
 
 const usage = `gindoid: DOI service for preparing GIN repositories for publication
