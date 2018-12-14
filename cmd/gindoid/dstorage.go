@@ -19,7 +19,6 @@ const (
 type LocalStorage struct {
 	Path         string
 	Source       DataSource
-	DProvider    DOIProvider
 	HTTPBase     string
 	MServer      *MailServer
 	TemplatePath string
@@ -74,7 +73,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	// No registering. But the XML is provided with everything
 
 	doixml := filepath.Join(ls.TemplatePath, doixmlfname)
-	data, err := ls.DProvider.GetXML(dReq.DOIInfo, doixml)
+	data, err := GetXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,

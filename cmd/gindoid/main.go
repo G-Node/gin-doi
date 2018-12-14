@@ -38,10 +38,13 @@ Options:
   --key=<key>                      Key used to decrypt token
 `
 
+// TODO: Make non-global
+var doibase string
+
 func main() {
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
 	if err != nil {
-		log.Printf("Error while parsing command line: %+v", err)
+		log.Printf("Error while parsing command line: %s", err.Error())
 		os.Exit(-1)
 	}
 	//Debugging?
@@ -59,10 +62,8 @@ func main() {
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
 	ds := DataSource{GinURL: ginurl, GinGitURL: giturl}
 
-	// doi provider
-	doibase := args["--doibase"].(string)
+	doibase = args["--doibase"].(string)
 	log.Debugf("doibase: %s", doibase)
-	dp := DOIProvider{APIURI: "", DOIBase: doibase}
 
 	// Setup storage
 	mailserver := args["--mailserver"].(string)
@@ -86,7 +87,6 @@ func main() {
 		Path:         target,
 		Source:       ds,
 		HTTPBase:     storeurl,
-		DProvider:    dp,
 		MServer:      &mServer,
 		TemplatePath: templates,
 		SCPURL:       xmlurl,

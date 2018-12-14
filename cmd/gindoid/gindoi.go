@@ -44,6 +44,7 @@ const (
 	lpDataSource = "DataSource"
 	lpAuth       = "GinOAP"
 	lpStorage    = "Storage"
+	lpMakeXML    = "MakeXML"
 )
 
 type DOIUser struct {

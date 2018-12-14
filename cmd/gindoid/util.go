@@ -154,7 +154,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		return
 	}
 	doiInfo.UUID = uuid
-	doi := storage.DProvider.MakeDOI(doiInfo)
+	doi := makeDOI(doiInfo.UUID)
 	dReq.DOIInfo = doiInfo
 	key, err := op.AuthorizePull(user)
 	if err != nil {
