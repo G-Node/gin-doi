@@ -41,7 +41,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 		// todo Try to infer what went wrong
 		log.WithFields(log.Fields{
 			"path":   fetchRepoPath,
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  err,
 		}).Debug("Could not get DOI file")
 		return nil, err
@@ -54,7 +54,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 	if err != nil {
 		log.WithFields(log.Fields{
 			"path":   fetchRepoPath,
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  err,
 		}).Debug("Could not read from received datacite.yml file")
 		return nil, err
@@ -68,14 +68,14 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		"URI":    URI,
 		"ginURI": ginURI,
 		"to":     To,
-		"source": DSOURCELOGPREFIX,
+		"source": dataSourceLogPrefix,
 	}).Debug("Start cloning")
 
 	//Create tmp ssh keys files from the key provided
 	tmpDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  err,
 		}).Error("SSH key tmp dir not created")
 		return "", err
@@ -88,7 +88,7 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		_, privPath, err := WriteSSHKeyPair(tmpDir, key)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"source": DSOURCELOGPREFIX,
+				"source": dataSourceLogPrefix,
 				"error":  err,
 			}).Error("SSH key storing failed")
 			return "", err
@@ -106,14 +106,14 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		"GINURI": ginURI,
 		"to":     To,
 		"out":    string(out),
-		"source": DSOURCELOGPREFIX,
+		"source": dataSourceLogPrefix,
 	}).Debug("Done with cloning")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"URI":    URI,
 			"GINURI": ginURI,
 			"to":     To,
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  string(out),
 		}).Debug("Cloning did not work")
 		return string(out), err
@@ -127,7 +127,7 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		// Workaround for uninitilaizes git annexes (-> return nil)
 		// todo
 		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  string(out),
 		}).Debug("Annex get failed")
 	}
@@ -139,7 +139,7 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		// Workaround for uninitilaizes git annexes (-> return nil)
 		// todo
 		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  string(out),
 		}).Debug("Anex unlock failed")
 	}
@@ -200,7 +200,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 	if err != nil {
 		log.WithFields(log.Fields{
 			"data":   string(in),
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  err,
 		}).Error("Could not get the DOI file")
 		return false, nil
@@ -210,7 +210,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 	if err != nil {
 		log.WithFields(log.Fields{
 			"data":   string(in),
-			"source": DSOURCELOGPREFIX,
+			"source": dataSourceLogPrefix,
 			"error":  err,
 		}).Error("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
@@ -221,7 +221,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 		log.WithFields(log.Fields{
 			"data":    string(in),
 			"doiInfo": doiInfo,
-			"source":  DSOURCELOGPREFIX,
+			"source":  dataSourceLogPrefix,
 			"error":   err,
 		}).Debug("DOI file is missing entries")
 		return false, &doiInfo
@@ -316,27 +316,27 @@ type License struct {
 
 func hasValues(s *DOIRegInfo) bool {
 	if s.Title == "" {
-		s.Missing = append(s.Missing, MS_NOTITLE)
+		s.Missing = append(s.Missing, msgNoTitle)
 	}
 	if len(s.Authors) == 0 {
-		s.Missing = append(s.Missing, MS_NOAUTHORS)
+		s.Missing = append(s.Missing, msgNoAuthors)
 	} else {
 		for _, auth := range s.Authors {
 			if auth.LastName == "" || auth.FirstName == "" {
-				s.Missing = append(s.Missing, MS_AUTHORWRONG)
+				s.Missing = append(s.Missing, msgInvalidAuthors)
 			}
 		}
 	}
 	if s.Description == "" {
-		s.Missing = append(s.Missing, MS_NODESC)
+		s.Missing = append(s.Missing, msgNoDescription)
 	}
 	if s.License == nil || s.License.Name == "" || s.License.URL == "" {
-		s.Missing = append(s.Missing, MS_NOLIC)
+		s.Missing = append(s.Missing, msgNoLicense)
 	}
 	if s.References != nil {
 		for _, ref := range s.References {
 			if ref.Name == "" || ref.Reftype == "" {
-				s.Missing = append(s.Missing, MS_REFERENCEWRONG)
+				s.Missing = append(s.Missing, msgInvalidReference)
 			}
 		}
 	}
