@@ -23,7 +23,7 @@ import (
 )
 
 // Check the current user. Return a user if logged in
-func loggedInUser(r *http.Request, pr *GogsOAuthProvider) (*DOIUser, error) {
+func loggedInUser(r *http.Request, pr *OAuthProvider) (*DOIUser, error) {
 	return &DOIUser{}, nil
 }
 
@@ -95,7 +95,7 @@ func IsRegisteredDOI(doi string) bool {
 	return false
 }
 
-func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *GogsOAuthProvider) {
+func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *OAuthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -178,7 +178,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi, doi)))
 }
 
-func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *GogsDataSource, op *GogsOAuthProvider, tp string, storage *LocalStorage, key string) {
+func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAuthProvider, tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{

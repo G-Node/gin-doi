@@ -57,12 +57,12 @@ func main() {
 	ginurl := args["--source"].(string)
 	giturl := args["--gitsource"].(string)
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
-	ds := GogsDataSource{GinURL: ginurl, GinGitURL: giturl}
+	ds := DataSource{GinURL: ginurl, GinGitURL: giturl}
 
 	// doi provider
 	doibase := args["--doibase"].(string)
 	log.Debugf("doibase: %s", doibase)
-	dp := GnodeDOIProvider{APIURI: "", DOIBase: doibase}
+	dp := DOIProvider{APIURI: "", DOIBase: doibase}
 
 	// Setup storage
 	mailserver := args["--mailserver"].(string)
@@ -96,7 +96,7 @@ func main() {
 
 	// setup authentication
 	oAuthAddress := args["--oauthserver"].(string)
-	op := GogsOAuthProvider{
+	op := OAuthProvider{
 		URI:      fmt.Sprintf("%s/api/v1/user", oAuthAddress),
 		TokenURL: "",
 		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oAuthAddress),

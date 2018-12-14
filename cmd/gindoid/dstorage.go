@@ -12,15 +12,14 @@ import (
 )
 
 const (
-	logprefix   = "Storage"
 	tmpdir      = "tmp"
 	doixmlfname = "datacite.xml"
 )
 
 type LocalStorage struct {
 	Path         string
-	Source       GogsDataSource
-	DProvider    GnodeDOIProvider
+	Source       DataSource
+	DProvider    DOIProvider
 	HTTPBase     string
 	MServer      *MailServer
 	TemplatePath string
@@ -45,7 +44,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 
 	if out, err := ds.CloneRepository(source, tmpDir, &job.Key, ls.KnownHosts); err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"out":    out,
 			"target": target,
@@ -54,7 +53,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	fSize, err := ls.zip(target)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not zip the data")
@@ -66,7 +65,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create parse the metadata template")
@@ -78,7 +77,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	data, err := ls.DProvider.GetXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the metadata file")
@@ -86,7 +85,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	_, err = fp.Write([]byte(data))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to the metadata file")
@@ -98,13 +97,13 @@ func (ls LocalStorage) Put(job DOIJob) error {
 func (ls *LocalStorage) zip(target string) (int64, error) {
 	to := filepath.Join(ls.Path, target)
 	log.WithFields(log.Fields{
-		"source": logprefix,
+		"source": lpStorage,
 		"to":     to,
 	}).Debug("Started zipping")
 	fp, err := os.Create(filepath.Join(to, target+".zip"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"to":     to,
 		}).Error("Could not create zip file")
@@ -116,7 +115,7 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	return stat.Size(), err
 }
 
-func (ls LocalStorage) GetDataSource() GogsDataSource {
+func (ls LocalStorage) GetDataSource() DataSource {
 	return ls.Source
 }
 
@@ -125,7 +124,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
-				"source": logprefix,
+				"source": lpStorage,
 				"error":  err,
 				"target": target,
 			}).Error("Could not parse the DOI template")
@@ -137,7 +136,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	fp, err := os.Create(filepath.Join(ls.Path, target, "index.html"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the DOI index.html")
@@ -146,7 +145,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
 		log.WithFields(log.Fields{
-			"source":   logprefix,
+			"source":   lpStorage,
 			"error":    err,
 			"doiInfoo": info,
 		}).Error("Could not execute the DOI template")
@@ -159,7 +158,7 @@ func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
 	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the target directory")
@@ -169,7 +168,7 @@ func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
 	file, err := os.Create(filepath.Join(ls.Path, target, ".htaccess"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create .httaccess")
@@ -180,7 +179,7 @@ func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
 	_, err = file.Write([]byte("deny from all"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": logprefix,
+			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to .httaccess")
