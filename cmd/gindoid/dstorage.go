@@ -110,6 +110,10 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	}
 	defer fp.Close()
 	err = libgin.MakeZip(fp, filepath.Join(to, tmpdir))
+	if err != nil {
+		log.Errorf("MakeZip failed: %s", err)
+		return 0, err
+	}
 	stat, _ := fp.Stat()
 	return stat.Size(), err
 }
