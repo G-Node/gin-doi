@@ -24,5 +24,5 @@ RUN go build
 VOLUME ["/doidata"]
 VOLUME ["/gindoid/config"]
 
-ENTRYPOINT ./gindoid --debug --knownhosts=/gindoid/config/hostkey --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailtofile=/gindoid/config/emails --mailserver=$mailserver --oauthserver=$authserver --source=$ginserver
+ENTRYPOINT ./gindoid --debug
 EXPOSE 10443
