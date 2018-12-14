@@ -82,6 +82,8 @@ func Decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
+// IsRegisteredDOI returns True if a given DOI is registered publicly.
+// It simply checks if https://doi.org/<doi> returns a status code other than NotFound.
 func IsRegisteredDOI(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
@@ -95,6 +97,7 @@ func IsRegisteredDOI(doi string) bool {
 	return false
 }
 
+// DoDOIJob starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
 func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *OAuthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
@@ -178,6 +181,8 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi, doi)))
 }
 
+// InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
+// It validates the metadata provided from the GIN repository and shows appropriate error messages and instructions.
 func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAuthProvider, tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
@@ -352,6 +357,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	}
 }
 
+// DOIMdata holds all the metadata for a dataset that's in the process of being registered.
 type DOIMData struct {
 	Data struct {
 		ID         string `json:"id"`
@@ -405,33 +411,7 @@ type DOIMData struct {
 	} `json:"data"`
 }
 
-type DOIinvalid struct {
-	error
-}
-
-// https://api.datacite.org/works/
-func GDOIMData(doi, doireg string) (*DOIMData, error) {
-	url := fmt.Sprintf("%s%s", doireg, doi)
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, DOIinvalid{}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Resource not found")
-	}
-	d, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	data := &DOIMData{}
-	json.Unmarshal(d, data)
-	return data, nil
-}
-
+// WriteSSHKeyPair writes the private and public SSH keys to two files (id_rsa and id_rsa.pub) in the given path.
 func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
 	// generate and write private key as PEM
 	privPath := filepath.Join(path, "id_rsa")
