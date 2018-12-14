@@ -12,34 +12,23 @@ import (
 
 const usage = `gindoid: DOI service for preparing GIN repositories for publication
 Usage:
-  gindoid [--maxworkers=<n> --maxqueue=<n> --port=<port> --source=<url> --gitsource=<url>
-           --oauthserver=<url> --target=<dir> --storeurl=<url> --mailserver=<host:port> --mailfrom=<address>
-           --mailtofile=<path> --doibase=<prefix> --sendmail --debug --templates=<path> --xmlurl=<url>
-           --knownhosts=<path>] --key=<key>
+  gindoid [--debug]
 
-Options:
-  --maxworkers=<n>                 The number of workers to start [default: 3]
-  --maxqueue=<n>                   The size of the job queue [default: 100]
-  --port=<port>                    The server port [default: 8083]
-  --source=<url>                   The server address from which data can be read [default: https://web.gin.g-node.org]
-  --gitsource=<url>                The git server address from which data can be cloned [default: ssh://git@gin.g-node.org]
-  --oauthserver=<url>              The server of the repo service [default: https://web.gin.g-node.org]
-  --target=<dir>                   The location for long term storage [default: data]
-  --storeurl=<url>                 The base URL for storage [default: http://doid.gin.g-node.org/]
-  --mailserver=<host:port>         The mail server address (:and port) [default: localhost:25]
-  --mailfrom=<address>             The mail from address [default: no-reply@g-node.org]
-  --mailtofile=<path>              A file containing email addresses (one per line) to notify of new requests
-  --doibase=<prefix>               The DOI prefix [default: 10.12751/g-node.]
-  --sendmail                       Whether mail notifications should really be sent (otherwise just print them)
-  --debug                          Whether debug messages shall be printed
-  --templates=<path>               Path to the templates [default: tmpl]
-  --xmlurl=<url>                   URI of the datacite XML [default: gin.g-node.org:/data/doid]
-  --knownhosts=<path>              Path to SSH known hosts file [default: .ssh/known_hosts]
-  --key=<key>                      Key used to decrypt token
+  --debug              Print debug messages
 `
 
 // TODO: Make non-global
 var doibase string
+
+// reqconf (require configuration) returns the value of a configuration env variable and exits with an error if it is not set.
+func reqconf(key string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		log.Errorf("Configuration environment variable '%s' is not set", key)
+		os.Exit(-1)
+	}
+	return value
+}
 
 func main() {
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -57,19 +46,19 @@ func main() {
 	log.Debug("Starting up")
 
 	// Setup data source
-	ginurl := args["--source"].(string)
-	giturl := args["--gitsource"].(string)
+	ginurl := reqconf("ginurl")
+	giturl := reqconf("giturl")
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
 	ds := DataSource{GinURL: ginurl, GinGitURL: giturl}
 
-	doibase = args["--doibase"].(string)
+	doibase = reqconf("doibase")
 	log.Debugf("doibase: %s", doibase)
 
 	// Setup storage
-	mailserver := args["--mailserver"].(string)
-	mailfrom := args["--mailfrom"].(string)
-	sendmail := args["--sendmail"].(bool)
-	mailtofile := args["--mailtofile"].(string)
+	mailserver := reqconf("mailserver")
+	mailfrom := reqconf("mailfrom")
+	sendmail := true // TODO: Remove option
+	mailtofile := reqconf("mailtofile")
 	mServer := MailServer{
 		Address:   mailserver,
 		From:      mailfrom,
@@ -78,11 +67,11 @@ func main() {
 	}
 	log.Debugf("Mail configuration: %+v", mServer)
 
-	target := args["--target"].(string)
-	storeurl := args["--storeurl"].(string)
-	templates := args["--templates"].(string)
-	xmlurl := args["--xmlurl"].(string)
-	knownhosts := args["--knownhosts"].(string)
+	target := reqconf("target")
+	storeurl := reqconf("storeurl")
+	templates := reqconf("templates")
+	xmlurl := reqconf("xmlurl")
+	knownhosts := reqconf("knownhosts")
 	storage := LocalStorage{
 		Path:         target,
 		Source:       ds,
@@ -95,7 +84,7 @@ func main() {
 	log.Debugf("LocalStorage configuration: %+v", storage)
 
 	// setup authentication
-	oAuthAddress := args["--oauthserver"].(string)
+	oAuthAddress := reqconf("oauthserver")
 	op := OAuthProvider{
 		URI:      fmt.Sprintf("%s/api/v1/user", oAuthAddress),
 		TokenURL: "",
@@ -103,10 +92,10 @@ func main() {
 	}
 	log.Debugf("OAuth configuration: %+v", op)
 
-	key := args["--key"].(string)
+	key := reqconf("key")
 
 	// Create the job queue.
-	maxQ, err := strconv.Atoi(args["--maxqueue"].(string))
+	maxQ, err := strconv.Atoi(reqconf("maxqueue"))
 	if err != nil {
 		log.Printf("Error while parsing maxqueue flag: %s", err.Error())
 		log.Print("Using default")
@@ -114,7 +103,7 @@ func main() {
 	}
 	jobQueue := make(chan DOIJob, maxQ)
 	// Start the dispatcher.
-	maxW, err := strconv.Atoi(args["--maxworkers"].(string))
+	maxW, err := strconv.Atoi(reqconf("maxworkers"))
 	if err != nil {
 		log.Printf("Error while parsing maxworkers flag: %s", err.Error())
 		log.Print("Using default")
@@ -137,7 +126,7 @@ func main() {
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
 
-	port := args["--port"].(string)
+	port := reqconf("port")
 	fmt.Printf("Listening for connections on port %s\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
