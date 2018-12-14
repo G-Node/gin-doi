@@ -42,40 +42,6 @@ const (
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 )
 
-// StorageElement is responsible for storing elements defined by source to a kind of Storage
-// defined by target
-type StorageElement interface {
-	// Should return true if the target location is already there
-	Exists(target string) (bool, error)
-	// Store the things specified by source in target
-	Put(source string, target string) (bool, error)
-	GetDataSource() *DataSource
-}
-
-type OAuthProvider interface {
-	ValidateToken(userName string, token string) (bool, error)
-	getUser(userName string, token string) (OAuthIdentity, error)
-	AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey, error)
-	DeAuthorizePull(user OAuthIdentity, key gin.SSHKey) error
-}
-
-type Storage interface {
-	Put(job DOIJob) error
-	GetDataSource() *DataSource
-}
-
-type DataSource interface {
-	ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo)
-	CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error)
-	MakeUUID(URI string, user OAuthIdentity) (string, error)
-}
-
-type DOIProvider interface {
-	MakeDOI(doiInfo *DOIRegInfo) string
-	GetXML(doiInfo *DOIRegInfo, doixml string) (string, error)
-	RegDOI(doiInfo DOIRegInfo, doixml string) (string, error)
-}
-
 type DOIUser struct {
 	Name       string
 	Identities []OAuthIdentity

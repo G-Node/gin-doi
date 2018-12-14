@@ -19,8 +19,8 @@ const (
 
 type LocalStorage struct {
 	Path         string
-	Source       DataSource
-	DProvider    DOIProvider
+	Source       GogsDataSource
+	DProvider    GnodeDOIProvider
 	HTTPBase     string
 	MServer      *MailServer
 	TemplatePath string
@@ -116,7 +116,7 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	return stat.Size(), err
 }
 
-func (ls LocalStorage) GetDataSource() DataSource {
+func (ls LocalStorage) GetDataSource() GogsDataSource {
 	return ls.Source
 }
 

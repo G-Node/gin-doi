@@ -57,7 +57,7 @@ func main() {
 	ginurl := args["--source"].(string)
 	giturl := args["--gitsource"].(string)
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
-	ds := &GogsDataSource{GinURL: ginurl, GinGitURL: giturl}
+	ds := GogsDataSource{GinURL: ginurl, GinGitURL: giturl}
 
 	// doi provider
 	doibase := args["--doibase"].(string)
@@ -83,8 +83,9 @@ func main() {
 	xmlurl := args["--xmlurl"].(string)
 	knownhosts := args["--knownhosts"].(string)
 	storage := LocalStorage{
-		Path:   target,
-		Source: ds, HTTPBase: storeurl,
+		Path:         target,
+		Source:       ds,
+		HTTPBase:     storeurl,
 		DProvider:    dp,
 		MServer:      &mServer,
 		TemplatePath: templates,
@@ -128,7 +129,7 @@ func main() {
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Got request: %s", r.URL.String())
-		InitDOIJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
+		InitDOIJob(w, r, &ds, &op, storage.TemplatePath, &storage, key)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
 		DoDOIJob(w, r, jobQueue, storage, &op)
