@@ -21,13 +21,13 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type GogsDataSource struct {
+type DataSource struct {
 	GinURL    string
 	GinGitURL string
 	pubKey    string
 }
 
-func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
+func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	// https://github.com/go-yaml/yaml.git
 	// git@github.com:go-yaml/yaml.git
@@ -41,7 +41,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 		// todo Try to infer what went wrong
 		log.WithFields(log.Fields{
 			"path":   fetchRepoPath,
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  err,
 		}).Debug("Could not get DOI file")
 		return nil, err
@@ -54,7 +54,7 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 	if err != nil {
 		log.WithFields(log.Fields{
 			"path":   fetchRepoPath,
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  err,
 		}).Debug("Could not read from received datacite.yml file")
 		return nil, err
@@ -62,20 +62,20 @@ func (s *GogsDataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, err
 	return body, nil
 }
 
-func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
+func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
 	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
 		"URI":    URI,
 		"ginURI": ginURI,
 		"to":     To,
-		"source": DSOURCELOGPREFIX,
+		"source": lpDataSource,
 	}).Debug("Start cloning")
 
 	//Create tmp ssh keys files from the key provided
 	tmpDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  err,
 		}).Error("SSH key tmp dir not created")
 		return "", err
@@ -88,7 +88,7 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		_, privPath, err := WriteSSHKeyPair(tmpDir, key)
 		if err != nil {
 			log.WithFields(log.Fields{
-				"source": DSOURCELOGPREFIX,
+				"source": lpDataSource,
 				"error":  err,
 			}).Error("SSH key storing failed")
 			return "", err
@@ -106,14 +106,14 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		"GINURI": ginURI,
 		"to":     To,
 		"out":    string(out),
-		"source": DSOURCELOGPREFIX,
+		"source": lpDataSource,
 	}).Debug("Done with cloning")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"URI":    URI,
 			"GINURI": ginURI,
 			"to":     To,
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  string(out),
 		}).Debug("Cloning did not work")
 		return string(out), err
@@ -127,7 +127,7 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		// Workaround for uninitilaizes git annexes (-> return nil)
 		// todo
 		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  string(out),
 		}).Debug("Annex get failed")
 	}
@@ -139,7 +139,7 @@ func (s *GogsDataSource) CloneRepository(URI string, To string, key *rsa.Private
 		// Workaround for uninitilaizes git annexes (-> return nil)
 		// todo
 		log.WithFields(log.Fields{
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  string(out),
 		}).Debug("Anex unlock failed")
 	}
@@ -161,12 +161,12 @@ func RepoP2UUID(URI string) string {
 	currMd5 := md5.Sum([]byte(URI))
 	return hex.EncodeToString(currMd5[:])
 }
-func (s *GogsDataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
+func (s *DataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
 	return RepoP2UUID(URI), nil
 }
 
 // GetMasterCommit determines the latest commit id of the master branch
-func (s *GogsDataSource) GetMasterCommit(URI string, user OAuthIdentity) (string, error) {
+func (s *DataSource) GetMasterCommit(URI string, user OAuthIdentity) (string, error) {
 	fetchRepoPath := fmt.Sprintf("%s", URI)
 	client := &http.Client{}
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL, fetchRepoPath), nil)
@@ -195,12 +195,12 @@ func (s *GogsDataSource) GetMasterCommit(URI string, user OAuthIdentity) (string
 }
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
+func (s *DataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
 	in, err := s.getDOIFile(URI, user)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"data":   string(in),
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  err,
 		}).Error("Could not get the DOI file")
 		return false, nil
@@ -210,7 +210,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 	if err != nil {
 		log.WithFields(log.Fields{
 			"data":   string(in),
-			"source": DSOURCELOGPREFIX,
+			"source": lpDataSource,
 			"error":  err,
 		}).Error("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
@@ -221,7 +221,7 @@ func (s *GogsDataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DO
 		log.WithFields(log.Fields{
 			"data":    string(in),
 			"doiInfo": doiInfo,
-			"source":  DSOURCELOGPREFIX,
+			"source":  lpDataSource,
 			"error":   err,
 		}).Debug("DOI file is missing entries")
 		return false, &doiInfo
@@ -316,27 +316,27 @@ type License struct {
 
 func hasValues(s *DOIRegInfo) bool {
 	if s.Title == "" {
-		s.Missing = append(s.Missing, MS_NOTITLE)
+		s.Missing = append(s.Missing, msgNoTitle)
 	}
 	if len(s.Authors) == 0 {
-		s.Missing = append(s.Missing, MS_NOAUTHORS)
+		s.Missing = append(s.Missing, msgNoAuthors)
 	} else {
 		for _, auth := range s.Authors {
 			if auth.LastName == "" || auth.FirstName == "" {
-				s.Missing = append(s.Missing, MS_AUTHORWRONG)
+				s.Missing = append(s.Missing, msgInvalidAuthors)
 			}
 		}
 	}
 	if s.Description == "" {
-		s.Missing = append(s.Missing, MS_NODESC)
+		s.Missing = append(s.Missing, msgNoDescription)
 	}
 	if s.License == nil || s.License.Name == "" || s.License.URL == "" {
-		s.Missing = append(s.Missing, MS_NOLIC)
+		s.Missing = append(s.Missing, msgNoLicense)
 	}
 	if s.References != nil {
 		for _, ref := range s.References {
 			if ref.Name == "" || ref.Reftype == "" {
-				s.Missing = append(s.Missing, MS_REFERENCEWRONG)
+				s.Missing = append(s.Missing, msgInvalidReference)
 			}
 		}
 	}

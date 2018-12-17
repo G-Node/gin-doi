@@ -14,12 +14,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-var (
-	gogsOAPLOGP = "GinOAP"
-)
-
 // User represents a API user.
-type gogsUser struct {
+type User struct {
 	ID        int64  `json:"id"`
 	UserName  string `json:"login"`
 	FullName  string `json:"full_name"`
@@ -27,7 +23,8 @@ type gogsUser struct {
 	AvatarURL string `json:"avatar_url"`
 }
 
-type GogsOAuthProvider struct {
+// OAuthProvider represents an authentication server.
+type OAuthProvider struct {
 	Name     string
 	URI      string
 	APIKey   string
@@ -35,26 +32,28 @@ type GogsOAuthProvider struct {
 	TokenURL string
 }
 
-type GogsPublicKey struct {
+// PublicKey is a public SSH key and an optional title (description).
+type PublicKey struct {
 	Key   string `json:"key"`
 	Title string `json:"title,omitempty"`
 }
 
-func (pr *GogsOAuthProvider) ValidateToken(userName string, token string) (bool, error) {
+// ValidateToken checks if the given token is valid for the user by making an authenticated request to the OAuthProvider.
+func (pr *OAuthProvider) ValidateToken(userName string, token string) (bool, error) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s", pr.KeyURL), nil)
 	req.Header.Set("Cookie", fmt.Sprintf("i_like_gogits=%s", token))
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": gogsOAPLOGP,
+			"source": lpAuth,
 			"error":  err,
 		}).Error("Token Validation failed")
 		return false, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
-			"source":  gogsOAPLOGP,
+			"source":  lpAuth,
 			"token":   token,
 			"request": req,
 		}).Debug("Token Validation failed")
@@ -63,37 +62,37 @@ func (pr *GogsOAuthProvider) ValidateToken(userName string, token string) (bool,
 	return true, nil
 }
 
-func (pr *GogsOAuthProvider) getUser(userName string, token string) (OAuthIdentity, error) {
+func (pr *OAuthProvider) getUser(userName string, token string) (OAuthIdentity, error) {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s", pr.URI), nil)
 	req.Header.Set("Cookie", fmt.Sprintf("i_like_gogits=%s", token))
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": gogsOAPLOGP,
+			"source": lpAuth,
 			"error":  err,
 		}).Debug("Authorisation server response malformed")
 		return OAuthIdentity{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		log.WithFields(log.Fields{
-			"source":  gogsOAPLOGP,
+			"source":  lpAuth,
 			"request": req,
 		}).Debug("Authorisation server response malformed")
-		return OAuthIdentity{}, fmt.Errorf("[%s] Server response malformed", gogsOAPLOGP)
+		return OAuthIdentity{}, fmt.Errorf("[%s] Server response malformed", lpAuth)
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": gogsOAPLOGP,
+			"source": lpAuth,
 			"error":  err,
 		}).Debug("Could not read body from auth server")
 		return OAuthIdentity{}, err
 	}
-	gogsuser := gogsUser{}
+	gogsuser := User{}
 	if err = json.Unmarshal(data, &gogsuser); err != nil {
 		log.WithFields(log.Fields{
-			"source": gogsOAPLOGP,
+			"source": lpAuth,
 			"error":  err,
 		}).Debug("Could not unmarshal user profile")
 		return OAuthIdentity{}, err
@@ -111,7 +110,7 @@ func (pr *GogsOAuthProvider) getUser(userName string, token string) (OAuthIdenti
 	return user, err
 }
 
-func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey, error) {
+func (pr *OAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey, error) {
 	rsaKey, err := genSSHKey()
 	if err != nil {
 		return nil, err
@@ -122,9 +121,9 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	}
 
 	title := fmt.Sprintf("GIN DOI: %s", ssh.FingerprintSHA256(pub))
-	key := GogsPublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: title}
+	key := PublicKey{Key: string(ssh.MarshalAuthorizedKey(pub)), Title: title}
 	log.WithFields(log.Fields{
-		"source": gogsOAPLOGP,
+		"source": lpAuth,
 		"Key":    key,
 	}).Debug("About to send Key")
 	cl := http.Client{}
@@ -133,7 +132,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 		return nil, err
 	}
 	log.WithFields(log.Fields{
-		"source":        gogsOAPLOGP,
+		"source":        lpAuth,
 		"MarshalledKey": string(bd),
 	}).Debug("About to send Marshalled Key")
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf(pr.KeyURL), bytes.NewReader(bd))
@@ -141,7 +140,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	req.Header.Set("content-type", "application/json")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": gogsOAPLOGP,
+			"source": lpAuth,
 			"error":  err,
 		}).Error("Could not Create Post request to post ssh key")
 		return nil, err
@@ -149,7 +148,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	resp, err := cl.Do(req)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source":   gogsOAPLOGP,
+			"source":   lpAuth,
 			"error":    err,
 			"Response": resp,
 			"Request":  req,
@@ -159,7 +158,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	if resp.StatusCode != http.StatusCreated {
 		data, _ := ioutil.ReadAll(resp.Body)
 		log.WithFields(log.Fields{
-			"source":   gogsOAPLOGP,
+			"source":   lpAuth,
 			"Response": resp,
 			"Request":  req,
 			"Body":     string(data),
@@ -169,7 +168,7 @@ func (pr *GogsOAuthProvider) AuthorizePull(user OAuthIdentity) (*rsa.PrivateKey,
 	return rsaKey, nil
 }
 
-func (pr *GogsOAuthProvider) DeAuthorizePull(user OAuthIdentity, key gin.SSHKey) error {
+func (pr *OAuthProvider) DeAuthorizePull(user OAuthIdentity, key gin.SSHKey) error {
 	return nil
 }
 

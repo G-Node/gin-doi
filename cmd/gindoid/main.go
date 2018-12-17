@@ -38,10 +38,13 @@ Options:
   --key=<key>                      Key used to decrypt token
 `
 
+// TODO: Make non-global
+var doibase string
+
 func main() {
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
 	if err != nil {
-		log.Printf("Error while parsing command line: %+v", err)
+		log.Printf("Error while parsing command line: %s", err.Error())
 		os.Exit(-1)
 	}
 	//Debugging?
@@ -57,12 +60,10 @@ func main() {
 	ginurl := args["--source"].(string)
 	giturl := args["--gitsource"].(string)
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
-	ds := &GogsDataSource{GinURL: ginurl, GinGitURL: giturl}
+	ds := DataSource{GinURL: ginurl, GinGitURL: giturl}
 
-	// doi provider
-	doibase := args["--doibase"].(string)
+	doibase = args["--doibase"].(string)
 	log.Debugf("doibase: %s", doibase)
-	dp := GnodeDOIProvider{APIURI: "", DOIBase: doibase}
 
 	// Setup storage
 	mailserver := args["--mailserver"].(string)
@@ -83,9 +84,9 @@ func main() {
 	xmlurl := args["--xmlurl"].(string)
 	knownhosts := args["--knownhosts"].(string)
 	storage := LocalStorage{
-		Path:   target,
-		Source: ds, HTTPBase: storeurl,
-		DProvider:    dp,
+		Path:         target,
+		Source:       ds,
+		HTTPBase:     storeurl,
 		MServer:      &mServer,
 		TemplatePath: templates,
 		SCPURL:       xmlurl,
@@ -95,7 +96,7 @@ func main() {
 
 	// setup authentication
 	oAuthAddress := args["--oauthserver"].(string)
-	op := GogsOAuthProvider{
+	op := OAuthProvider{
 		URI:      fmt.Sprintf("%s/api/v1/user", oAuthAddress),
 		TokenURL: "",
 		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oAuthAddress),
@@ -128,7 +129,7 @@ func main() {
 	// Start the HTTP handlers.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Got request: %s", r.URL.String())
-		InitDOIJob(w, r, ds, &op, storage.TemplatePath, &storage, key)
+		InitDOIJob(w, r, &ds, &op, storage.TemplatePath, &storage, key)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
 		DoDOIJob(w, r, jobQueue, storage, &op)

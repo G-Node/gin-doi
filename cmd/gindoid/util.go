@@ -82,6 +82,8 @@ func Decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
+// IsRegisteredDOI returns True if a given DOI is registered publicly.
+// It simply checks if https://doi.org/<doi> returns a status code other than NotFound.
 func IsRegisteredDOI(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
@@ -95,7 +97,8 @@ func IsRegisteredDOI(doi string) bool {
 	return false
 }
 
-func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op OAuthProvider) {
+// DoDOIJob starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
+func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *OAuthProvider) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -119,7 +122,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 			"source":  "DoDOIJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
-		dReq.Message = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(msgNotLoggedIn)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -128,7 +131,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "DoDOIJob",
 		}).Debug("Token not valid")
-		dReq.Message = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(msgNotLoggedIn)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -140,7 +143,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 			"source":  "DoDOIJob",
 			"error":   err,
 		}).Debug("Could not get userdata")
-		dReq.Message = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(msgNotLoggedIn)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -154,7 +157,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		return
 	}
 	doiInfo.UUID = uuid
-	doi := storage.DProvider.MakeDOI(doiInfo)
+	doi := makeDOI(doiInfo.UUID)
 	dReq.DOIInfo = doiInfo
 	key, err := op.AuthorizePull(user)
 	if err != nil {
@@ -168,17 +171,19 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 
 	if IsRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf(MS_DOIREG, doi, doi)))
+		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
 		return
 	}
 	job := DOIJob{Source: dReq.URI, Storage: storage, User: user, Request: dReq, Name: doiInfo.UUID, Key: *key}
 	jobQueue <- job
 	// Render success.
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(MS_SERVERWORKS, doi, doi)))
+	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi, doi)))
 }
 
-func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthProvider, tp string, storage *LocalStorage, key string) {
+// InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
+// It validates the metadata provided from the GIN repository and shows appropriate error messages and instructions.
+func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAuthProvider, tp string, storage *LocalStorage, key string) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -222,7 +227,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 			"source":  "Init",
 			"error":   err,
 		}).Debug("No Repo URI provided")
-		dReq.Message = template.HTML(MS_URIINVALID)
+		dReq.Message = template.HTML(msgInvalidURI)
 		err = t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -237,7 +242,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 
 	// Test whether token was provided
 	if len(token) == 0 {
-		dReq.Message = template.HTML(MS_NOTOKEN)
+		dReq.Message = template.HTML(msgNoToken)
 		log.WithFields(log.Fields{
 			"request": dReq,
 			"source":  "Init",
@@ -253,7 +258,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 
 	// Test whether username was provided
 	if len(username) == 0 {
-		dReq.Message = template.HTML(MS_NOUSER)
+		dReq.Message = template.HTML(msgNoUser)
 		err = t.Execute(w, dReq)
 		if err != nil {
 			log.Print(err)
@@ -270,7 +275,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 			"source":  "InitDOIJob",
 			"error":   err,
 		}).Debug("User authentication Failed")
-		dReq.Message = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(msgNotLoggedIn)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -279,7 +284,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "InitDOIJob",
 		}).Debug("Token not valid")
-		dReq.Message = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(msgNotLoggedIn)
 		w.WriteHeader(http.StatusOK)
 		t.Execute(w, dReq)
 		return
@@ -293,7 +298,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 			"source":  "Init",
 			"error":   err,
 		}).Debug("Could not authenticate user")
-		dReq.Message = template.HTML(MS_NOLOGIN)
+		dReq.Message = template.HTML(msgNotLoggedIn)
 		t.Execute(w, dReq)
 		return
 	}
@@ -321,9 +326,9 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 			"error":   err,
 		}).Debug("DOIfile File invalid")
 		if doiInfo.Missing != nil {
-			dReq.Message = template.HTML(MS_INVALIDDOIFILE + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
+			dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
 		} else {
-			dReq.Message = template.HTML(MS_INVALIDDOIFILE + MS_ENCODING)
+			dReq.Message = template.HTML(msgInvalidDOI + msgBadEncoding)
 		}
 		dReq.DOIInfo = &DOIRegInfo{}
 		err = t.Execute(w, dReq)
@@ -338,7 +343,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 		}
 		return
 	} else {
-		dReq.Message = template.HTML(MS_INVALIDDOIFILE)
+		dReq.Message = template.HTML(msgInvalidDOI)
 		t.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -352,6 +357,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds DataSource, op OAuthP
 	}
 }
 
+// DOIMdata holds all the metadata for a dataset that's in the process of being registered.
 type DOIMData struct {
 	Data struct {
 		ID         string `json:"id"`
@@ -405,33 +411,7 @@ type DOIMData struct {
 	} `json:"data"`
 }
 
-type DOIinvalid struct {
-	error
-}
-
-// https://api.datacite.org/works/
-func GDOIMData(doi, doireg string) (*DOIMData, error) {
-	url := fmt.Sprintf("%s%s", doireg, doi)
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, DOIinvalid{}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Resource not found")
-	}
-	d, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	data := &DOIMData{}
-	json.Unmarshal(d, data)
-	return data, nil
-}
-
+// WriteSSHKeyPair writes the private and public SSH keys to two files (id_rsa and id_rsa.pub) in the given path.
 func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
 	// generate and write private key as PEM
 	privPath := filepath.Join(path, "id_rsa")
