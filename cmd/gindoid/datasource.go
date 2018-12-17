@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	gogs "github.com/gogits/go-gogs-client"
-	"gopkg.in/yaml.v2"
+	log "github.com/sirupsen/logrus"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type GogsDataSource struct {

@@ -9,11 +9,12 @@ RUN apk del --no-cache curl
 
 RUN go version
 RUN go get gopkg.in/yaml.v2
-RUN go get github.com/Sirupsen/logrus
+RUN go get github.com/sirupsen/logrus
 RUN go get github.com/docopt/docopt-go
 RUN go get github.com/G-Node/gin-core/gin
 RUN go get golang.org/x/crypto/ssh
 RUN go get github.com/gogits/go-gogs-client
+RUN go get github.com/G-Node/libgin/libgin
 
 COPY ./cmd/gindoid /gindoid
 COPY ./tmpl /tmpl
@@ -23,5 +24,5 @@ RUN go build
 VOLUME ["/doidata"]
 VOLUME ["/gindoid/config"]
 
-ENTRYPOINT ./gindoid --debug --knownhosts=/gindoid/config/hostkey --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailtofile=/gindoid/config/emails --mailserver=$mailserver
+ENTRYPOINT ./gindoid --debug --knownhosts=/gindoid/config/hostkey --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailtofile=/gindoid/config/emails --mailserver=$mailserver --oauthserver=$authserver --source=$ginserver
 EXPOSE 10443

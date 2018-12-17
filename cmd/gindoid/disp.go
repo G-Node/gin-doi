@@ -8,7 +8,7 @@ import (
 	_ "expvar"
 	_ "net/http/pprof"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
