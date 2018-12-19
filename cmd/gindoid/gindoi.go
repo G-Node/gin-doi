@@ -54,12 +54,13 @@ type DOIUser struct {
 }
 
 type DOIReq struct {
-	URI        string
-	User       DOIUser
-	OAuthLogin string
-	Token      string
-	Message    template.HTML
-	DOIInfo    *DOIRegInfo
+	URI           string
+	User          DOIUser
+	OAuthLogin    string
+	Token         string
+	Message       template.HTML
+	DOIInfo       *DOIRegInfo
+	ErrorMessages []string
 }
 
 type OAuthIdentity struct {
