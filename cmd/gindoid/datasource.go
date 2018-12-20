@@ -16,6 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/G-Node/gin-cli/ginclient"
+	"github.com/G-Node/gin-cli/ginclient/config"
+	"github.com/G-Node/gin-cli/git"
+	"github.com/G-Node/gin-cli/git/shell"
 	gogs "github.com/gogits/go-gogs-client"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -25,6 +29,7 @@ type DataSource struct {
 	GinURL    string
 	GinGitURL string
 	pubKey    string
+	session   *ginclient.Client
 }
 
 func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
@@ -62,6 +67,65 @@ func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) 
 	return body, nil
 }
 
+func (s *DataSource) Login(username, password string) error {
+	// TODO: Read from config and add to startup
+	serverConf := config.ServerCfg{}
+	serverConf.Web.Host = "ginweb"
+	serverConf.Web.Port = 10080
+	serverConf.Web.Protocol = "http"
+
+	serverConf.Git.Host = "ginweb"
+	serverConf.Git.Port = 22
+	serverConf.Git.User = "git"
+
+	hostkeystr, _, err := git.GetHostKey(serverConf.Git)
+	if err != nil {
+		return fmt.Errorf("Failed to get host key during server setup")
+	}
+	serverConf.Git.HostKey = hostkeystr
+	err = config.AddServerConf("gin", serverConf)
+	if err != nil {
+		return fmt.Errorf("Failed to set up server configuration")
+	}
+
+	gincl := ginclient.New("gin")
+	err = gincl.Login(username, password, "gin-doi")
+	if err != nil {
+		gerr := err.(shell.Error)
+		log.Error(gerr.Origin)
+		log.Error(gerr.UError)
+		log.Error(gerr.Description)
+		return err
+	}
+	s.session = gincl
+	return nil
+}
+
+func (s *DataSource) CloneRepo(URI string, destdir string) error {
+	log.WithFields(log.Fields{
+		"URI":     URI,
+		"session": s.session,
+		"source":  lpDataSource,
+	}).Debug("Start cloning")
+
+	clonechan := make(chan git.RepoFileStatus)
+	go s.session.CloneRepo(strings.ToLower(URI), clonechan)
+	for stat := range clonechan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed: %s", stat.Err)
+			return stat.Err
+		}
+	}
+
+	// TODO: Annex get
+
+	// move cloned repo to destdir
+	reponame := strings.SplitN(URI, "/", 2)[1] // Trim prefix username instead?
+	log.Debugf("Moving '%s' to '%s'", reponame, destdir)
+	return os.Rename(reponame, destdir)
+}
+
 func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
 	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
@@ -94,7 +158,7 @@ func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey,
 			return "", err
 		}
 		sshcommand := fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o UserKnownHostsFile=%s", privPath, hostsfile)
-		log.Debugf("GIT_SSH_COMMAND=%s", sshcommand)
+		log.Debugf(sshcommand)
 		env = append(env, sshcommand)
 		env = append(env, "GIT_COMMITTER_NAME=GINDOI")
 		env = append(env, "GIT_COMMITTER_EMAIL=doi@g-node.org")

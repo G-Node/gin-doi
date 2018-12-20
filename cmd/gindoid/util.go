@@ -156,11 +156,14 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	doiInfo.UUID = uuid
 	doi := makeDOI(doiInfo.UUID)
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
-	key, err := op.AuthorizePull(user)
+	// key, err := op.AuthorizePull(user)
+	key := &rsa.PrivateKey{}
+	err = ds.Login("doi", "doiuser")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "DoDOIJob",
@@ -169,6 +172,8 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	storage.Source = ds
 
 	if IsRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)

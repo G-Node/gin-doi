@@ -36,20 +36,28 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	dReq := &job.Request
 
 	to := filepath.Join(ls.Path, target)
-	tmpDir := filepath.Join(to, tmpdir)
+	clonetmp := filepath.Join(to, tmpdir)
 	ls.prepDir(target, dReq.DOIInfo)
 	ds := ls.GetDataSource()
 
 	preperrors := make([]string, 0, 5)
 
-	if out, err := ds.CloneRepository(source, tmpDir, &job.Key, ls.KnownHosts); err != nil {
+	if err := ds.CloneRepo(source, clonetmp); err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
-			"out":    out,
 			"target": target,
 		}).Error("Repository cloning failed")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s': %s", source, err))
+
+		// if out, err := ds.CloneRepository(source, clonetmp, &job.Key, ls.KnownHosts); err != nil {
+		// 	log.WithFields(log.Fields{
+		// 		"source": lpStorage,
+		// 		"error":  err,
+		// 		"out":    out,
+		// 		"target": target,
+		// 	}).Error("Repository cloning failed")
+		// 	preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s': %s", source, err))
 	} else {
 		fSize, err := ls.zip(target)
 		if err != nil {

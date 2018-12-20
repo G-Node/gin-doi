@@ -15,6 +15,7 @@ RUN go get github.com/G-Node/gin-core/gin
 RUN go get golang.org/x/crypto/ssh
 RUN go get github.com/gogits/go-gogs-client
 RUN go get github.com/G-Node/libgin/libgin
+RUN go get github.com/G-Node/gin-cli
 
 COPY ./cmd/gindoid /gindoid
 COPY ./tmpl /tmpl
