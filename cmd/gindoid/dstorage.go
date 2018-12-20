@@ -49,19 +49,20 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"out":    out,
 			"target": target,
 		}).Error("Repository cloning failed")
-		preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s'", source))
+		preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s': %s", source, err))
+	} else {
+		fSize, err := ls.zip(target)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"source": lpStorage,
+				"error":  err,
+				"target": target,
+			}).Error("Could not zip the data")
+			preperrors = append(preperrors, fmt.Sprintf("Failed to create the zip file: %s", err))
+		}
+		// +1 to report something with small datasets
+		dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	}
-	fSize, err := ls.zip(target)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
-		}).Error("Could not zip the data")
-		preperrors = append(preperrors, "Failed to create the zip file")
-	}
-	// +1 to report something with small datasets
-	dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
 	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
