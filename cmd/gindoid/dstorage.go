@@ -65,14 +65,14 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	}
 	ls.createIndexFile(target, dReq)
 
-	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
+	fp, err := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
 			"target": target,
 		}).Error("Could not create the metadata template")
-		preperrors = append(preperrors, "Failed to create the XML metadata template")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
 	}
 	defer fp.Close()
 	// No registering. But the XML is provided with everything
@@ -85,7 +85,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not parse the metadata file")
-		preperrors = append(preperrors, "Failed to parse the XML metadata")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
 	}
 	_, err = fp.Write([]byte(data))
 	if err != nil {
@@ -94,7 +94,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to the metadata file")
-		preperrors = append(preperrors, "Failed to write the metadata XML file")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 	dReq.ErrorMessages = preperrors
 	ls.sendMaster(dReq)
