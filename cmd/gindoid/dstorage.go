@@ -31,67 +31,42 @@ func (ls *LocalStorage) Exists(target string) (bool, error) {
 }
 
 func (ls LocalStorage) Put(job DOIJob) error {
-	source := job.Source
-	target := job.Name
+	repopath := job.Source
+	jobname := job.Name
 	dReq := &job.Request
 
-	to := filepath.Join(ls.Path, target)
-	clonetmp := filepath.Join(to, tmpdir)
-	ls.prepDir(target, dReq.DOIInfo)
-	ds := ls.GetDataSource()
+	ls.prepDir(jobname, dReq.DOIInfo)
 
+	targetpath := filepath.Join(ls.Path, jobname)
 	preperrors := make([]string, 0, 5)
-
-	if err := ds.CloneRepo(source, clonetmp); err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
-		}).Error("Repository cloning failed")
-		preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s': %s", source, err))
-
-		// if out, err := ds.CloneRepository(source, clonetmp, &job.Key, ls.KnownHosts); err != nil {
-		// 	log.WithFields(log.Fields{
-		// 		"source": lpStorage,
-		// 		"error":  err,
-		// 		"out":    out,
-		// 		"target": target,
-		// 	}).Error("Repository cloning failed")
-		// 	preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s': %s", source, err))
-	} else {
-		fSize, err := ls.zip(target)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"source": lpStorage,
-				"error":  err,
-				"target": target,
-			}).Error("Could not zip the data")
-			preperrors = append(preperrors, fmt.Sprintf("Failed to create the zip file: %s", err))
-		}
-		// +1 to report something with small datasets
-		dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
+	zipsize, err := ls.cloneandzip(repopath, jobname, targetpath)
+	if err != nil {
+		// failed to clone and zip
+		// save the error for reporting and continue with the XML prep
+		preperrors = append(preperrors, err.Error())
 	}
-	ls.createIndexFile(target, dReq)
+	ls.createIndexFile(jobname, dReq)
+	dReq.DOIInfo.FileSize = zipsize/(1024*1000) + 1 // Proper size conversion to closest human-readable size
 
-	fp, err := os.Create(filepath.Join(to, "doi.xml"))
+	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
-			"target": target,
+			"target": jobname,
 		}).Error("Could not create the metadata template")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
 	}
 	defer fp.Close()
-	// No registering. But the XML is provided with everything
 
+	// No registering. But the XML is provided with everything
 	doixml := filepath.Join(ls.TemplatePath, doixmlfname)
 	data, err := GetXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
-			"target": target,
+			"target": jobname,
 		}).Error("Could not parse the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
 	}
@@ -100,13 +75,52 @@ func (ls LocalStorage) Put(job DOIJob) error {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
-			"target": target,
+			"target": jobname,
 		}).Error("Could not write to the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 	dReq.ErrorMessages = preperrors
 	ls.sendMaster(dReq)
 	return err
+}
+
+// cloneandzip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
+func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath string) (int64, error) {
+	// Clone under a tmp/ subdirectory of the zip target path
+	clonetmp := filepath.Join(targetpath, tmpdir)
+	if err := os.MkdirAll(clonetmp, 0777); err != nil {
+		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
+		log.Error(errmsg)
+		return -1, fmt.Errorf(errmsg)
+	}
+
+	// Change to clone directory
+	origdir, _ := os.Getwd()
+	os.Chdir(clonetmp)
+	defer os.Chdir(origdir)
+
+	// Clone
+	ds := ls.GetDataSource()
+	if err := ds.CloneRepo(repopath, clonetmp); err != nil {
+		log.WithFields(log.Fields{
+			"source": lpStorage,
+			"error":  err,
+			"target": jobname,
+		}).Error("Repository cloning failed")
+		return -1, fmt.Errorf("Failed to clone repository '%s': %s", repopath, err)
+	}
+
+	// Zip
+	zipsize, err := ls.zip(jobname)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": lpStorage,
+			"error":  err,
+			"target": jobname,
+		}).Error("Could not zip the data")
+		return -1, fmt.Errorf("Failed to create the zip file: %s", err)
+	}
+	return zipsize, nil
 }
 
 func (ls *LocalStorage) zip(target string) (int64, error) {
