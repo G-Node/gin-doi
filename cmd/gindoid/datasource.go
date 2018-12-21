@@ -125,11 +125,19 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 		}
 	}
 
-	// TODO: Annex get
-
+	downloadchan := make(chan git.RepoFileStatus)
+	go s.session.GetContent(nil, downloadchan)
+	for stat := range downloadchan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed during annex get: %s", stat.Err)
+			return stat.Err
+		}
+	}
 	return nil
 }
 
+// CloneRepository ...
 func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
 	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
 	log.WithFields(log.Fields{
