@@ -35,11 +35,12 @@ func (ls LocalStorage) Put(job DOIJob) error {
 	target := job.Name
 	dReq := &job.Request
 
-	//todo do this better
 	to := filepath.Join(ls.Path, target)
 	tmpDir := filepath.Join(to, tmpdir)
 	ls.prepDir(target, dReq.DOIInfo)
 	ds := ls.GetDataSource()
+
+	preperrors := make([]string, 0, 5)
 
 	if out, err := ds.CloneRepository(source, tmpDir, &job.Key, ls.KnownHosts); err != nil {
 		log.WithFields(log.Fields{
@@ -48,26 +49,30 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"out":    out,
 			"target": target,
 		}).Error("Repository cloning failed")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to clone repository '%s': %s", source, err))
+	} else {
+		fSize, err := ls.zip(target)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"source": lpStorage,
+				"error":  err,
+				"target": target,
+			}).Error("Could not zip the data")
+			preperrors = append(preperrors, fmt.Sprintf("Failed to create the zip file: %s", err))
+		}
+		// +1 to report something with small datasets
+		dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	}
-	fSize, err := ls.zip(target)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
-		}).Error("Could not zip the data")
-	}
-	// +1 to report something with small datasets
-	dReq.DOIInfo.FileSize = fSize/(1024*1000) + 1
 	ls.createIndexFile(target, dReq)
 
-	fp, _ := os.Create(filepath.Join(to, "doi.xml"))
+	fp, err := os.Create(filepath.Join(to, "doi.xml"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
 			"target": target,
-		}).Error("Could not create parse the metadata template")
+		}).Error("Could not create the metadata template")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
 	}
 	defer fp.Close()
 	// No registering. But the XML is provided with everything
@@ -79,7 +84,8 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"source": lpStorage,
 			"error":  err,
 			"target": target,
-		}).Error("Could not create the metadata file")
+		}).Error("Could not parse the metadata file")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
 	}
 	_, err = fp.Write([]byte(data))
 	if err != nil {
@@ -88,7 +94,9 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"error":  err,
 			"target": target,
 		}).Error("Could not write to the metadata file")
+		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
+	dReq.ErrorMessages = preperrors
 	ls.sendMaster(dReq)
 	return err
 }
@@ -110,6 +118,10 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	}
 	defer fp.Close()
 	err = libgin.MakeZip(fp, filepath.Join(to, tmpdir))
+	if err != nil {
+		log.Errorf("MakeZip failed: %s", err)
+		return 0, err
+	}
 	stat, _ := fp.Stat()
 	return stat.Size(), err
 }
@@ -154,7 +166,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 }
 
 func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
-	err := os.Mkdir(filepath.Join(ls.Path, target), os.ModePerm)
+	err := os.MkdirAll(filepath.Join(ls.Path, target), os.ModePerm)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -190,7 +202,6 @@ func (ls LocalStorage) getSCP(dReq *DOIReq) string {
 	return fmt.Sprintf("%s/%s/doi.xml", ls.SCPURL, dReq.DOIInfo.UUID)
 }
 func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
-
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -211,6 +222,14 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 	uuid := dReq.DOIInfo.UUID
 	doitarget := urljoin(ls.HTTPBase, uuid)
 
+	errorlist := ""
+	if len(dReq.ErrorMessages) > 0 {
+		errorlist = "The following errors occurred during the dataset preparation\n"
+		for idx, msg := range dReq.ErrorMessages {
+			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
+		}
+	}
+
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
 	body := `A new DOI registration request has been received.
@@ -221,7 +240,9 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 	DOI XML: %s
 	DOI target URL: %s
 	UUID: %s
+
+%s
 `
-	body = fmt.Sprintf(body, repopath, userlogin, useremail, xmlurl, doitarget, uuid)
+	body = fmt.Sprintf(body, repopath, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
 	return ls.MServer.SendMail(subject, body)
 }

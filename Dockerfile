@@ -1,10 +1,10 @@
 FROM golang:alpine
 
-
-ENV PATH="${PATH}:/tmp/git-annex.linux"
+RUN mkdir /git-annex
+ENV PATH="${PATH}:/git-annex/git-annex.linux"
 RUN apk add --no-cache git openssh curl
-RUN curl -Lo /tmp/git-annex-standalone-amd64.tar.gz https://downloads.kitenet.net/git-annex/linux/current/git-annex-standalone-amd64.tar.gz
-RUN cd /tmp && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
+RUN curl -Lo /git-annex/git-annex-standalone-amd64.tar.gz https://downloads.kitenet.net/git-annex/linux/current/git-annex-standalone-amd64.tar.gz
+RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
 RUN apk del --no-cache curl
 
 RUN go version
@@ -24,5 +24,5 @@ RUN go build
 VOLUME ["/doidata"]
 VOLUME ["/gindoid/config"]
 
-ENTRYPOINT ./gindoid --debug --knownhosts=/gindoid/config/hostkey --target=/doidata --templates=/tmpl --key=$tokenkey --port=10443 --sendmail --mailtofile=/gindoid/config/emails --mailserver=$mailserver --oauthserver=$authserver --source=$ginserver
+ENTRYPOINT ./gindoid --debug
 EXPOSE 10443
