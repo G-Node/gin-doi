@@ -7,20 +7,18 @@ RUN curl -Lo /git-annex/git-annex-standalone-amd64.tar.gz https://downloads.kite
 RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
 RUN apk del --no-cache curl
 
-RUN go version
-RUN go get gopkg.in/yaml.v2
-RUN go get github.com/sirupsen/logrus
-RUN go get github.com/docopt/docopt-go
-RUN go get github.com/G-Node/gin-core/gin
-RUN go get golang.org/x/crypto/ssh
-RUN go get github.com/gogits/go-gogs-client
-RUN go get github.com/G-Node/libgin/libgin
-RUN go get github.com/G-Node/gin-cli
+RUN apk add --no-cache musl-dev gcc # for building deps
 
-COPY ./cmd/gindoid /gindoid
+RUN go version
+
+COPY ./go.mod ./go.sum /gindoid/
 COPY ./tmpl /tmpl
 WORKDIR /gindoid
-RUN go build
+# download deps before bringing in the main package
+RUN go mod download
+
+COPY ./cmd /gindoid/cmd/
+RUN go build ./cmd/gindoid
 
 VOLUME ["/doidata"]
 VOLUME ["/gindoid/config"]
