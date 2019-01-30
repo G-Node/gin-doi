@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/G-Node/libgin"
+	"github.com/G-Node/libgin/libgin"
 	docopt "github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
