@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/G-Node/libgin"
 	docopt "github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,16 +20,6 @@ Usage:
 
 // TODO: Make non-global
 var doibase string
-
-// reqconf (require configuration) returns the value of a configuration env variable and exits with an error if it is not set.
-func reqconf(key string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		log.Errorf("Configuration environment variable '%s' is not set", key)
-		os.Exit(-1)
-	}
-	return value
-}
 
 func main() {
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
@@ -46,19 +37,19 @@ func main() {
 	log.Debug("Starting up")
 
 	// Setup data source
-	ginurl := reqconf("ginurl")
-	giturl := reqconf("giturl")
+	ginurl := libgin.ReadConf("ginurl")
+	giturl := libgin.ReadConf("giturl")
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
 	ds := DataSource{GinURL: ginurl, GinGitURL: giturl}
 
-	doibase = reqconf("doibase")
+	doibase = libgin.ReadConf("doibase")
 	log.Debugf("doibase: %s", doibase)
 
 	// Setup storage
-	mailserver := reqconf("mailserver")
-	mailfrom := reqconf("mailfrom")
+	mailserver := libgin.ReadConf("mailserver")
+	mailfrom := libgin.ReadConf("mailfrom")
 	sendmail := true // TODO: Remove option
-	mailtofile := reqconf("mailtofile")
+	mailtofile := libgin.ReadConf("mailtofile")
 	mServer := MailServer{
 		Address:   mailserver,
 		From:      mailfrom,
@@ -67,11 +58,11 @@ func main() {
 	}
 	log.Debugf("Mail configuration: %+v", mServer)
 
-	target := reqconf("target")
-	storeurl := reqconf("storeurl")
-	templates := reqconf("templates")
-	xmlurl := reqconf("xmlurl")
-	knownhosts := reqconf("knownhosts")
+	target := libgin.ReadConf("target")
+	storeurl := libgin.ReadConf("storeurl")
+	templates := libgin.ReadConf("templates")
+	xmlurl := libgin.ReadConf("xmlurl")
+	knownhosts := libgin.ReadConf("knownhosts")
 	storage := LocalStorage{
 		Path:         target,
 		Source:       ds,
@@ -84,7 +75,7 @@ func main() {
 	log.Debugf("LocalStorage configuration: %+v", storage)
 
 	// setup authentication
-	oAuthAddress := reqconf("oauthserver")
+	oAuthAddress := libgin.ReadConf("oauthserver")
 	op := OAuthProvider{
 		URI:      fmt.Sprintf("%s/api/v1/user", oAuthAddress),
 		TokenURL: "",
@@ -92,10 +83,10 @@ func main() {
 	}
 	log.Debugf("OAuth configuration: %+v", op)
 
-	key := reqconf("key")
+	key := libgin.ReadConf("key")
 
 	// Create the job queue.
-	maxQ, err := strconv.Atoi(reqconf("maxqueue"))
+	maxQ, err := strconv.Atoi(libgin.ReadConfDefault("maxqueue", "100"))
 	if err != nil {
 		log.Printf("Error while parsing maxqueue flag: %s", err.Error())
 		log.Print("Using default")
@@ -103,7 +94,7 @@ func main() {
 	}
 	jobQueue := make(chan DOIJob, maxQ)
 	// Start the dispatcher.
-	maxW, err := strconv.Atoi(reqconf("maxworkers"))
+	maxW, err := strconv.Atoi(libgin.ReadConfDefault("maxworkers", "3"))
 	if err != nil {
 		log.Printf("Error while parsing maxworkers flag: %s", err.Error())
 		log.Print("Using default")
@@ -126,7 +117,7 @@ func main() {
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
 
-	port := reqconf("port")
+	port := libgin.ReadConfDefault("port", "10444")
 	fmt.Printf("Listening for connections on port %s\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
