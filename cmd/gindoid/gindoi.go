@@ -22,7 +22,7 @@ const (
 		<div class="content">
 			<div class="header">The DOI server has started archiving your repository.</div>
 		We will try to register the following DOI for your dataset:<br>
-		<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a></div><br>
+		<div class ="ui label label-default">%s</div><br>
 		In rare cases the final DOI might be different.<br>
 		Please note that the final step in the registration process requires us to manually review your request.
 		It may therefore take a few hours until the DOI is finally registered and your data becomes available.

@@ -178,7 +178,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	jobQueue <- job
 	// Render success.
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi, doi)))
+	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
 }
 
 // InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
