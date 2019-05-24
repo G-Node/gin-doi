@@ -217,6 +217,7 @@ func (s *DataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIReg
 		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return false, &res
 	}
+	doiInfo.DateTime = time.Now()
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{
 			"data":    string(in),
@@ -242,6 +243,7 @@ type DOIRegInfo struct {
 	Funding      []string
 	License      *License
 	ResourceType string
+	DateTime     time.Time
 }
 
 func (c *DOIRegInfo) GetType() string {
@@ -260,7 +262,7 @@ func (c *DOIRegInfo) GetCitation() string {
 			authors += fmt.Sprintf("%s, ", auth.LastName)
 		}
 	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
+	return fmt.Sprintf("%s (%s) %s. G-Node. doi:%s", authors, c.Year(), c.Title, c.DOI)
 }
 
 func (c *DOIRegInfo) EscXML(txt string) string {
@@ -270,7 +272,14 @@ func (c *DOIRegInfo) EscXML(txt string) string {
 		return ""
 	}
 	return buf.String()
+}
 
+func (c *DOIRegInfo) Year() string {
+	return fmt.Sprintf("%d", c.DateTime.Year())
+}
+
+func (c *DOIRegInfo) ISODate() string {
+	return c.DateTime.Format("2006-01-02")
 }
 
 type Author struct {
