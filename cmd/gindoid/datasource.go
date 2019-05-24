@@ -230,23 +230,23 @@ func (s *DataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIReg
 }
 
 type DOIRegInfo struct {
-	Missing     []string
-	DOI         string
-	UUID        string
-	FileSize    int64
-	Title       string
-	Authors     []Author
-	Description string
-	Keywords    []string
-	References  []Reference
-	Funding     []string
-	License     *License
-	DType       string
+	Missing      []string
+	DOI          string
+	UUID         string
+	FileSize     int64
+	Title        string
+	Authors      []Author
+	Description  string
+	Keywords     []string
+	References   []Reference
+	Funding      []string
+	License      *License
+	ResourceType string
 }
 
 func (c *DOIRegInfo) GetType() string {
-	if c.DType != "" {
-		return c.DType
+	if c.ResourceType != "" {
+		return c.ResourceType
 	}
 	return "Dataset"
 }
