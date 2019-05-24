@@ -210,7 +210,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 		"source":  "Init",
 	}).Debug("Got DOI Request")
 
-	t, err := template.ParseFiles(filepath.Join(tp, "initjob.html")) // Parse template file.
+	t, err := template.ParseFiles(filepath.Join(tp, "initjob.tmpl")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "DoDOIJob",

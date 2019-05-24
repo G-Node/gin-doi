@@ -131,7 +131,7 @@ func (ls LocalStorage) GetDataSource() DataSource {
 }
 
 func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
-	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.html"))
+	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.tmpl"))
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -156,9 +156,9 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
 		log.WithFields(log.Fields{
-			"source":   lpStorage,
-			"error":    err,
-			"doiInfoo": info,
+			"source":  lpStorage,
+			"error":   err,
+			"doiInfo": info,
 		}).Error("Could not execute the DOI template")
 		return err
 	}
