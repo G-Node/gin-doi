@@ -62,9 +62,9 @@
                             <td>
                                 {{range $index, $ref := .DOIInfo.References}}
                                 {{ $ref.Name }}
-                                {{if $ref.DOI}}
-                                [<a href=" http://doi.org/{{$ref.DOI}}">{{$ref.DOI}}</a>]
-                                {{end}}
+                                    {{if $ref.ID}}
+                                        [<a href={{$ref.GetURL}}>{{$ref.ID}}</a>]
+                                    {{end}}
                                 <br>
                                 {{end}}
                             </td>

@@ -306,7 +306,30 @@ func (a *Author) RenderAuthor() string {
 type Reference struct {
 	Reftype string
 	Name    string
-	DOI     string
+	ID      string
+}
+
+func (ref Reference) GetURL() string {
+	idparts := strings.SplitN(ref.ID, ":", 2)
+	source := idparts[0]
+	idnum := idparts[1]
+
+	var prefix string
+	switch strings.ToLower(source) {
+	case "doi":
+		prefix = "https://doi.org/"
+	case "arxiv":
+		// https://arxiv.org/help/arxiv_identifier_for_services
+		prefix = "https://arxiv.org/abs/"
+	case "pmid":
+		// https://www.ncbi.nlm.nih.gov/books/NBK3862/#linkshelp.Retrieve_PubMed_Citations
+		prefix = "https://www.ncbi.nlm.nih.gov/pubmed/"
+	default:
+		// Return an empty string to make the reflink inactive
+		return ""
+	}
+
+	return fmt.Sprintf("%s%s", prefix, idnum)
 }
 
 type License struct {
