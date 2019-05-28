@@ -105,6 +105,11 @@ func (s *DataSource) Login() error {
 }
 
 func (s *DataSource) CloneRepo(URI string, destdir string) error {
+	// NOTE: CloneRepo changes the working directory to the cloned repository
+	// See: https://github.com/G-Node/gin-cli/issues/225
+	// This will need to change when that issue is fixed
+	origdir, _ := os.Getwd()
+	defer os.Chdir(origdir)
 	err := os.Chdir(destdir)
 	if err != nil {
 		return err
@@ -117,9 +122,6 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 
 	clonechan := make(chan git.RepoFileStatus)
 	go s.session.CloneRepo(strings.ToLower(URI), clonechan)
-	// NOTE: CloneRepo changes the working directory to the cloned repository
-	// See: https://github.com/G-Node/gin-cli/issues/225
-	// This will need to change when that issue is fixed
 	for stat := range clonechan {
 		log.Debug(stat)
 		if stat.Err != nil {

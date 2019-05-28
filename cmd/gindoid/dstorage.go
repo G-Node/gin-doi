@@ -94,11 +94,6 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 		return -1, fmt.Errorf(errmsg)
 	}
 
-	// Change to clone directory
-	origdir, _ := os.Getwd()
-	os.Chdir(clonetmp)
-	defer os.Chdir(origdir)
-
 	// Clone
 	ds := ls.GetDataSource()
 	if err := ds.CloneRepo(repopath, clonetmp); err != nil {
