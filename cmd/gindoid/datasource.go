@@ -26,10 +26,23 @@ import (
 )
 
 type DataSource struct {
-	GinURL    string
-	GinGitURL string
-	pubKey    string
-	session   *ginclient.Client
+	pubKey       string
+	session      *ginclient.Client
+	ServerConfig *config.ServerCfg
+	Username     string
+	Password     string
+}
+
+// GinURL returns the full URL for the configured GIN server, constructed from
+// the server configuration.
+func (s *DataSource) GinURL() string {
+	return s.ServerConfig.Web.AddressStr()
+}
+
+// GitURL returns the full git URL for the configured GIN server, constructed
+// from the server configuration.
+func (s *DataSource) GitURL() string {
+	return s.ServerConfig.Git.AddressStr()
 }
 
 func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
@@ -39,7 +52,7 @@ func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) 
 	// TODO: config variables for path etc.
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL, fetchRepoPath), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL(), fetchRepoPath), nil)
 	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
 	if err != nil {
@@ -67,29 +80,19 @@ func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) 
 	return body, nil
 }
 
-func (s *DataSource) Login(username, password string) error {
-	// TODO: Read from config and add to startup
-	serverConf := config.ServerCfg{}
-	serverConf.Web.Host = "ginweb"
-	serverConf.Web.Port = 10080
-	serverConf.Web.Protocol = "http"
-
-	serverConf.Git.Host = "ginweb"
-	serverConf.Git.Port = 22
-	serverConf.Git.User = "git"
-
-	hostkeystr, _, err := git.GetHostKey(serverConf.Git)
+func (s *DataSource) Login() error {
+	hostkeystr, _, err := git.GetHostKey(s.ServerConfig.Git)
 	if err != nil {
-		return fmt.Errorf("Failed to get host key during server setup")
+		return fmt.Errorf("Failed to get host key during server setup: %v", err)
 	}
-	serverConf.Git.HostKey = hostkeystr
-	err = config.AddServerConf("gin", serverConf)
+	s.ServerConfig.Git.HostKey = hostkeystr
+	err = config.AddServerConf("gin", *s.ServerConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to set up server configuration")
+		return fmt.Errorf("Failed to set up server configuration: %v", err)
 	}
 
 	gincl := ginclient.New("gin")
-	err = gincl.Login(username, password, "gin-doi")
+	err = gincl.Login(s.Username, s.Password, "gin-doi")
 	if err != nil {
 		gerr := err.(shell.Error)
 		log.Error(gerr.Origin)
@@ -139,7 +142,7 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 
 // CloneRepository ...
 func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
-	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
+	ginURI := fmt.Sprintf("%s/%s.git", s.GitURL(), strings.ToLower(URI))
 	log.WithFields(log.Fields{
 		"URI":    URI,
 		"ginURI": ginURI,
@@ -245,7 +248,7 @@ func (s *DataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
 func (s *DataSource) GetMasterCommit(URI string, user OAuthIdentity) (string, error) {
 	fetchRepoPath := fmt.Sprintf("%s", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL, fetchRepoPath), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL(), fetchRepoPath), nil)
 	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
 	if err != nil {

@@ -243,7 +243,7 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 	xmlurl := ls.getSCP(dReq)
 	uuid := dReq.DOIInfo.UUID
 	doitarget := urljoin(ls.HTTPBase, uuid)
-	repourl := fmt.Sprintf("%s/%s", ls.Source.GinURL, repopath)
+	repourl := fmt.Sprintf("%s/%s", ls.Source.GinURL(), repopath)
 
 	errorlist := ""
 	if len(dReq.ErrorMessages) > 0 {

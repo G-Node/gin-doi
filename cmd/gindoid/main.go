@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/G-Node/gin-cli/ginclient/config"
 	"github.com/G-Node/libgin/libgin"
 	docopt "github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
@@ -40,7 +41,37 @@ func main() {
 	ginurl := libgin.ReadConf("ginurl")
 	giturl := libgin.ReadConf("giturl")
 	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
-	ds := DataSource{GinURL: ginurl, GinGitURL: giturl}
+
+	gincfg, err := config.ParseWebString(ginurl)
+	if err != nil {
+		log.Error(err)
+		os.Exit(-1)
+	}
+
+	gitcfg, err := config.ParseGitString(giturl)
+	if err != nil {
+		log.Error(err)
+		os.Exit(-1)
+	}
+
+	srvcfg := &config.ServerCfg{
+		Web: gincfg,
+		Git: gitcfg,
+	}
+	ds := DataSource{ServerConfig: srvcfg}
+
+	ginuser := libgin.ReadConf("ginuser")
+	ginpassword := libgin.ReadConf("ginpassword")
+	ds.Username = ginuser
+	ds.Password = ginpassword
+
+	// Test DOI user login before starting service
+	log.Debug("Checking credentials for DOI user")
+	err = ds.Login()
+	if err != nil {
+		log.Error(err)
+		os.Exit(-1)
+	}
 
 	doibase = libgin.ReadConf("doibase")
 	log.Debugf("doibase: %s", doibase)

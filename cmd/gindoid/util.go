@@ -163,7 +163,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	dReq.DOIInfo = doiInfo
 	// key, err := op.AuthorizePull(user)
 	key := &rsa.PrivateKey{}
-	err = ds.Login("doi", "doiuser")
+	err = ds.Login()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "DoDOIJob",
