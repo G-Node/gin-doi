@@ -217,6 +217,7 @@ func (s *DataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIReg
 		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return false, &res
 	}
+	doiInfo.DateTime = time.Now()
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{
 			"data":    string(in),
@@ -230,23 +231,24 @@ func (s *DataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIReg
 }
 
 type DOIRegInfo struct {
-	Missing     []string
-	DOI         string
-	UUID        string
-	FileSize    int64
-	Title       string
-	Authors     []Author
-	Description string
-	Keywords    []string
-	References  []Reference
-	Funding     []string
-	License     *License
-	DType       string
+	Missing      []string
+	DOI          string
+	UUID         string
+	FileSize     int64
+	Title        string
+	Authors      []Author
+	Description  string
+	Keywords     []string
+	References   []Reference
+	Funding      []string
+	License      *License
+	ResourceType string
+	DateTime     time.Time
 }
 
 func (c *DOIRegInfo) GetType() string {
-	if c.DType != "" {
-		return c.DType
+	if c.ResourceType != "" {
+		return c.ResourceType
 	}
 	return "Dataset"
 }
@@ -260,7 +262,7 @@ func (c *DOIRegInfo) GetCitation() string {
 			authors += fmt.Sprintf("%s, ", auth.LastName)
 		}
 	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", authors, time.Now().Year(), c.Title, c.DOI)
+	return fmt.Sprintf("%s (%s) %s. G-Node. doi:%s", authors, c.Year(), c.Title, c.DOI)
 }
 
 func (c *DOIRegInfo) EscXML(txt string) string {
@@ -270,7 +272,14 @@ func (c *DOIRegInfo) EscXML(txt string) string {
 		return ""
 	}
 	return buf.String()
+}
 
+func (c *DOIRegInfo) Year() string {
+	return fmt.Sprintf("%d", c.DateTime.Year())
+}
+
+func (c *DOIRegInfo) ISODate() string {
+	return c.DateTime.Format("2006-01-02")
 }
 
 type Author struct {
@@ -306,7 +315,30 @@ func (a *Author) RenderAuthor() string {
 type Reference struct {
 	Reftype string
 	Name    string
-	DOI     string
+	ID      string
+}
+
+func (ref Reference) GetURL() string {
+	idparts := strings.SplitN(ref.ID, ":", 2)
+	source := idparts[0]
+	idnum := idparts[1]
+
+	var prefix string
+	switch strings.ToLower(source) {
+	case "doi":
+		prefix = "https://doi.org/"
+	case "arxiv":
+		// https://arxiv.org/help/arxiv_identifier_for_services
+		prefix = "https://arxiv.org/abs/"
+	case "pmid":
+		// https://www.ncbi.nlm.nih.gov/books/NBK3862/#linkshelp.Retrieve_PubMed_Citations
+		prefix = "https://www.ncbi.nlm.nih.gov/pubmed/"
+	default:
+		// Return an empty string to make the reflink inactive
+		return ""
+	}
+
+	return fmt.Sprintf("%s%s", prefix, idnum)
 }
 
 type License struct {

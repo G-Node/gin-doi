@@ -158,6 +158,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	}
 	doiInfo.UUID = uuid
 	doi := makeDOI(doiInfo.UUID)
+	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
 	key, err := op.AuthorizePull(user)
 	if err != nil {
@@ -178,7 +179,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	jobQueue <- job
 	// Render success.
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi, doi)))
+	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
 }
 
 // InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
@@ -210,7 +211,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 		"source":  "Init",
 	}).Debug("Got DOI Request")
 
-	t, err := template.ParseFiles(filepath.Join(tp, "initjob.html")) // Parse template file.
+	t, err := template.ParseFiles(filepath.Join(tp, "initjob.tmpl")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "DoDOIJob",

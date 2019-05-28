@@ -34,7 +34,10 @@
     </contributor>
   </contributors>
   <publisher>G-Node</publisher>
-  <publicationYear>2018</publicationYear>
+  <publicationYear>{{.Year}}</publicationYear>
+  <dates>
+      <date dateType="Issued">{{.ISODate}}</date>
+  </dates>
   <language>eng</language>
   <resourceType resourceTypeGeneral="{{.GetType}}">{{.GetType}}</resourceType>
   <version>1</version>
