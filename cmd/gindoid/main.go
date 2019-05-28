@@ -107,7 +107,8 @@ func main() {
 	dispatcher.Run(NewWorker)
 
 	// Start the HTTP handlers.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("/", http.RedirectHandler(storeurl, http.StatusMovedPermanently))
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Got request: %s", r.URL.String())
 		InitDOIJob(w, r, &ds, &op, storage.TemplatePath, &storage, key)
 	})
