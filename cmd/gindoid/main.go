@@ -118,7 +118,7 @@ func main() {
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
 
-	port := libgin.ReadConfDefault("port", "10444")
+	port := libgin.ReadConfDefault("port", "10443")
 	fmt.Printf("Listening for connections on port %s\n", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
