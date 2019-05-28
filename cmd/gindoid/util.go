@@ -169,6 +169,15 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 			"source": "DoDOIJob",
 			"error":  err,
 		}).Error("Could not Authorize Pull")
+		// Notify via email
+		subject := "[GIN-DOI] Internal server error"
+		email := ""
+		if user.Account.Email != nil {
+			email = (*user.Account.Email).Email
+		}
+		name := fmt.Sprintf("%s (%s %s: %s)", user.Account.Login, user.Account.FirstName, user.Account.LastName, email)
+		message := fmt.Sprintf("An internal error occurred while preparing a registration request for repository\n\t%s\nby user\n\t%s\n\nCould not authorise pull: %v", dReq.URI, name, err)
+		storage.MServer.SendMail(subject, message)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
