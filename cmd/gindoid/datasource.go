@@ -19,6 +19,7 @@ import (
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/gin-cli/git/shell"
 	gogs "github.com/gogits/go-gogs-client"
+	"github.com/gogs/gogs/models"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -43,7 +44,7 @@ func (s *DataSource) GitURL() string {
 	return s.ServerConfig.Git.AddressStr()
 }
 
-func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
+func (s *DataSource) getDOIFile(URI string, user gogs.User) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	// https://github.com/go-yaml/yaml.git
 	// git@github.com:go-yaml/yaml.git
@@ -51,7 +52,6 @@ func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) 
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL(), fetchRepoPath), nil)
-	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
 	if err != nil {
 		// todo Try to infer what went wrong
@@ -161,16 +161,15 @@ func RepoP2UUID(URI string) string {
 	currMd5 := md5.Sum([]byte(URI))
 	return hex.EncodeToString(currMd5[:])
 }
-func (s *DataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
+func (s *DataSource) MakeUUID(URI string) (string, error) {
 	return RepoP2UUID(URI), nil
 }
 
 // GetMasterCommit determines the latest commit id of the master branch
-func (s *DataSource) GetMasterCommit(URI string, user OAuthIdentity) (string, error) {
+func (s *DataSource) GetMasterCommit(URI string, user models.User) (string, error) {
 	fetchRepoPath := fmt.Sprintf("%s", URI)
 	client := &http.Client{}
 	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL(), fetchRepoPath), nil)
-	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -195,7 +194,7 @@ func (s *DataSource) GetMasterCommit(URI string, user OAuthIdentity) (string, er
 }
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func (s *DataSource) ValidDOIFile(URI string, user OAuthIdentity) (bool, *DOIRegInfo) {
+func (s *DataSource) ValidDOIFile(URI string, user gogs.User) (bool, *DOIRegInfo) {
 	in, err := s.getDOIFile(URI, user)
 	if err != nil {
 		log.WithFields(log.Fields{
