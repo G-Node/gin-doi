@@ -120,7 +120,8 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 	}
 
 	// Zip
-	zipsize, err := ls.zip(jobname)
+	zipfilename := filepath.Join(targetpath, jobname+".zip")
+	zipsize, err := ls.zip(repodir, zipfilename)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -132,47 +133,47 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 	return zipsize, nil
 }
 
-func (ls *LocalStorage) zip(target string) (int64, error) {
-	// filepath.Abs only returns error if the CWD doesn't exist, so we can
-	// safely ignore it here
-	destdir, err := filepath.Abs(filepath.Join(ls.Path, target))
+func (ls *LocalStorage) zip(source, zipfilename string) (int64, error) {
+	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
+	source, err := filepath.Abs(source)
 	if err != nil {
-		log.Errorf("%s: Failed to get abs path for destination directory (%s, %s) while making ZIP file. Was our working directory removed?", lpStorage, ls.Path, target)
-		return 0, err
+		log.Errorf("%s: Failed to get abs path for source directory in function '%s': %v", lpStorage, fn, err)
+		return -1, err
 	}
-	srcdir := filepath.Join(destdir, tmpdir)
-	log.WithFields(log.Fields{
-		"source":  lpStorage,
-		"destdir": destdir,
-	}).Debug("Started zipping")
-	fp, err := os.Create(filepath.Join(destdir, target+".zip"))
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source":  lpStorage,
-			"error":   err,
-			"destdir": destdir,
-		}).Error("Could not create zip file")
-		return 0, err
-	}
-	defer fp.Close()
 
+	zipfilename, err = filepath.Abs(zipfilename)
+	if err != nil {
+		log.Errorf("%s: Failed to get abs path for target zip file in function '%s': %v", lpStorage, fn, err)
+		return -1, err
+	}
+
+	// Create zip file IO writer for MakeZip function
+	zipfp, err := os.Create(zipfilename)
+	if err != nil {
+		log.Errorf("%s: Failed to create zip file for writing in function '%s': %v", lpStorage, fn, err)
+		return -1, err
+	}
+	defer zipfp.Close()
 	// Change into clone directory to make the paths in the zip archive repo
-	// root relative.
+	// root-relative.
 	origdir, err := os.Getwd()
 	if err != nil {
-		log.Errorf("%s: Failed to get working directory when making ZIP file. Was our working directory removed?", lpStorage)
-		return 0, err
+		log.Errorf("%s: Failed to get working directory in function '%s': %v", lpStorage, fn, err)
+		return -1, err
 	}
 	defer os.Chdir(origdir)
-	os.Chdir(srcdir)
-
-	err = libgin.MakeZip(fp, ".")
-	if err != nil {
-		log.Errorf("MakeZip failed: %s", err)
-		return 0, err
+	if err := os.Chdir(source); err != nil {
+		log.Errorf("%s: Failed to change to source directory to make zip file in function '%s': %v", lpStorage, fn, err)
+		return -1, err
 	}
-	stat, _ := fp.Stat()
-	return stat.Size(), err
+
+	if err := libgin.MakeZip(zipfp, "."); err != nil {
+		log.Errorf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
+		return -1, err
+	}
+
+	stat, _ := zipfp.Stat()
+	return stat.Size(), nil
 }
 
 func (ls LocalStorage) GetDataSource() DataSource {
