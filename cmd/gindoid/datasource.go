@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
-	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
@@ -11,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -146,91 +144,6 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 		}
 	}
 	return nil
-}
-
-// CloneRepository ...
-func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
-	ginURI := fmt.Sprintf("%s/%s.git", s.GitURL(), strings.ToLower(URI))
-	log.WithFields(log.Fields{
-		"URI":    URI,
-		"ginURI": ginURI,
-		"to":     To,
-		"source": lpDataSource,
-	}).Debug("Start cloning")
-
-	//Create tmp ssh keys files from the key provided
-	tmpDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpDataSource,
-			"error":  err,
-		}).Error("SSH key tmp dir not created")
-		return "", err
-	}
-
-	cmd := exec.Command("git", "clone", ginURI, To)
-	env := os.Environ()
-	// If a key was provided we need to use that with nthe ssh
-	if key != nil {
-		_, privPath, err := WriteSSHKeyPair(tmpDir, key)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"source": lpDataSource,
-				"error":  err,
-			}).Error("SSH key storing failed")
-			return "", err
-		}
-		sshcommand := fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o UserKnownHostsFile=%s", privPath, hostsfile)
-		log.Debugf(sshcommand)
-		env = append(env, sshcommand)
-		env = append(env, "GIT_COMMITTER_NAME=GINDOI")
-		env = append(env, "GIT_COMMITTER_EMAIL=doi@g-node.org")
-		cmd.Env = env
-	}
-	out, err := cmd.CombinedOutput()
-	log.WithFields(log.Fields{
-		"URI":    URI,
-		"GINURI": ginURI,
-		"to":     To,
-		"out":    string(out),
-		"source": lpDataSource,
-	}).Debug("Done with cloning")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"URI":    URI,
-			"GINURI": ginURI,
-			"to":     To,
-			"source": lpDataSource,
-			"error":  string(out),
-		}).Debug("Cloning did not work")
-		return string(out), err
-	}
-
-	cmd = exec.Command("git-annex", "get")
-	cmd.Dir = To
-	cmd.Env = env
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		// Workaround for uninitilaizes git annexes (-> return nil)
-		// todo
-		log.WithFields(log.Fields{
-			"source": lpDataSource,
-			"error":  string(out),
-		}).Debug("Annex get failed")
-	}
-	cmd = exec.Command("git-annex", "uninit")
-	cmd.Dir = To
-	cmd.Env = env
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		// Workaround for uninitilaizes git annexes (-> return nil)
-		// todo
-		log.WithFields(log.Fields{
-			"source": lpDataSource,
-			"error":  string(out),
-		}).Debug("Anex unlock failed")
-	}
-	return string(out), nil
 }
 
 var UUIDMap = map[string]string{
