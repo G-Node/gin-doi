@@ -120,6 +120,7 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 
 func (ls *LocalStorage) zip(target string) (int64, error) {
 	to := filepath.Join(ls.Path, target)
+	srcdir := filepath.Join(to, tmpdir)
 	log.WithFields(log.Fields{
 		"source": lpStorage,
 		"to":     to,
@@ -134,7 +135,14 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 		return 0, err
 	}
 	defer fp.Close()
-	err = libgin.MakeZip(fp, filepath.Join(to, tmpdir))
+
+	// Change into clone directory to make the paths in the zip archive repo
+	// root relative
+	prevdir, _ := os.Getwd()
+	defer os.Chdir(prevdir)
+	os.Chdir(srcdir)
+
+	err = libgin.MakeZip(fp, ".")
 	if err != nil {
 		log.Errorf("MakeZip failed: %s", err)
 		return 0, err
