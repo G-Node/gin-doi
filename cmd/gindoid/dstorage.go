@@ -119,18 +119,18 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 }
 
 func (ls *LocalStorage) zip(target string) (int64, error) {
-	to := filepath.Join(ls.Path, target)
-	srcdir := filepath.Join(to, tmpdir)
+	destdir := filepath.Join(ls.Path, target)
+	srcdir := filepath.Join(destdir, tmpdir)
 	log.WithFields(log.Fields{
-		"source": lpStorage,
-		"to":     to,
+		"source":  lpStorage,
+		"destdir": destdir,
 	}).Debug("Started zipping")
-	fp, err := os.Create(filepath.Join(to, target+".zip"))
+	fp, err := os.Create(filepath.Join(destdir, target+".zip"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"to":     to,
+			"source":  lpStorage,
+			"error":   err,
+			"destdir": destdir,
 		}).Error("Could not create zip file")
 		return 0, err
 	}
