@@ -119,7 +119,13 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 }
 
 func (ls *LocalStorage) zip(target string) (int64, error) {
-	destdir := filepath.Join(ls.Path, target)
+	// filepath.Abs only returns error if the CWD doesn't exist, so we can
+	// safely ignore it here
+	destdir, err := filepath.Abs(filepath.Join(ls.Path, target))
+	if err != nil {
+		log.Errorf("%s: Failed to get abs path for destination directory (%s, %s) while making ZIP file. Was our working directory removed?", lpStorage, ls.Path, target)
+		return 0, err
+	}
 	srcdir := filepath.Join(destdir, tmpdir)
 	log.WithFields(log.Fields{
 		"source":  lpStorage,
@@ -137,9 +143,13 @@ func (ls *LocalStorage) zip(target string) (int64, error) {
 	defer fp.Close()
 
 	// Change into clone directory to make the paths in the zip archive repo
-	// root relative
-	prevdir, _ := os.Getwd()
-	defer os.Chdir(prevdir)
+	// root relative.
+	origdir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("%s: Failed to get working directory when making ZIP file. Was our working directory removed?", lpStorage)
+		return 0, err
+	}
+	defer os.Chdir(origdir)
 	os.Chdir(srcdir)
 
 	err = libgin.MakeZip(fp, ".")

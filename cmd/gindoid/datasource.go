@@ -104,13 +104,19 @@ func (s *DataSource) Login() error {
 	return nil
 }
 
+// CloneRepo clones a git repository (with git-annex) specified by URI to the
+// destination directory.
 func (s *DataSource) CloneRepo(URI string, destdir string) error {
 	// NOTE: CloneRepo changes the working directory to the cloned repository
 	// See: https://github.com/G-Node/gin-cli/issues/225
 	// This will need to change when that issue is fixed
-	origdir, _ := os.Getwd()
+	origdir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
+		return err
+	}
 	defer os.Chdir(origdir)
-	err := os.Chdir(destdir)
+	err = os.Chdir(destdir)
 	if err != nil {
 		return err
 	}
