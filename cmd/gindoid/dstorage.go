@@ -6,7 +6,9 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
 	log "github.com/sirupsen/logrus"
 )
@@ -86,9 +88,8 @@ func (ls LocalStorage) Put(job DOIJob) error {
 
 // cloneandzip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
 func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath string) (int64, error) {
-	// Clone under a tmp/ subdirectory of the zip target path
-	clonetmp := filepath.Join(targetpath, tmpdir)
-	if err := os.MkdirAll(clonetmp, 0777); err != nil {
+	// Clone under targetpath (will create subdirectory with repository name)
+	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
 		log.Error(errmsg)
 		return -1, fmt.Errorf(errmsg)
@@ -96,13 +97,26 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 
 	// Clone
 	ds := ls.GetDataSource()
-	if err := ds.CloneRepo(repopath, clonetmp); err != nil {
+	if err := ds.CloneRepo(repopath, targetpath); err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
 			"target": jobname,
 		}).Error("Repository cloning failed")
-		return -1, fmt.Errorf("Failed to clone repository '%s': %s", repopath, err)
+		return -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
+	}
+
+	// Uninit the annex and delete .git directory
+	repoparts := strings.SplitN(repopath, "/", 2)
+	reponame := repoparts[1]
+	repodir := filepath.Join(targetpath, reponame)
+	if err := ls.derepoCloneDir(repodir); err != nil {
+		log.WithFields(log.Fields{
+			"source": lpStorage,
+			"error":  err,
+			"target": jobname,
+		}).Error("Repository cleanup (uninit & derepo) failed")
+		return -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
 	}
 
 	// Zip
@@ -113,7 +127,7 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 			"error":  err,
 			"target": jobname,
 		}).Error("Could not zip the data")
-		return -1, fmt.Errorf("Failed to create the zip file: %s", err)
+		return -1, fmt.Errorf("Failed to create the zip file: %v", err)
 	}
 	return zipsize, nil
 }
@@ -281,4 +295,72 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 `
 	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
 	return ls.MServer.SendMail(subject, body)
+}
+func (ls *LocalStorage) derepoCloneDir(directory string) error {
+	directory, err := filepath.Abs(directory)
+	if err != nil {
+		log.Errorf("%s: Failed to get abs path for repo directory while cleaning up '%s'. Was our working directory removed?", lpStorage, directory)
+		return err
+	}
+	// NOTE: Most of the functionality in this method will be moved to libgin
+	// since GOGS has similar functions
+	// Change into directory to cleanup and defer changing back
+	origdir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("%s: Failed to get abs path for working directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
+		return err
+	}
+	defer os.Chdir(origdir)
+	if err := os.Chdir(directory); err != nil {
+		log.Errorf("%s: Failed to change working directory to '%s': %v", lpStorage, directory, err)
+		return err
+	}
+
+	// Uninit annex
+	cmd := git.AnnexCommand("uninit")
+	// git annex uninit always returns with an error (-_-) so we ignore the
+	// error and check if annex info complains instead
+	cmd.Run()
+
+	_, err = git.AnnexInfo()
+	if err != nil {
+		log.Errorf("%s: Failed to uninit annex in cloned repository '%s': %v", lpStorage, directory, err)
+	}
+
+	gitdir, err := filepath.Abs(filepath.Join(directory, ".git"))
+	if err != nil {
+		log.Errorf("%s: Failed to get abs path for git directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
+		return err
+	}
+	// Set write permissions on everything under gitdir
+	var mode os.FileMode
+	walker := func(path string, info os.FileInfo, err error) error {
+		// walker sets the permission for any file found to 0660 and directories to
+		// 770, to allow deletion
+		if info == nil {
+			return nil
+		}
+
+		mode = 0660
+		if info.IsDir() {
+			mode = 0770
+		}
+
+		if err := os.Chmod(path, mode); err != nil {
+			log.Errorf("failed to change permissions on '%s': %v", path, err)
+		}
+		return nil
+	}
+	if err := filepath.Walk(gitdir, walker); err != nil {
+		log.Errorf("%s: Failed to set write permissions for directories and files under gitdir '%s': %v", lpStorage, gitdir, err)
+		return err
+	}
+
+	// Delete .git directory
+	if err := os.RemoveAll(gitdir); err != nil {
+		log.Errorf("%s: Failed to remove git directory '%s': %v", lpStorage, gitdir, err)
+		return err
+	}
+
+	return nil
 }
