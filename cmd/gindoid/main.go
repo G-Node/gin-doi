@@ -106,11 +106,10 @@ func main() {
 	log.Debugf("LocalStorage configuration: %+v", storage)
 
 	// setup authentication
-	oAuthAddress := libgin.ReadConf("oauthserver")
 	op := OAuthProvider{
-		URI:      fmt.Sprintf("%s/api/v1/user", oAuthAddress),
+		URI:      fmt.Sprintf("%s/api/v1/user", ginurl),
 		TokenURL: "",
-		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", oAuthAddress),
+		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", ginurl),
 	}
 	log.Debugf("OAuth configuration: %+v", op)
 
