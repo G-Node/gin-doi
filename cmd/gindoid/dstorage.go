@@ -57,7 +57,10 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"error":  err,
 			"target": jobname,
 		}).Error("Could not create the metadata template")
-		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
+		// XML Creation failed; return with error
+		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
+		ls.sendMaster(dReq)
+		return err
 	}
 	defer fp.Close()
 
@@ -70,7 +73,9 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"error":  err,
 			"target": jobname,
 		}).Error("Could not parse the metadata file")
-		preperrors = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
+		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
+		ls.sendMaster(dReq)
+		return err
 	}
 	_, err = fp.Write([]byte(data))
 	if err != nil {
