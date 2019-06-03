@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/md5"
-	"crypto/rsa"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
@@ -11,20 +10,37 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/G-Node/gin-cli/ginclient"
+	"github.com/G-Node/gin-cli/ginclient/config"
+	"github.com/G-Node/gin-cli/git"
+	"github.com/G-Node/gin-cli/git/shell"
 	gogs "github.com/gogits/go-gogs-client"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
 type DataSource struct {
-	GinURL    string
-	GinGitURL string
-	pubKey    string
+	pubKey       string
+	session      *ginclient.Client
+	ServerConfig *config.ServerCfg
+	Username     string
+	Password     string
+}
+
+// GinURL returns the full URL for the configured GIN server, constructed from
+// the server configuration.
+func (s *DataSource) GinURL() string {
+	return s.ServerConfig.Web.AddressStr()
+}
+
+// GitURL returns the full git URL for the configured GIN server, constructed
+// from the server configuration.
+func (s *DataSource) GitURL() string {
+	return s.ServerConfig.Git.AddressStr()
 }
 
 func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) {
@@ -34,7 +50,7 @@ func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) 
 	// TODO: config variables for path etc.
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL, fetchRepoPath), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL(), fetchRepoPath), nil)
 	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
 	if err != nil {
@@ -62,88 +78,72 @@ func (s *DataSource) getDOIFile(URI string, user OAuthIdentity) ([]byte, error) 
 	return body, nil
 }
 
-func (s *DataSource) CloneRepository(URI string, To string, key *rsa.PrivateKey, hostsfile string) (string, error) {
-	ginURI := fmt.Sprintf("%s/%s.git", s.GinGitURL, strings.ToLower(URI))
+func (s *DataSource) Login() error {
+	hostkeystr, _, err := git.GetHostKey(s.ServerConfig.Git)
+	if err != nil {
+		return fmt.Errorf("Failed to get host key during server setup: %v", err)
+	}
+	s.ServerConfig.Git.HostKey = hostkeystr
+	err = config.AddServerConf("gin", *s.ServerConfig)
+	if err != nil {
+		return fmt.Errorf("Failed to set up server configuration: %v", err)
+	}
+
+	gincl := ginclient.New("gin")
+	err = gincl.Login(s.Username, s.Password, "gin-doi")
+	if err != nil {
+		gerr := err.(shell.Error)
+		log.Error(gerr.Origin)
+		log.Error(gerr.UError)
+		log.Error(gerr.Description)
+		return err
+	}
+	s.session = gincl
+	return nil
+}
+
+// CloneRepo clones a git repository (with git-annex) specified by URI to the
+// destination directory.
+func (s *DataSource) CloneRepo(URI string, destdir string) error {
+	// NOTE: CloneRepo changes the working directory to the cloned repository
+	// See: https://github.com/G-Node/gin-cli/issues/225
+	// This will need to change when that issue is fixed
+	origdir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
+		return err
+	}
+	defer os.Chdir(origdir)
+	err = os.Chdir(destdir)
+	if err != nil {
+		return err
+	}
 	log.WithFields(log.Fields{
-		"URI":    URI,
-		"ginURI": ginURI,
-		"to":     To,
-		"source": lpDataSource,
+		"URI":     URI,
+		"session": s.session,
+		"source":  lpDataSource,
 	}).Debug("Start cloning")
 
-	//Create tmp ssh keys files from the key provided
-	tmpDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpDataSource,
-			"error":  err,
-		}).Error("SSH key tmp dir not created")
-		return "", err
-	}
-
-	cmd := exec.Command("git", "clone", ginURI, To)
-	env := os.Environ()
-	// If a key was provided we need to use that with nthe ssh
-	if key != nil {
-		_, privPath, err := WriteSSHKeyPair(tmpDir, key)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"source": lpDataSource,
-				"error":  err,
-			}).Error("SSH key storing failed")
-			return "", err
+	clonechan := make(chan git.RepoFileStatus)
+	go s.session.CloneRepo(strings.ToLower(URI), clonechan)
+	for stat := range clonechan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed: %s", stat.Err)
+			return stat.Err
 		}
-		sshcommand := fmt.Sprintf("GIT_SSH_COMMAND=ssh -i %s -o UserKnownHostsFile=%s", privPath, hostsfile)
-		log.Debugf("GIT_SSH_COMMAND=%s", sshcommand)
-		env = append(env, sshcommand)
-		env = append(env, "GIT_COMMITTER_NAME=GINDOI")
-		env = append(env, "GIT_COMMITTER_EMAIL=doi@g-node.org")
-		cmd.Env = env
-	}
-	out, err := cmd.CombinedOutput()
-	log.WithFields(log.Fields{
-		"URI":    URI,
-		"GINURI": ginURI,
-		"to":     To,
-		"out":    string(out),
-		"source": lpDataSource,
-	}).Debug("Done with cloning")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"URI":    URI,
-			"GINURI": ginURI,
-			"to":     To,
-			"source": lpDataSource,
-			"error":  string(out),
-		}).Debug("Cloning did not work")
-		return string(out), err
 	}
 
-	cmd = exec.Command("git-annex", "get")
-	cmd.Dir = To
-	cmd.Env = env
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		// Workaround for uninitilaizes git annexes (-> return nil)
-		// todo
-		log.WithFields(log.Fields{
-			"source": lpDataSource,
-			"error":  string(out),
-		}).Debug("Annex get failed")
+	downloadchan := make(chan git.RepoFileStatus)
+	go s.session.GetContent(nil, downloadchan)
+	for stat := range downloadchan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed during annex get: %s", stat.Err)
+			return stat.Err
+		}
 	}
-	cmd = exec.Command("git-annex", "uninit")
-	cmd.Dir = To
-	cmd.Env = env
-	out, err = cmd.CombinedOutput()
-	if err != nil {
-		// Workaround for uninitilaizes git annexes (-> return nil)
-		// todo
-		log.WithFields(log.Fields{
-			"source": lpDataSource,
-			"error":  string(out),
-		}).Debug("Anex unlock failed")
-	}
-	return string(out), nil
+	return nil
 }
 
 var UUIDMap = map[string]string{
@@ -169,7 +169,7 @@ func (s *DataSource) MakeUUID(URI string, user OAuthIdentity) (string, error) {
 func (s *DataSource) GetMasterCommit(URI string, user OAuthIdentity) (string, error) {
 	fetchRepoPath := fmt.Sprintf("%s", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL, fetchRepoPath), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL(), fetchRepoPath), nil)
 	req.Header.Add("Cookie", fmt.Sprintf("i_like_gogits=%s", user.Token))
 	resp, err := client.Do(req)
 	if err != nil {

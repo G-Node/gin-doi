@@ -156,19 +156,33 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	doiInfo.UUID = uuid
 	doi := makeDOI(doiInfo.UUID)
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
-	key, err := op.AuthorizePull(user)
+	// key, err := op.AuthorizePull(user)
+	key := &rsa.PrivateKey{}
+	err = ds.Login()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "DoDOIJob",
 			"error":  err,
 		}).Error("Could not Authorize Pull")
+		// Notify via email
+		subject := "[GIN-DOI] Internal server error"
+		email := ""
+		if user.Account.Email != nil {
+			email = (*user.Account.Email).Email
+		}
+		name := fmt.Sprintf("%s (%s %s: %s)", user.Account.Login, user.Account.FirstName, user.Account.LastName, email)
+		message := fmt.Sprintf("An internal error occurred while preparing a registration request for repository\n\t%s\nby user\n\t%s\n\nCould not authorise pull: %v", dReq.URI, name, err)
+		storage.MServer.SendMail(subject, message)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	storage.Source = ds
 
 	if IsRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)
@@ -191,26 +205,9 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 			"source": "Init",
 		}).Debug("Could not parse form data")
 		w.WriteHeader(http.StatusInternalServerError)
+		// TODO: Notify via email (maybe)
 		return
 	}
-	URI := r.Form.Get("repo")
-	token := r.Form.Get("token")
-	token, err := Decrypt([]byte(key), token)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": "InitDOIJob",
-			"error":  err,
-		}).Error("Could not decrypt token")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	username := r.Form.Get("user")
-	dReq := DOIReq{URI: URI, OAuthLogin: username, Token: token}
-	log.WithFields(log.Fields{
-		"request": fmt.Sprintf("%s (from: %s)", URI, username),
-		"source":  "Init",
-	}).Debug("Got DOI Request")
-
 	t, err := template.ParseFiles(filepath.Join(tp, "initjob.tmpl")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -218,55 +215,52 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 			"error":  err,
 		}).Debug("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
+		// TODO: Notify via email
 		return
 	}
 
-	// Test whether URI was provided
-	if len(URI) == 0 {
+	URI := r.Form.Get("repo")
+	enctoken := r.Form.Get("token")
+	username := r.Form.Get("user")
+
+	log.Infof("Got request: [URI: %s] [username: %s] [Encrypted token: %s]", URI, username, enctoken)
+	dReq := DOIReq{}
+	dReq.DOIInfo = &DOIRegInfo{}
+
+	// If all are missing, redirect to root path?
+
+	// If any of the values is missing, render invalid request page
+	if len(URI) == 0 || len(username) == 0 || len(enctoken) == 0 {
 		log.WithFields(log.Fields{
-			"request": dReq,
-			"source":  "Init",
-			"error":   err,
-		}).Debug("No Repo URI provided")
-		dReq.Message = template.HTML(msgInvalidURI)
-		err = t.Execute(w, dReq)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"request": dReq,
-				"source":  "Init",
-				"error":   err,
-			}).Debug("Template not parsed")
-			return
-		}
+			"source":   "InitDOIJob",
+			"URI":      URI,
+			"username": username,
+			"token":    enctoken,
+		}).Error("Invalid request: missing fields in query string")
+		w.WriteHeader(http.StatusBadRequest)
+		dReq.Message = template.HTML(msgInvalidRequest)
+		t.Execute(w, dReq)
 		return
 	}
 
-	// Test whether token was provided
-	if len(token) == 0 {
-		dReq.Message = template.HTML(msgNoToken)
+	// If the token fails to decrypt, render invalid request page
+	token, err := Decrypt([]byte(key), enctoken)
+	if err != nil {
 		log.WithFields(log.Fields{
-			"request": dReq,
-			"source":  "Init",
-			"error":   err,
-		}).Debug("No Token provided")
-		err = t.Execute(w, dReq)
-		if err != nil {
-			log.Print(err)
-			return
-		}
+			"source":   "InitDOIJob",
+			"URI":      URI,
+			"username": username,
+			"token":    enctoken,
+		}).Error("Invalid request: failed to decrypt token")
+		w.WriteHeader(http.StatusBadRequest)
+		dReq.Message = template.HTML(msgInvalidRequest)
+		t.Execute(w, dReq)
 		return
 	}
 
-	// Test whether username was provided
-	if len(username) == 0 {
-		dReq.Message = template.HTML(msgNoUser)
-		err = t.Execute(w, dReq)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		return
-	}
+	dReq.URI = URI
+	dReq.OAuthLogin = username
+	dReq.Token = token
 
 	// test user login
 	ok, err := op.ValidateToken(username, token)
@@ -280,6 +274,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+
 	if !ok {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
