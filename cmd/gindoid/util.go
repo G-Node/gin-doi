@@ -204,10 +204,10 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	// If any of the values is missing, render invalid request page
 	if len(URI) == 0 || len(username) == 0 || len(enctoken) == 0 {
 		log.WithFields(log.Fields{
-			"source":   "InitDOIJob",
-			"URI":      URI,
-			"username": username,
-			"token":    enctoken,
+			"source":       "InitDOIJob",
+			"URI":          URI,
+			"username":     username,
+			"verification": enctoken,
 		}).Error("Invalid request: missing fields in query string")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
@@ -221,10 +221,10 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	// Check verification string
 	if !verifyRequest(URI, username, enctoken, key) {
 		log.WithFields(log.Fields{
-			"source":   "InitDOIJob",
-			"URI":      URI,
-			"username": username,
-			"token":    enctoken,
+			"source":       "InitDOIJob",
+			"URI":          URI,
+			"username":     username,
+			"verification": enctoken,
 		}).Error("Invalid request: failed to verify")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
