@@ -22,11 +22,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Check the current user. Return a user if logged in
-func loggedInUser(r *http.Request, pr *OAuthProvider) (*DOIUser, error) {
-	return &DOIUser{}, nil
-}
-
 func readBody(r *http.Request) (*string, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	x := string(body)
@@ -115,28 +110,9 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		"source":  "DoDOIJob",
 	}).Debug("Unmarshaled a DOI request")
 
-	ok, err := op.ValidateToken(dReq.OAuthLogin, dReq.Token)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDOIJob",
-			"error":   err,
-		}).Debug("User authentication Failed")
-		dReq.Message = template.HTML(msgNotLoggedIn)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	if !ok {
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDOIJob",
-		}).Debug("Token not valid")
-		dReq.Message = template.HTML(msgNotLoggedIn)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	ds := storage.GetDataSource()
 
-	user, err := op.getUser(dReq.OAuthLogin, dReq.Token)
+	user, err := ds.session.RequestAccount(dReq.OAuthLogin)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
@@ -147,10 +123,9 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	dReq.User = DOIUser{MainOId: user}
+	dReq.User = user
 	// TODO Error checking
-	ds := storage.GetDataSource()
-	uuid, _ := ds.MakeUUID(dReq.URI, user)
+	uuid, _ := ds.MakeUUID(dReq.URI)
 	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
@@ -171,11 +146,8 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		}).Error("Could not Authorize Pull")
 		// Notify via email
 		subject := "[GIN-DOI] Internal server error"
-		email := ""
-		if user.Account.Email != nil {
-			email = (*user.Account.Email).Email
-		}
-		name := fmt.Sprintf("%s (%s %s: %s)", user.Account.Login, user.Account.FirstName, user.Account.LastName, email)
+		email := user.Email
+		name := fmt.Sprintf("%s (%s: %s)", user.UserName, user.FullName, email)
 		message := fmt.Sprintf("An internal error occurred while preparing a registration request for repository\n\t%s\nby user\n\t%s\n\nCould not authorise pull: %v", dReq.URI, name, err)
 		storage.MServer.SendMail(subject, message)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -220,7 +192,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	}
 
 	URI := r.Form.Get("repo")
-	enctoken := r.Form.Get("token")
+	enctoken := r.Form.Get("verification")
 	username := r.Form.Get("user")
 
 	log.Infof("Got request: [URI: %s] [username: %s] [Encrypted token: %s]", URI, username, enctoken)
@@ -232,26 +204,11 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	// If any of the values is missing, render invalid request page
 	if len(URI) == 0 || len(username) == 0 || len(enctoken) == 0 {
 		log.WithFields(log.Fields{
-			"source":   "InitDOIJob",
-			"URI":      URI,
-			"username": username,
-			"token":    enctoken,
+			"source":       "InitDOIJob",
+			"URI":          URI,
+			"username":     username,
+			"verification": enctoken,
 		}).Error("Invalid request: missing fields in query string")
-		w.WriteHeader(http.StatusBadRequest)
-		dReq.Message = template.HTML(msgInvalidRequest)
-		t.Execute(w, dReq)
-		return
-	}
-
-	// If the token fails to decrypt, render invalid request page
-	token, err := Decrypt([]byte(key), enctoken)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source":   "InitDOIJob",
-			"URI":      URI,
-			"username": username,
-			"token":    enctoken,
-		}).Error("Invalid request: failed to decrypt token")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
 		t.Execute(w, dReq)
@@ -260,34 +217,23 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 
 	dReq.URI = URI
 	dReq.OAuthLogin = username
-	dReq.Token = token
 
-	// test user login
-	ok, err := op.ValidateToken(username, token)
-	if err != nil {
+	// Check verification string
+	if !verifyRequest(URI, username, enctoken, key) {
 		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "InitDOIJob",
-			"error":   err,
-		}).Debug("User authentication Failed")
-		dReq.Message = template.HTML(msgNotLoggedIn)
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if !ok {
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "InitDOIJob",
-		}).Debug("Token not valid")
-		dReq.Message = template.HTML(msgNotLoggedIn)
-		w.WriteHeader(http.StatusOK)
+			"source":       "InitDOIJob",
+			"URI":          URI,
+			"username":     username,
+			"verification": enctoken,
+		}).Error("Invalid request: failed to verify")
+		w.WriteHeader(http.StatusBadRequest)
+		dReq.Message = template.HTML(msgInvalidRequest)
 		t.Execute(w, dReq)
 		return
 	}
 
 	// get user
-	user, err := op.getUser(username, token)
+	user, err := ds.session.RequestAccount(username)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": dReq,
@@ -433,4 +379,19 @@ func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error)
 	}
 
 	return pubPath, privPath, nil
+}
+
+func verifyRequest(repo, username, verification, key string) bool {
+	plaintext, err := Decrypt([]byte(key), verification)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source":       "verifyRequest",
+			"repo":         repo,
+			"username":     username,
+			"verification": verification,
+		}).Error("Invalid request: failed to decrypt verification string")
+		return false
+	}
+
+	return plaintext == repo+username
 }

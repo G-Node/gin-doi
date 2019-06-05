@@ -271,8 +271,8 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 	}
 
 	repopath := dReq.URI
-	userlogin := dReq.User.MainOId.Login
-	useremail := dReq.User.MainOId.Account.Email.Email
+	userlogin := dReq.OAuthLogin
+	useremail := dReq.User.Email
 	xmlurl := ls.getSCP(dReq)
 	uuid := dReq.DOIInfo.UUID
 	doitarget := urljoin(ls.HTTPBase, uuid)

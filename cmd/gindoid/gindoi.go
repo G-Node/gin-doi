@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"regexp"
 
-	"github.com/G-Node/gin-core/gin"
+	gogs "github.com/gogits/go-gogs-client"
 )
 
 const (
@@ -48,15 +48,9 @@ const (
 	lpMakeXML    = "MakeXML"
 )
 
-type DOIUser struct {
-	Name       string
-	Identities []OAuthIdentity
-	MainOId    OAuthIdentity
-}
-
 type DOIReq struct {
 	URI           string
-	User          DOIUser
+	User          gogs.User
 	OAuthLogin    string
 	Token         string
 	Message       template.HTML
@@ -64,17 +58,12 @@ type DOIReq struct {
 	ErrorMessages []string
 }
 
-type OAuthIdentity struct {
-	gin.Account
-	Token string
-}
-
 // DOIJob holds the attributes needed to perform unit of work.
 type DOIJob struct {
 	Name    string
 	Source  string
 	Storage LocalStorage
-	User    OAuthIdentity
+	User    gogs.User
 	Request DOIReq
 	Key     rsa.PrivateKey
 }
