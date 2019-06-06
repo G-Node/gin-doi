@@ -11,13 +11,19 @@ RUN apk add --no-cache musl-dev gcc # for building deps
 
 RUN go version
 
-COPY ./go.mod ./go.sum /gindoid/
-COPY ./tmpl /tmpl
+ENV GOPATH /go
+ENV PROJECTPATH $GOPATH/src/github.com/G-Node/gin-doi
+
+# COPY ./go.mod ./go.sum /gindoid/
+RUN mkdir -p $PROJECTPATH
+COPY ./tmpl $PROJECTPATH/tmpl
+COPY ./cmd $PROJECTPATH/cmd/
+RUN ln -s $PROJECTPATH /gindoid
 WORKDIR /gindoid
 # download deps before bringing in the main package
-RUN go mod download
+# RUN go mod download
 
-COPY ./cmd /gindoid/cmd/
+RUN go get -v ./...
 RUN go build ./cmd/gindoid
 
 VOLUME ["/doidata"]
