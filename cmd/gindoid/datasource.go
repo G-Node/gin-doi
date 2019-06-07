@@ -13,33 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/G-Node/gin-cli/ginclient"
-	"github.com/G-Node/gin-cli/ginclient/config"
 	"github.com/G-Node/gin-cli/git"
-	"github.com/G-Node/gin-cli/git/shell"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
-
-type DataSource struct {
-	pubKey       string
-	session      *ginclient.Client
-	ServerConfig *config.ServerCfg
-	Username     string
-	Password     string
-}
-
-// GinURL returns the full URL for the configured GIN server, constructed from
-// the server configuration.
-func (s *DataSource) GinURL() string {
-	return s.ServerConfig.Web.AddressStr()
-}
-
-// GitURL returns the full git URL for the configured GIN server, constructed
-// from the server configuration.
-func (s *DataSource) GitURL() string {
-	return s.ServerConfig.Git.AddressStr()
-}
 
 func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
@@ -53,9 +30,8 @@ func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	if err != nil {
 		// todo Try to infer what went wrong
 		log.WithFields(log.Fields{
-			"path":   fetchRepoPath,
-			"source": lpDataSource,
-			"error":  err,
+			"path":  fetchRepoPath,
+			"error": err,
 		}).Debug("Could not get DOI file")
 		return nil, err
 	}
@@ -66,37 +42,12 @@ func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"path":   fetchRepoPath,
-			"source": lpDataSource,
-			"error":  err,
+			"path":  fetchRepoPath,
+			"error": err,
 		}).Debug("Could not read from received datacite.yml file")
 		return nil, err
 	}
 	return body, nil
-}
-
-func (s *DataSource) Login() error {
-	hostkeystr, _, err := git.GetHostKey(s.ServerConfig.Git)
-	if err != nil {
-		return fmt.Errorf("Failed to get host key during server setup: %v", err)
-	}
-	s.ServerConfig.Git.HostKey = hostkeystr
-	err = config.AddServerConf("gin", *s.ServerConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to set up server configuration: %v", err)
-	}
-
-	gincl := ginclient.New("gin")
-	err = gincl.Login(s.Username, s.Password, "gin-doi")
-	if err != nil {
-		gerr := err.(shell.Error)
-		log.Error(gerr.Origin)
-		log.Error(gerr.UError)
-		log.Error(gerr.Description)
-		return err
-	}
-	s.session = gincl
-	return nil
 }
 
 // CloneRepo clones a git repository (with git-annex) specified by URI to the
@@ -115,10 +66,7 @@ func CloneRepo(URI string, destdir string, conf *Configuration) error {
 	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{
-		"URI":    URI,
-		"source": lpDataSource,
-	}).Debug("Start cloning")
+	log.Debugf("Cloning %s", URI)
 
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
@@ -163,9 +111,8 @@ func ValidDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"data":   string(in),
-			"source": lpDataSource,
-			"error":  err,
+			"data":  string(in),
+			"error": err,
 		}).Error("Could not get the DOI file")
 		return false, nil
 	}
@@ -173,9 +120,8 @@ func ValidDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 	err = yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"data":   string(in),
-			"source": lpDataSource,
-			"error":  err,
+			"data":  string(in),
+			"error": err,
 		}).Error("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
@@ -186,7 +132,6 @@ func ValidDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 		log.WithFields(log.Fields{
 			"data":    string(in),
 			"doiInfo": doiInfo,
-			"source":  lpDataSource,
 			"error":   err,
 		}).Debug("DOI file is missing entries")
 		return false, &doiInfo

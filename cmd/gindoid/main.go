@@ -17,9 +17,6 @@ Usage:
   --debug              Print debug messages
 `
 
-// TODO: Make non-global
-var doibase string
-
 func main() {
 	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
 	if err != nil {

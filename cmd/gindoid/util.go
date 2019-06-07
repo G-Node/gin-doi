@@ -3,23 +3,16 @@ package main
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh"
 )
 
 func readBody(r *http.Request) (*string, error) {
@@ -28,32 +21,9 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-// Encrypt string to base64 crypto using AES
-func Encrypt(key []byte, text string) (string, error) {
-	plaintext := []byte(text)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
-	}
-
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
-
-	// convert to base64
-	return base64.URLEncoding.EncodeToString(ciphertext), nil
-}
-
 // Decrypt from base64 to decrypted string
 func Decrypt(key []byte, cryptoText string) (string, error) {
+	// TODO: Move to libgin
 	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
 
 	block, err := aes.NewCipher(key)
@@ -131,7 +101,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	}
 
 	doiInfo.UUID = uuid
-	doi := makeDOI(doiInfo.UUID)
+	doi := conf.DOIBase + doiInfo.UUID[:6]
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
 
@@ -315,34 +285,6 @@ type DOIMData struct {
 			} `json:"resource-type"`
 		} `json:"relationships"`
 	} `json:"data"`
-}
-
-// WriteSSHKeyPair writes the private and public SSH keys to two files (id_rsa and id_rsa.pub) in the given path.
-func WriteSSHKeyPair(path string, PrKey *rsa.PrivateKey) (string, string, error) {
-	// generate and write private key as PEM
-	privPath := filepath.Join(path, "id_rsa")
-	pubPath := filepath.Join(path, "id_rsa.pub")
-	privateKeyFile, err := os.Create(privPath)
-	defer privateKeyFile.Close()
-	if err != nil {
-		return "", "", err
-	}
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(PrKey)}
-	if err = pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
-		return "", "", err
-	}
-	privateKeyFile.Chmod(0600)
-	// generate and write public key
-	pub, err := ssh.NewPublicKey(&PrKey.PublicKey)
-	if err != nil {
-		return "", "", err
-	}
-	err = ioutil.WriteFile(pubPath, ssh.MarshalAuthorizedKey(pub), 0600)
-	if err != nil {
-		return "", "", err
-	}
-
-	return pubPath, privPath, nil
 }
 
 func verifyRequest(repo, username, verification, key string) bool {

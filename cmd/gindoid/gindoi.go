@@ -42,10 +42,9 @@ const (
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
 	// Log Prefixes
-	lpDataSource = "DataSource"
-	lpAuth       = "GinOAP"
-	lpStorage    = "Storage"
-	lpMakeXML    = "MakeXML"
+	lpAuth    = "GinOAP"
+	lpStorage = "Storage"
+	lpMakeXML = "MakeXML"
 )
 
 type DOIReq struct {

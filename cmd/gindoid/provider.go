@@ -7,10 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func makeDOI(UUID string) string {
-	return doibase + UUID[:6]
-}
-
 func GetXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
 	t, err := template.ParseFiles(doixml)
 	if err != nil {
