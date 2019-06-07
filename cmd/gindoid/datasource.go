@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -19,7 +18,6 @@ import (
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/gin-cli/git/shell"
 	gogs "github.com/gogits/go-gogs-client"
-	"github.com/gogs/gogs/models"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -163,34 +161,6 @@ func RepoP2UUID(URI string) string {
 }
 func (s *DataSource) MakeUUID(URI string) (string, error) {
 	return RepoP2UUID(URI), nil
-}
-
-// GetMasterCommit determines the latest commit id of the master branch
-func (s *DataSource) GetMasterCommit(URI string, user models.User) (string, error) {
-	fetchRepoPath := fmt.Sprintf("%s", URI)
-	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL(), fetchRepoPath), nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Could not get repo branches: %s", resp.Status)
-	}
-
-	branches := []gogs.Branch{}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	json.Unmarshal(data, &branches)
-	for _, branch := range branches {
-		if branch.Name == "master" {
-			return branch.Commit.ID, nil
-		}
-	}
-	return "", fmt.Errorf("Could not locate master branch")
 }
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
