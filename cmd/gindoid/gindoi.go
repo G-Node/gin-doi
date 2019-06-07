@@ -62,10 +62,10 @@ type DOIReq struct {
 type DOIJob struct {
 	Name    string
 	Source  string
-	Storage LocalStorage
 	User    gogs.User
 	Request DOIReq
 	Key     rsa.PrivateKey
+	Config  *Configuration
 }
 
 func (d *DOIReq) GetDOIURI() string {

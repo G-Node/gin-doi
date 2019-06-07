@@ -114,5 +114,7 @@ func loadconfig() (*Configuration, error) {
 
 	cfg.Port = uint16(port)
 
+	cfg.GIN.Session = ginclient.New("gin")
+
 	return &cfg, nil
 }

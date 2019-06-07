@@ -93,7 +93,7 @@ func IsRegisteredDOI(doi string) bool {
 }
 
 // DoDOIJob starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
-func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *OAuthProvider, conf *Configuration) {
+func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -110,9 +110,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 		"source":  "DoDOIJob",
 	}).Debug("Unmarshaled a DOI request")
 
-	ds := storage.GetDataSource()
-
-	user, err := ds.session.RequestAccount(dReq.OAuthLogin)
+	user, err := conf.GIN.Session.RequestAccount(dReq.OAuthLogin)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
@@ -125,8 +123,8 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	}
 	dReq.User = user
 	// TODO Error checking
-	uuid, _ := ds.MakeUUID(dReq.URI)
-	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user, conf)
+	uuid := makeUUID(dReq.URI)
+	ok, doiInfo := ValidDOIFile(dReq.URI, conf)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -136,32 +134,13 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	doi := makeDOI(doiInfo.UUID)
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
-	// key, err := op.AuthorizePull(user)
-	key := &rsa.PrivateKey{}
-	err = ds.Login()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"source": "DoDOIJob",
-			"error":  err,
-		}).Error("Could not Authorize Pull")
-		// Notify via email
-		subject := "[GIN-DOI] Internal server error"
-		email := user.Email
-		name := fmt.Sprintf("%s (%s: %s)", user.UserName, user.FullName, email)
-		message := fmt.Sprintf("An internal error occurred while preparing a registration request for repository\n\t%s\nby user\n\t%s\n\nCould not authorise pull: %v", dReq.URI, name, err)
-		storage.MServer.SendMail(subject, message)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	storage.Source = ds
 
 	if IsRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
 		return
 	}
-	job := DOIJob{Source: dReq.URI, Storage: storage, User: user, Request: dReq, Name: doiInfo.UUID, Key: *key}
+	job := DOIJob{Source: dReq.URI, User: user, Request: dReq, Name: doiInfo.UUID, Config: conf}
 	jobQueue <- job
 	// Render success.
 	w.WriteHeader(http.StatusCreated)
@@ -170,7 +149,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 
 // InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
 // It validates the metadata provided from the GIN repository and shows appropriate error messages and instructions.
-func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAuthProvider, tp string, storage *LocalStorage, key string, conf *Configuration) {
+func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -180,7 +159,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 		// TODO: Notify via email (maybe)
 		return
 	}
-	t, err := template.ParseFiles(filepath.Join(tp, "initjob.tmpl")) // Parse template file.
+	t, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "initjob.tmpl")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "DoDOIJob",
@@ -219,7 +198,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	dReq.OAuthLogin = username
 
 	// Check verification string
-	if !verifyRequest(URI, username, enctoken, key) {
+	if !verifyRequest(URI, username, enctoken, conf.Key) {
 		log.WithFields(log.Fields{
 			"source":       "InitDOIJob",
 			"URI":          URI,
@@ -232,25 +211,10 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 		return
 	}
 
-	// get user
-	user, err := ds.session.RequestAccount(username)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"request": dReq,
-			"source":  "Init",
-			"error":   err,
-		}).Debug("Could not authenticate user")
-		dReq.Message = template.HTML(msgNotLoggedIn)
-		t.Execute(w, dReq)
-		return
-	}
-
 	// check for doifile
-	if ok, doiInfo := ds.ValidDOIFile(URI, user, conf); ok {
-		log.WithFields(log.Fields{
-			"doiInfo": doiInfo,
-			"source":  "Init",
-		}).Debug("Received DOI information")
+	if ok, doiInfo := ValidDOIFile(URI, conf); ok {
+		j, _ := json.MarshalIndent(doiInfo, "", "  ")
+		log.Debugf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo
 		err = t.Execute(w, dReq)
 		if err != nil {

@@ -17,7 +17,6 @@ import (
 	"github.com/G-Node/gin-cli/ginclient/config"
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/gin-cli/git/shell"
-	gogs "github.com/gogits/go-gogs-client"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -102,7 +101,7 @@ func (s *DataSource) Login() error {
 
 // CloneRepo clones a git repository (with git-annex) specified by URI to the
 // destination directory.
-func (s *DataSource) CloneRepo(URI string, destdir string) error {
+func CloneRepo(URI string, destdir string, conf *Configuration) error {
 	// NOTE: CloneRepo changes the working directory to the cloned repository
 	// See: https://github.com/G-Node/gin-cli/issues/225
 	// This will need to change when that issue is fixed
@@ -117,13 +116,12 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 		return err
 	}
 	log.WithFields(log.Fields{
-		"URI":     URI,
-		"session": s.session,
-		"source":  lpDataSource,
+		"URI":    URI,
+		"source": lpDataSource,
 	}).Debug("Start cloning")
 
 	clonechan := make(chan git.RepoFileStatus)
-	go s.session.CloneRepo(strings.ToLower(URI), clonechan)
+	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
 	for stat := range clonechan {
 		log.Debug(stat)
 		if stat.Err != nil {
@@ -133,7 +131,7 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 	}
 
 	downloadchan := make(chan git.RepoFileStatus)
-	go s.session.GetContent(nil, downloadchan)
+	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
 		log.Debug(stat)
 		if stat.Err != nil {
@@ -152,19 +150,16 @@ var UUIDMap = map[string]string{
 	"fabee/efish_locking":                        "6953bbf0087ba444b2d549b759de4a06",
 }
 
-func RepoP2UUID(URI string) string {
+func makeUUID(URI string) string {
 	if doi, ok := UUIDMap[URI]; ok {
 		return doi
 	}
 	currMd5 := md5.Sum([]byte(URI))
 	return hex.EncodeToString(currMd5[:])
 }
-func (s *DataSource) MakeUUID(URI string) (string, error) {
-	return RepoP2UUID(URI), nil
-}
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func (s *DataSource) ValidDOIFile(URI string, user gogs.User, conf *Configuration) (bool, *DOIRegInfo) {
+func ValidDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
