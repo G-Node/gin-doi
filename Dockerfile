@@ -1,4 +1,5 @@
-FROM golang:alpine
+# BUILDER IMAGE
+FROM golang:alpine AS binbuilder
 
 RUN mkdir /git-annex
 ENV PATH="${PATH}:/git-annex/git-annex.linux"
@@ -10,24 +11,20 @@ RUN apk del --no-cache curl
 RUN apk add --no-cache musl-dev gcc # for building deps
 
 RUN go version
-
-ENV GOPATH /go
-ENV PROJECTPATH $GOPATH/src/github.com/G-Node/gin-doi
-
-# COPY ./go.mod ./go.sum /gindoid/
-RUN mkdir -p $PROJECTPATH
-COPY ./tmpl $PROJECTPATH/tmpl
-COPY ./cmd $PROJECTPATH/cmd/
-RUN ln -s $PROJECTPATH /gindoid
+COPY ./go.mod ./go.sum /gindoid/
 WORKDIR /gindoid
 # download deps before bringing in the main package
-# RUN go mod download
-
-RUN go get -v ./...
+RUN go mod download
+COPY ./cmd /gindoid/cmd/
 RUN go build ./cmd/gindoid
 
+# RUNNER IMAGE
+FROM alpine:latest
+# Copy binary and templates into final image
+COPY ./tmpl /tmpl
+COPY --from=binbuilder /gindoid/gindoid /
 VOLUME ["/doidata"]
-VOLUME ["/gindoid/config"]
+VOLUME ["/config"]
 
-ENTRYPOINT ./gindoid --debug
+ENTRYPOINT /gindoid --debug
 EXPOSE 10443
