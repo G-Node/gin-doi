@@ -15,7 +15,7 @@ gin-doi fulfills the [DataCite](https://www.datacite.org/) standard which (accor
 
 ## What is needed
 To get a DOI you need to provide a file called datacite.yml which needs to be put (and pushed) into the root of your repository.
-This file needs to be a valid [YAML](https://en.wikipedia.org/wiki/YAML) file and should look [like this example file](tmpl/example_datacite.yml).
+This file needs to be a valid [YAML](https://en.wikipedia.org/wiki/YAML) file and should look [like this example file](templates/example_datacite.yml).
 You need to provide  at least the following entries:
 * authors
 * title

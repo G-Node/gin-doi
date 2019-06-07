@@ -21,7 +21,7 @@ RUN go build ./cmd/gindoid
 # RUNNER IMAGE
 FROM alpine:latest
 # Copy binary and templates into final image
-COPY ./tmpl /tmpl
+COPY ./templates /templates
 COPY --from=binbuilder /gindoid/gindoid /
 VOLUME ["/doidata"]
 VOLUME ["/config"]
