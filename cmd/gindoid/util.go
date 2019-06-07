@@ -93,7 +93,7 @@ func IsRegisteredDOI(doi string) bool {
 }
 
 // DoDOIJob starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
-func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *OAuthProvider) {
+func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, storage LocalStorage, op *OAuthProvider, conf *Configuration) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -126,7 +126,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 	dReq.User = user
 	// TODO Error checking
 	uuid, _ := ds.MakeUUID(dReq.URI)
-	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user)
+	ok, doiInfo := ds.ValidDOIFile(dReq.URI, user, conf)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -170,7 +170,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, stor
 
 // InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
 // It validates the metadata provided from the GIN repository and shows appropriate error messages and instructions.
-func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAuthProvider, tp string, storage *LocalStorage, key string) {
+func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAuthProvider, tp string, storage *LocalStorage, key string, conf *Configuration) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -246,7 +246,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, ds *DataSource, op *OAut
 	}
 
 	// check for doifile
-	if ok, doiInfo := ds.ValidDOIFile(URI, user); ok {
+	if ok, doiInfo := ds.ValidDOIFile(URI, user, conf); ok {
 		log.WithFields(log.Fields{
 			"doiInfo": doiInfo,
 			"source":  "Init",

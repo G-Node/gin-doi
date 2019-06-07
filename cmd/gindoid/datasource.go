@@ -42,14 +42,14 @@ func (s *DataSource) GitURL() string {
 	return s.ServerConfig.Git.AddressStr()
 }
 
-func (s *DataSource) getDOIFile(URI string, user gogs.User) ([]byte, error) {
+func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	// https://github.com/go-yaml/yaml.git
 	// git@github.com:go-yaml/yaml.git
 	// TODO: config variables for path etc.
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL(), fetchRepoPath), nil)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", conf.GIN.Web.AddressStr(), fetchRepoPath), nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		// todo Try to infer what went wrong
@@ -164,8 +164,8 @@ func (s *DataSource) MakeUUID(URI string) (string, error) {
 }
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func (s *DataSource) ValidDOIFile(URI string, user gogs.User) (bool, *DOIRegInfo) {
-	in, err := s.getDOIFile(URI, user)
+func (s *DataSource) ValidDOIFile(URI string, user gogs.User, conf *Configuration) (bool, *DOIRegInfo) {
+	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"data":   string(in),

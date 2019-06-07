@@ -1,12 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 
-	"github.com/G-Node/gin-cli/ginclient/config"
 	"github.com/G-Node/libgin/libgin"
 	docopt "github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
@@ -37,113 +36,26 @@ func main() {
 
 	log.Debug("Starting up")
 
-	// Setup data source
-	ginurl := libgin.ReadConf("ginurl")
-	giturl := libgin.ReadConf("giturl")
-	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
-
-	gincfg, err := config.ParseWebString(ginurl)
+	configu, err := loadconfig()
 	if err != nil {
-		log.Error(err)
+		log.Errorf("Startup failed: %v", err)
 		os.Exit(-1)
 	}
+	j, _ := json.MarshalIndent(configu, "", "  ")
+	fmt.Println(string(j))
 
-	gitcfg, err := config.ParseGitString(giturl)
-	if err != nil {
-		log.Error(err)
-		os.Exit(-1)
-	}
-
-	srvcfg := &config.ServerCfg{
-		Web: gincfg,
-		Git: gitcfg,
-	}
-	ds := DataSource{ServerConfig: srvcfg}
-
-	ginuser := libgin.ReadConf("ginuser")
-	ginpassword := libgin.ReadConf("ginpassword")
-	ds.Username = ginuser
-	ds.Password = ginpassword
-
-	// Test DOI user login before starting service
-	log.Debug("Checking credentials for DOI user")
-	err = ds.Login()
-	if err != nil {
-		log.Error(err)
-		os.Exit(-1)
-	}
-
-	doibase = libgin.ReadConf("doibase")
-	log.Debugf("doibase: %s", doibase)
-
-	// Setup storage
-	mailserver := libgin.ReadConf("mailserver")
-	mailfrom := libgin.ReadConf("mailfrom")
-	sendmail := true // TODO: Remove option
-	mailtofile := libgin.ReadConf("mailtofile")
-	mServer := MailServer{
-		Address:   mailserver,
-		From:      mailfrom,
-		DoSend:    sendmail,
-		EmailList: mailtofile,
-	}
-	log.Debugf("Mail configuration: %+v", mServer)
-
-	target := libgin.ReadConf("target")
-	storeurl := libgin.ReadConf("storeurl")
-	templates := libgin.ReadConf("templates")
-	xmlurl := libgin.ReadConf("xmlurl")
-	knownhosts := libgin.ReadConf("knownhosts")
-	storage := LocalStorage{
-		Path:         target,
-		Source:       ds,
-		HTTPBase:     storeurl,
-		MServer:      &mServer,
-		TemplatePath: templates,
-		SCPURL:       xmlurl,
-		KnownHosts:   knownhosts,
-	}
-	log.Debugf("LocalStorage configuration: %+v", storage)
-
-	// setup authentication
-	op := OAuthProvider{
-		URI:      fmt.Sprintf("%s/api/v1/user", ginurl),
-		TokenURL: "",
-		KeyURL:   fmt.Sprintf("%s/api/v1/user/keys", ginurl),
-	}
-	log.Debugf("OAuth configuration: %+v", op)
-
-	key := libgin.ReadConf("key")
-
-	// Create the job queue.
-	maxQ, err := strconv.Atoi(libgin.ReadConfDefault("maxqueue", "100"))
-	if err != nil {
-		log.Printf("Error while parsing maxqueue flag: %s", err.Error())
-		log.Print("Using default")
-		maxQ = 100
-	}
-	jobQueue := make(chan DOIJob, maxQ)
-	// Start the dispatcher.
-	maxW, err := strconv.Atoi(libgin.ReadConfDefault("maxworkers", "3"))
-	if err != nil {
-		log.Printf("Error while parsing maxworkers flag: %s", err.Error())
-		log.Print("Using default")
-		maxW = 3
-	}
-
-	log.Debugf("Max queue: %d   Max workers: %d", maxQ, maxW)
-
-	dispatcher := NewDispatcher(jobQueue, maxW)
+	jobQueue := make(chan DOIJob, configu.MaxQueue)
+	dispatcher := NewDispatcher(jobQueue, configu.MaxWorkers)
 	dispatcher.Run(NewWorker)
 
 	// Start the HTTP handlers.
-	http.Handle("/", http.RedirectHandler(storeurl, http.StatusMovedPermanently))
+	http.Handle("/", http.RedirectHandler(configu.Storage.StoreURL, http.StatusMovedPermanently))
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Got request: %s", r.URL.String())
-		InitDOIJob(w, r, &ds, &op, storage.TemplatePath, &storage, key)
+		InitDOIJob(w, r, nil, nil, configu.TemplatePath, nil, configu.Key, configu)
 	})
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		DoDOIJob(w, r, jobQueue, storage, &op)
+		DoDOIJob(w, r, jobQueue, LocalStorage{}, nil, configu)
 	})
 	http.Handle("/assets/",
 		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
