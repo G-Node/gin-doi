@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
-	msgInvalidDOI        = `The DOI file was not valid. Please see <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
+	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
+	msgInvalidDOI        = `The DOI file was not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
 	msgInvalidURI        = "Please provide a valid repository URI"
 	msgAlreadyRegistered = `<i class="info icon"></i>
 						<div class="content">
@@ -19,8 +19,7 @@ const (
 								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a>
 							</div>.
 						</div>`
-	msgServerIsArchiving = `<i class="notched circle loading icon"></i>
-		<div class="content">
+	msgServerIsArchiving = `<div class="content">
 			<div class="header">The DOI server has started archiving your repository.</div>
 		We will try to register the following DOI for your dataset:<br>
 		<div class ="ui label label-default">%s</div><br>
@@ -28,8 +27,10 @@ const (
 		Please note that the final step in the registration process requires us to manually review your request.
 		It may therefore take a few hours until the DOI is finally registered and your data becomes available.
 		We will notify you via email once the process is finished.<br>
+		<div class="ui tabs divider"> </div>
 		<b>This page can safely be closed. You do not need to keep it open.</b>
-		</div>`
+		</div>
+		`
 	msgNotLoggedIn      = `You are not logged in with the gin service. Login <a href="http://gin.g-node.org/">here</a>`
 	msgNoToken          = "No authentication token provided"
 	msgNoUser           = "No username provided"
@@ -39,7 +40,7 @@ const (
 	msgNoDescription    = "No description provided."
 	msgNoLicense        = "No valid license provided. Please specify URL and name."
 	msgInvalidReference = "A specified Reference is not valid. Please provide the name and type of the reference."
-	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://web.gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
+	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
 	// Log Prefixes
 	lpAuth    = "GinOAP"
