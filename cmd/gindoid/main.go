@@ -70,7 +70,7 @@ func main() {
 		DoDOIJob(w, r, jobQueue, config)
 	})
 	http.Handle("/assets/",
-		http.StripPrefix("/assets/", http.FileServer(http.Dir("/assets"))))
+		http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 
 	fmt.Printf("Listening for connections on port %d\n", config.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
