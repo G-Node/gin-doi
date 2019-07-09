@@ -22,6 +22,7 @@ RUN go build ./cmd/gindoid
 FROM alpine:latest
 # Copy binary and templates into final image
 COPY ./templates /templates
+COPY ./assets /assets
 COPY --from=binbuilder /gindoid/gindoid /
 VOLUME ["/doidata"]
 VOLUME ["/config"]
