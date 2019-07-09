@@ -19,21 +19,19 @@
     <meta property="og:image" content="https://gin.g-node.org/avatars/18">
 
 
-    <link rel="shortcut icon" href="https://web.gin.g-node.org/img/favicon.png">
-    <script src="https://web.gin.g-node.org/js/jquery-1.11.3.min.js"></script>
-    <script src="https://web.gin.g-node.org/js/libs/jquery.are-you-sure.js"></script>
-    <link rel="stylesheet" href="https://web.gin.g-node.org/assets/font-awesome-4.6.3/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://web.gin.g-node.org/assets/octicons-4.3.0/octicons.min.css">
+    <link rel="shortcut icon" href="/assets/img/favicon.png">
+    <script src="/assets/js/libs/emojify-1.1.0.min.js"></script>
+    <script src="/assets/js/jquery-1.11.3.min.js"></script>
+    <script src="/assets/js/libs/jquery.are-you-sure.js"></script>
+    <link rel="stylesheet" href="/assets/font-awesome-4.6.3/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
+    <link rel="stylesheet" href="/assets/css/semantic-2.3.1.min.css">
+    <link rel="stylesheet" href="/assets/css/gogs.css">
+    <link rel="stylesheet" href="/assets/css/custom.css">
+    <link rel="stylesheet" href="/assets/css/github.min.css">
 
-    <link href="https://fonts.googleapis.com/css?family=Kaushan+Script" rel="stylesheet" type="text/css">
 
-    <link rel="stylesheet" href="https://web.gin.g-node.org/css/semantic-2.3.1.min.css">
-    <link rel="stylesheet" href="https://web.gin.g-node.org/css/gogs.css?v=a5ba52186d8265d9a6079ed01467a93a">
-
-
-    <script src="https://web.gin.g-node.org/js/semantic-2.3.1.min.js"></script>
-    <script src="https://web.gin.g-node.org/js/gogs.js?v=a5ba52186d8265d9a6079ed01467a93a"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="/assets/js/semantic-2.3.1.min.js"></script>
     <script>
         $(document).ready(function () {
             $ = jQuery.noConflict();
@@ -68,7 +66,7 @@
     </script>
     <title>GIN-DOI</title>
 
-    <meta name="theme-color" content="#ff5343">
+    <meta name="theme-color" content="#ffffff">
 
 
 </head>
@@ -79,24 +77,24 @@
             <div class="ui grid">
                 <div class="column">
                     <div class="ui top secondary menu">
-                        <a class="item brand" href="https://web.gin.g-node.org">
-                            <img class="ui mini image" src="https://web.gin.g-node.org/img/favicon.png">
+                        <a class="item brand" href="https://gin.g-node.org/">
+                            <img class="ui mini image" src="/assets/img/favicon.png">
                         </a>
+                        <a class="item active" href="https://gin.g-node.org/">Back to GIN</a> <!-- TODO: Link to repository -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="repository file list">
+    <div>
         <div class="header-wrapper">
             <div class="ui container">
                 <div class="ui vertically padded grid head">
-                    <div class="column">
+                    <div class="column center">
                         <div class="ui header">
                             <div class="ui huge breadcrumb">
+                                Welcome to the GIN DOI service
                                 <i class="mega-octicon octicon octicon-squirrel"></i>
-                                Welcome to the <strong>GIN</strong> (<strong>G</strong>-Node <strong>IN</strong>frastructure)
-                                DOI service!
                             </div>
                         </div>
                     </div>
@@ -124,8 +122,7 @@
                     <thead>
                     <tr>
                         <th class="two wide">
-                            <i class="octicon octicon-squirrel"></i>
-                            <strong>Datacite.yml</strong>
+                            <!-- <i class="octicon octicon-squirrel"></i> -->
                         </th>
                         <th class="fourteen wide">
                         </th>
@@ -224,50 +221,26 @@
         </div>
     </div>
 </div>
-<footer>
-    <div class="following bar light">
+    <footer>
         <div class="ui container">
-            <div class="ui grid">
-                <div class="column">
-                    <div class="ui top secondary menu center">
-                        <a class="item brand" href="http://www.g-node.org">
-                            <img class="ui mini image"
-                                 src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png">
-                            © G-Node, 2016-2017
-                        </a>
-                        <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/about">About</a>
-                        <a class="item brand"
-                           href="https://web.gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
-                        <a class="item brand"
-                           href="https://web.gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>
-                        <a class="item brand" href="https://web.gin.g-node.org/G-Node/Info/wiki/Terms+of+Use">Terms
-                            of Use</a>
+            <div class="ui center links item brand footertext">
+                <a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2019</a>
+                <a href="https://gin.g-node.org/G-Node/Info/wiki/about">About</a>
+                <a href="https://gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
+                <a href="https://gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>
+                <a href="https://gin.g-node.org/G-Node/Info/wiki/Terms+of+Use">Terms of Use</a>
+                <a href="https://gin.g-node.org/G-Node/Info/wiki/Datenschutz">Datenschutz</a>
 
-                        <div class="ui supersmall leftspace">
-                            Powered by:
-                            <a href="https://github.com/gogits/gogs">
-                                <img class="ui gogssmall image" src="https://web.gin.g-node.org/img/gogs.svg">
-                            </a>
-                        </div>
-                        <div class="ui supersmall">
-                            Hosted by:
-                            <img class="ui bmbf image" src="https://web.gin.g-node.org/img/lmu.png">
-                        </div>
-                        <div class="ui supersmall">
-                            Funded by:
-                            <img class="ui bmbf image" src="https://web.gin.g-node.org/img/bmbf.png">
-                        </div>
-                        <div class="ui supersmall">
-                            Registered with:
-                            <a href="http://doi.org/10.17616/R3SX9N">
-                                <img class="ui bmbf image" src="https://web.gin.g-node.org/img/re3.png">
-                            </a>
-                        </div>
-                    </div>
-                </div>
+            </div>
+            <div class="ui center links item brand footertext">
+                <span>Powered by:      <a href="https://github.com/gogits/gogs"><img class="ui mini footericon" src="/assets/img/gogs.svg"/></a>         </span>
+                <span>Hosted by:       <a href="https://neuro.bio.lmu.de"><img class="ui mini footericon" src="/assets/img/lmu.png"/></a>          </span>
+                <span>Funded by:       <a href="https://www.bmbf.de"><img class="ui mini footericon" src="/assets/img/bmbf.png"/></a>         </span>
+                <span>Registered with: <a href="https://doi.org/10.17616/R3SX9N"><img class="ui mini footericon" src="/assets/img/re3.png"/></a>          </span>
+                <span>Recommended by:  <a href="https://www.nature.com/sdata/policies/repositories#neurosci"><img class="ui mini footericon" src="/assets/img/sdatarecbadge.jpg"/><a href="https://journals.plos.org/plosone/s/data-availability#loc-neuroscience"><img class="ui mini footericon" src="/assets/img/sm_plos-logo-sm.png"/></a></span>
             </div>
         </div>
-    </div>
-</footer>
+    </footer>
+
 </body>
 </html>
