@@ -47,7 +47,7 @@ func main() {
 		log.Debug(string(j))
 	}
 
-	log.Debugf("Logging in to GIN as %s", config.GIN.Username)
+	log.Debugf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
 	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
 	if err != nil {
 		log.Error(err)

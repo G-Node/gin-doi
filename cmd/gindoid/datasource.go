@@ -25,7 +25,8 @@ func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	// TODO: config variables for path etc.
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", conf.GIN.Web.AddressStr(), fetchRepoPath), nil)
+	log.Debugf("Fetching datacite file from %s", fetchRepoPath)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), fetchRepoPath), nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		// todo Try to infer what went wrong

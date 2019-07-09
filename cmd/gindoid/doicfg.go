@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/G-Node/gin-cli/ginclient"
@@ -24,11 +25,9 @@ type Configuration struct {
 	// GIN server configuration (web and git URLs) and DOI username and
 	// password for cloning
 	GIN struct {
-		*config.ServerCfg
-		Username       string
-		Password       string
-		KnownHostsPath string
-		Session        *ginclient.Client
+		Username string
+		Password string
+		Session  *ginclient.Client
 	}
 	// DOI prefix
 	DOIBase string
@@ -57,25 +56,10 @@ type Configuration struct {
 // loadconfig reads all the configuration variables (from the environment)
 func loadconfig() (*Configuration, error) {
 	cfg := Configuration{}
-	// Setup data source
-	ginurl := libgin.ReadConf("ginurl")
-	giturl := libgin.ReadConf("giturl")
-	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
 
-	webcfg, err := config.ParseWebString(ginurl)
-	if err != nil {
-		return nil, err
-	}
-
-	gitcfg, err := config.ParseGitString(giturl)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg.GIN.ServerCfg = &config.ServerCfg{Web: webcfg, Git: gitcfg}
-	cfg.GIN.Username = libgin.ReadConf("ginuser")
-	cfg.GIN.Password = libgin.ReadConf("ginpassword")
-	cfg.GIN.KnownHostsPath = libgin.ReadConf("knownhosts")
+	// NOTE: Temporary workaround. GIN Client internals need a bit of a
+	// redesign to support in-memory configurations.
+	os.Setenv("GIN_CONFIG_DIR", libgin.ReadConf("configdir"))
 
 	cfg.DOIBase = libgin.ReadConf("doibase")
 
@@ -113,6 +97,26 @@ func loadconfig() (*Configuration, error) {
 	}
 
 	cfg.Port = uint16(port)
+
+	// Set up GIN client configuration (for cloning)
+
+	ginurl := libgin.ReadConf("ginurl")
+	giturl := libgin.ReadConf("giturl")
+	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
+
+	webcfg, err := config.ParseWebString(ginurl)
+	if err != nil {
+		return nil, err
+	}
+
+	gitcfg, err := config.ParseGitString(giturl)
+	if err != nil {
+		return nil, err
+	}
+	srvcfg := config.ServerCfg{Web: webcfg, Git: gitcfg}
+	config.AddServerConf("gin", srvcfg)
+	cfg.GIN.Username = libgin.ReadConf("ginuser")
+	cfg.GIN.Password = libgin.ReadConf("ginpassword")
 
 	cfg.GIN.Session = ginclient.New("gin")
 

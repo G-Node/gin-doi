@@ -256,7 +256,7 @@ func sendMaster(dReq *DOIReq, conf *Configuration) error {
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
 	uuid := dReq.DOIInfo.UUID
 	doitarget := urljoin(conf.Storage.StoreURL, uuid)
-	repourl := fmt.Sprintf("%s/%s", conf.GIN.Web.AddressStr(), repopath)
+	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
 
 	errorlist := ""
 	if len(dReq.ErrorMessages) > 0 {
