@@ -33,5 +33,3 @@ require (
 	google.golang.org/grpc v1.22.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 )
-
-replace github.com/G-Node/libgin => ../libgin
