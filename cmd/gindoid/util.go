@@ -233,7 +233,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	}
 }
 
-// DOIMdata holds all the metadata for a dataset that's in the process of being registered.
+// DOIMData holds all the metadata for a dataset that's in the process of being registered.
 type DOIMData struct {
 	Data struct {
 		ID         string `json:"id"`
