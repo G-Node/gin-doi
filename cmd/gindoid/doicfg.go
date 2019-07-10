@@ -6,6 +6,7 @@ import (
 
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-cli/ginclient/config"
+	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
 	log "github.com/sirupsen/logrus"
 )
@@ -113,8 +114,20 @@ func loadconfig() (*Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	srvcfg := config.ServerCfg{Web: webcfg, Git: gitcfg}
+	hostkeystr, fingerprint, err := git.GetHostKey(gitcfg)
+	if err != nil {
+		return nil, err
+	}
+	srvcfg.Git.HostKey = hostkeystr
+	log.Debugf("Got hostkey with fingerprint:\n%s", fingerprint)
 	config.AddServerConf("gin", srvcfg)
+	// Update known hosts file
+	err = git.WriteKnownHosts()
+	if err != nil {
+		return nil, err
+	}
 	cfg.GIN.Username = libgin.ReadConf("ginuser")
 	cfg.GIN.Password = libgin.ReadConf("ginpassword")
 
