@@ -168,7 +168,7 @@ func zip(source, zipfilename string) (int64, error) {
 }
 
 func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
-	tmpl, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "doiInfo.tmpl"))
+	tmpl, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "landingpage.tmpl"))
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
