@@ -49,10 +49,9 @@ const (
 )
 
 type DOIReq struct {
-	URI           string
-	User          gogs.User
-	OAuthLogin    string
-	Token         string
+	Repository    string
+	Username      string
+	Verification  string
 	Message       template.HTML
 	DOIInfo       *DOIRegInfo
 	ErrorMessages []string
@@ -70,7 +69,7 @@ type DOIJob struct {
 
 func (d *DOIReq) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
-	return string(re.ReplaceAll([]byte(d.URI), []byte("doi/")))
+	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
 
 }
 

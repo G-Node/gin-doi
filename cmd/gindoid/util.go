@@ -78,9 +78,20 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "DoDOIJob",
-	}).Debug("Unmarshaled a DOI request")
+	}).Debug("Received DOI request")
 
-	user, err := conf.GIN.Session.RequestAccount(dReq.OAuthLogin)
+	// verify again
+	if !verifyRequest(dReq.Repository, dReq.Username, dReq.Verification, conf.Key) {
+		log.WithFields(log.Fields{
+			"request": fmt.Sprintf("%+v", dReq),
+			"source":  "DoDOIJob",
+		}).Error("Invalid request: failed to verify")
+		dReq.Message = template.HTML(msgInvalidRequest)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
@@ -91,10 +102,9 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	dReq.User = user
 	// TODO Error checking
-	uuid := makeUUID(dReq.URI)
-	ok, doiInfo := ValidDOIFile(dReq.URI, conf)
+	uuid := makeUUID(dReq.Repository)
+	ok, doiInfo := ValidDOIFile(dReq.Repository, conf)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -110,7 +120,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
 		return
 	}
-	job := DOIJob{Source: dReq.URI, User: user, Request: dReq, Name: doiInfo.UUID, Config: conf}
+	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.UUID, Config: conf}
 	jobQueue <- job
 	// Render success.
 	w.WriteHeader(http.StatusCreated)
@@ -140,23 +150,23 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 		return
 	}
 
-	URI := r.Form.Get("repo")
-	enctoken := r.Form.Get("verification")
+	repository := r.Form.Get("repo")
+	verification := r.Form.Get("verification")
 	username := r.Form.Get("user")
 
-	log.Infof("Got request: [URI: %s] [username: %s] [Encrypted token: %s]", URI, username, enctoken)
-	dReq := DOIReq{}
+	log.Infof("Got request: [repository: %s] [username: %s] [verification: %s]", repository, username, verification)
+	dReq := DOIReq{Username: username, Repository: repository, Verification: verification}
 	dReq.DOIInfo = &DOIRegInfo{}
 
 	// If all are missing, redirect to root path?
 
 	// If any of the values is missing, render invalid request page
-	if len(URI) == 0 || len(username) == 0 || len(enctoken) == 0 {
+	if len(repository) == 0 || len(username) == 0 || len(verification) == 0 {
 		log.WithFields(log.Fields{
 			"source":       "InitDOIJob",
-			"URI":          URI,
+			"repository":   repository,
 			"username":     username,
-			"verification": enctoken,
+			"verification": verification,
 		}).Error("Invalid request: missing fields in query string")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
@@ -164,16 +174,13 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 		return
 	}
 
-	dReq.URI = URI
-	dReq.OAuthLogin = username
-
 	// Check verification string
-	if !verifyRequest(URI, username, enctoken, conf.Key) {
+	if !verifyRequest(repository, username, verification, conf.Key) {
 		log.WithFields(log.Fields{
 			"source":       "InitDOIJob",
-			"URI":          URI,
+			"repository":   repository,
 			"username":     username,
-			"verification": enctoken,
+			"verification": verification,
 		}).Error("Invalid request: failed to verify")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
@@ -182,7 +189,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	}
 
 	// check for doifile
-	if ok, doiInfo := ValidDOIFile(URI, conf); ok {
+	if ok, doiInfo := ValidDOIFile(repository, conf); ok {
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Debugf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo

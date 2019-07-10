@@ -252,9 +252,9 @@ func sendMaster(dReq *DOIReq, conf *Configuration) error {
 		return base.ResolveReference(suffix).String()
 	}
 
-	repopath := dReq.URI
-	userlogin := dReq.OAuthLogin
-	useremail := dReq.User.Email
+	repopath := dReq.Repository
+	userlogin := dReq.Username
+	useremail := "" // TODO: Change when GOGS sends user email with request
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
 	uuid := dReq.DOIInfo.UUID
 	doitarget := urljoin(conf.Storage.StoreURL, uuid)

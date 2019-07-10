@@ -45,7 +45,7 @@ function doify(event) {
 		url: "/do/",
 		type: "POST",
 		contentType: "text/plain",
-		data: "{\"OAuthLogin\":\"{{.OAuthLogin}}\",\"URI\":\"{{  .URI}}\",\"token\":\"{{.Token}}\"}",
+		data: "{\"repository\":\"{{.Repository}}\",\"username\":\"{{.Username}}\",\"verification\":\"{{.Verification}}\"}",
 		dataType: "text",
 		success: function (data) {
 			$("#info").html($.parseHTML(data));
