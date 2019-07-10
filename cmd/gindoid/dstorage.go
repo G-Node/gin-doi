@@ -30,14 +30,14 @@ func Put(job DOIJob) error {
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
 	zipsize, err := cloneandzip(repopath, jobname, targetpath, conf)
+	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 	if err != nil {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
+		dReq.DOIInfo.FileSize = ""
 	}
 	createIndexFile(jobname, dReq, conf)
-
-	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
