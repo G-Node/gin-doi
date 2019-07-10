@@ -10,6 +10,7 @@ import (
 
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
+	humanize "github.com/dustin/go-humanize"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,37 +19,25 @@ const (
 	doixmlfname = "datacite.xml"
 )
 
-type LocalStorage struct {
-	Path         string
-	Source       DataSource
-	HTTPBase     string
-	MServer      *MailServer
-	TemplatePath string
-	SCPURL       string
-	KnownHosts   string
-}
-
-func (ls *LocalStorage) Exists(target string) (bool, error) {
-	return false, nil
-}
-
-func (ls LocalStorage) Put(job DOIJob) error {
+func Put(job DOIJob) error {
+	conf := job.Config
 	repopath := job.Source
 	jobname := job.Name
 	dReq := &job.Request
 
-	ls.prepDir(jobname, dReq.DOIInfo)
+	prepDir(jobname, dReq.DOIInfo, conf)
 
-	targetpath := filepath.Join(ls.Path, jobname)
+	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
-	zipsize, err := ls.cloneandzip(repopath, jobname, targetpath)
+	zipsize, err := cloneandzip(repopath, jobname, targetpath, conf)
+	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 	if err != nil {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
+		dReq.DOIInfo.FileSize = ""
 	}
-	ls.createIndexFile(jobname, dReq)
-	dReq.DOIInfo.FileSize = zipsize/(1024*1000) + 1 // Proper size conversion to closest human-readable size
+	createIndexFile(jobname, dReq, conf)
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
@@ -59,13 +48,13 @@ func (ls LocalStorage) Put(job DOIJob) error {
 		}).Error("Could not create the metadata template")
 		// XML Creation failed; return with error
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		ls.sendMaster(dReq)
+		sendMaster(dReq, conf)
 		return err
 	}
 	defer fp.Close()
 
 	// No registering. But the XML is provided with everything
-	doixml := filepath.Join(ls.TemplatePath, doixmlfname)
+	doixml := filepath.Join(conf.TemplatePath, doixmlfname)
 	data, err := GetXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -74,7 +63,7 @@ func (ls LocalStorage) Put(job DOIJob) error {
 			"target": jobname,
 		}).Error("Could not parse the metadata file")
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
-		ls.sendMaster(dReq)
+		sendMaster(dReq, conf)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -87,12 +76,12 @@ func (ls LocalStorage) Put(job DOIJob) error {
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 	dReq.ErrorMessages = preperrors
-	ls.sendMaster(dReq)
+	sendMaster(dReq, conf)
 	return err
 }
 
 // cloneandzip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
-func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath string) (int64, error) {
+func cloneandzip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
@@ -101,8 +90,7 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 	}
 
 	// Clone
-	ds := ls.GetDataSource()
-	if err := ds.CloneRepo(repopath, targetpath); err != nil {
+	if err := CloneRepo(repopath, targetpath, conf); err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
@@ -115,7 +103,7 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 	repoparts := strings.SplitN(repopath, "/", 2)
 	reponame := repoparts[1]
 	repodir := filepath.Join(targetpath, reponame)
-	if err := ls.derepoCloneDir(repodir); err != nil {
+	if err := derepoCloneDir(repodir); err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
@@ -126,7 +114,7 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 
 	// Zip
 	zipfilename := filepath.Join(targetpath, jobname+".zip")
-	zipsize, err := ls.zip(repodir, zipfilename)
+	zipsize, err := zip(repodir, zipfilename)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -138,7 +126,7 @@ func (ls LocalStorage) cloneandzip(repopath string, jobname string, targetpath s
 	return zipsize, nil
 }
 
-func (ls *LocalStorage) zip(source, zipfilename string) (int64, error) {
+func zip(source, zipfilename string) (int64, error) {
 	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
 	if err != nil {
@@ -181,12 +169,8 @@ func (ls *LocalStorage) zip(source, zipfilename string) (int64, error) {
 	return stat.Size(), nil
 }
 
-func (ls LocalStorage) GetDataSource() DataSource {
-	return ls.Source
-}
-
-func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
-	tmpl, err := template.ParseFiles(filepath.Join(ls.TemplatePath, "doiInfo.tmpl"))
+func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
+	tmpl, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "landingpage.tmpl"))
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -199,7 +183,7 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 		return err
 	}
 
-	fp, err := os.Create(filepath.Join(ls.Path, target, "index.html"))
+	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -220,23 +204,24 @@ func (ls LocalStorage) createIndexFile(target string, info *DOIReq) error {
 	return nil
 }
 
-func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
-	err := os.MkdirAll(filepath.Join(ls.Path, target), os.ModePerm)
+func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
+	storagedir := conf.Storage.TargetDirectory
+	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
+			"source":  lpStorage,
+			"error":   err,
+			"jobname": jobname,
 		}).Error("Could not create the target directory")
 		return err
 	}
 	// Deny access per default
-	file, err := os.Create(filepath.Join(ls.Path, target, ".htaccess"))
+	file, err := os.Create(filepath.Join(storagedir, jobname, ".htaccess"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
+			"source":  lpStorage,
+			"error":   err,
+			"jobname": jobname,
 		}).Error("Could not create .httaccess")
 		return err
 	}
@@ -245,18 +230,15 @@ func (ls *LocalStorage) prepDir(target string, info *DOIRegInfo) error {
 	_, err = file.Write([]byte("deny from all"))
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
+			"error":   err,
+			"jobname": jobname,
 		}).Error("Could not write to .httaccess")
 		return err
 	}
 	return nil
 }
-func (ls LocalStorage) getSCP(dReq *DOIReq) string {
-	return fmt.Sprintf("%s/%s/doi.xml", ls.SCPURL, dReq.DOIInfo.UUID)
-}
-func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
+
+func sendMaster(dReq *DOIReq, conf *Configuration) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -270,13 +252,13 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 		return base.ResolveReference(suffix).String()
 	}
 
-	repopath := dReq.URI
-	userlogin := dReq.OAuthLogin
-	useremail := dReq.User.Email
-	xmlurl := ls.getSCP(dReq)
+	repopath := dReq.Repository
+	userlogin := dReq.Username
+	useremail := "" // TODO: Change when GOGS sends user email with request
+	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
 	uuid := dReq.DOIInfo.UUID
-	doitarget := urljoin(ls.HTTPBase, uuid)
-	repourl := fmt.Sprintf("%s/%s", ls.Source.GinURL(), repopath)
+	doitarget := urljoin(conf.Storage.StoreURL, uuid)
+	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
 
 	errorlist := ""
 	if len(dReq.ErrorMessages) > 0 {
@@ -300,9 +282,10 @@ func (ls LocalStorage) sendMaster(dReq *DOIReq) error {
 %s
 `
 	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
-	return ls.MServer.SendMail(subject, body)
+	return SendMail(subject, body, conf)
 }
-func (ls *LocalStorage) derepoCloneDir(directory string) error {
+
+func derepoCloneDir(directory string) error {
 	directory, err := filepath.Abs(directory)
 	if err != nil {
 		log.Errorf("%s: Failed to get abs path for repo directory while cleaning up '%s'. Was our working directory removed?", lpStorage, directory)

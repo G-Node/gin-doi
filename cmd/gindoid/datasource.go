@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -14,51 +13,26 @@ import (
 	"strings"
 	"time"
 
-	"github.com/G-Node/gin-cli/ginclient"
-	"github.com/G-Node/gin-cli/ginclient/config"
 	"github.com/G-Node/gin-cli/git"
-	"github.com/G-Node/gin-cli/git/shell"
-	gogs "github.com/gogits/go-gogs-client"
-	"github.com/gogs/gogs/models"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
-type DataSource struct {
-	pubKey       string
-	session      *ginclient.Client
-	ServerConfig *config.ServerCfg
-	Username     string
-	Password     string
-}
-
-// GinURL returns the full URL for the configured GIN server, constructed from
-// the server configuration.
-func (s *DataSource) GinURL() string {
-	return s.ServerConfig.Web.AddressStr()
-}
-
-// GitURL returns the full git URL for the configured GIN server, constructed
-// from the server configuration.
-func (s *DataSource) GitURL() string {
-	return s.ServerConfig.Git.AddressStr()
-}
-
-func (s *DataSource) getDOIFile(URI string, user gogs.User) ([]byte, error) {
+func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	// https://github.com/go-yaml/yaml.git
 	// git@github.com:go-yaml/yaml.git
 	// TODO: config variables for path etc.
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
 	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", s.GinURL(), fetchRepoPath), nil)
+	log.Debugf("Fetching datacite file from %s", fetchRepoPath)
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), fetchRepoPath), nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		// todo Try to infer what went wrong
 		log.WithFields(log.Fields{
-			"path":   fetchRepoPath,
-			"source": lpDataSource,
-			"error":  err,
+			"path":  fetchRepoPath,
+			"error": err,
 		}).Debug("Could not get DOI file")
 		return nil, err
 	}
@@ -69,42 +43,17 @@ func (s *DataSource) getDOIFile(URI string, user gogs.User) ([]byte, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"path":   fetchRepoPath,
-			"source": lpDataSource,
-			"error":  err,
+			"path":  fetchRepoPath,
+			"error": err,
 		}).Debug("Could not read from received datacite.yml file")
 		return nil, err
 	}
 	return body, nil
 }
 
-func (s *DataSource) Login() error {
-	hostkeystr, _, err := git.GetHostKey(s.ServerConfig.Git)
-	if err != nil {
-		return fmt.Errorf("Failed to get host key during server setup: %v", err)
-	}
-	s.ServerConfig.Git.HostKey = hostkeystr
-	err = config.AddServerConf("gin", *s.ServerConfig)
-	if err != nil {
-		return fmt.Errorf("Failed to set up server configuration: %v", err)
-	}
-
-	gincl := ginclient.New("gin")
-	err = gincl.Login(s.Username, s.Password, "gin-doi")
-	if err != nil {
-		gerr := err.(shell.Error)
-		log.Error(gerr.Origin)
-		log.Error(gerr.UError)
-		log.Error(gerr.Description)
-		return err
-	}
-	s.session = gincl
-	return nil
-}
-
 // CloneRepo clones a git repository (with git-annex) specified by URI to the
 // destination directory.
-func (s *DataSource) CloneRepo(URI string, destdir string) error {
+func CloneRepo(URI string, destdir string, conf *Configuration) error {
 	// NOTE: CloneRepo changes the working directory to the cloned repository
 	// See: https://github.com/G-Node/gin-cli/issues/225
 	// This will need to change when that issue is fixed
@@ -118,14 +67,10 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 	if err != nil {
 		return err
 	}
-	log.WithFields(log.Fields{
-		"URI":     URI,
-		"session": s.session,
-		"source":  lpDataSource,
-	}).Debug("Start cloning")
+	log.Debugf("Cloning %s", URI)
 
 	clonechan := make(chan git.RepoFileStatus)
-	go s.session.CloneRepo(strings.ToLower(URI), clonechan)
+	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
 	for stat := range clonechan {
 		log.Debug(stat)
 		if stat.Err != nil {
@@ -135,7 +80,7 @@ func (s *DataSource) CloneRepo(URI string, destdir string) error {
 	}
 
 	downloadchan := make(chan git.RepoFileStatus)
-	go s.session.GetContent(nil, downloadchan)
+	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
 		log.Debug(stat)
 		if stat.Err != nil {
@@ -154,53 +99,21 @@ var UUIDMap = map[string]string{
 	"fabee/efish_locking":                        "6953bbf0087ba444b2d549b759de4a06",
 }
 
-func RepoP2UUID(URI string) string {
+func makeUUID(URI string) string {
 	if doi, ok := UUIDMap[URI]; ok {
 		return doi
 	}
 	currMd5 := md5.Sum([]byte(URI))
 	return hex.EncodeToString(currMd5[:])
 }
-func (s *DataSource) MakeUUID(URI string) (string, error) {
-	return RepoP2UUID(URI), nil
-}
-
-// GetMasterCommit determines the latest commit id of the master branch
-func (s *DataSource) GetMasterCommit(URI string, user models.User) (string, error) {
-	fetchRepoPath := fmt.Sprintf("%s", URI)
-	client := &http.Client{}
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/repos/%s/branches", s.GinURL(), fetchRepoPath), nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Could not get repo branches: %s", resp.Status)
-	}
-
-	branches := []gogs.Branch{}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	json.Unmarshal(data, &branches)
-	for _, branch := range branches {
-		if branch.Name == "master" {
-			return branch.Commit.ID, nil
-		}
-	}
-	return "", fmt.Errorf("Could not locate master branch")
-}
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func (s *DataSource) ValidDOIFile(URI string, user gogs.User) (bool, *DOIRegInfo) {
-	in, err := s.getDOIFile(URI, user)
+func ValidDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
+	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"data":   string(in),
-			"source": lpDataSource,
-			"error":  err,
+			"data":  string(in),
+			"error": err,
 		}).Error("Could not get the DOI file")
 		return false, nil
 	}
@@ -208,9 +121,8 @@ func (s *DataSource) ValidDOIFile(URI string, user gogs.User) (bool, *DOIRegInfo
 	err = yaml.Unmarshal(in, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"data":   string(in),
-			"source": lpDataSource,
-			"error":  err,
+			"data":  string(in),
+			"error": err,
 		}).Error("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
@@ -221,7 +133,6 @@ func (s *DataSource) ValidDOIFile(URI string, user gogs.User) (bool, *DOIRegInfo
 		log.WithFields(log.Fields{
 			"data":    string(in),
 			"doiInfo": doiInfo,
-			"source":  lpDataSource,
 			"error":   err,
 		}).Debug("DOI file is missing entries")
 		return false, &doiInfo
@@ -233,7 +144,7 @@ type DOIRegInfo struct {
 	Missing      []string
 	DOI          string
 	UUID         string
-	FileSize     int64
+	FileSize     string
 	Title        string
 	Authors      []Author
 	Description  string

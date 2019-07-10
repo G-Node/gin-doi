@@ -16,17 +16,13 @@ const (
 	DEFAULTTO = "gin@g-node.org" // Fallback email address to notify in case of error
 )
 
-type MailServer struct {
-	Address   string
-	From      string
-	DoSend    bool
-	EmailList string
-}
-
-func (ms *MailServer) SendMail(subject, body string) error {
-	if ms.DoSend {
+// SendMail sends an email with a given subject and body.  The supplied
+// configuration specifies the server to use, the from address, and a file that
+// lists the addresses of the recipients.
+func SendMail(subject, body string, conf *Configuration) error {
+	if conf.Email.Server != "" {
 		log.Debug("Preparing mail")
-		c, err := smtp.Dial(ms.Address)
+		c, err := smtp.Dial(conf.Email.Server)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"source": MAILLOG,
@@ -36,12 +32,12 @@ func (ms *MailServer) SendMail(subject, body string) error {
 		}
 		defer c.Close()
 		// Set the sender and recipient.
-		c.Mail(ms.From)
-		message := fmt.Sprintf("From: %s\nSubject: %s", ms.From, subject)
+		c.Mail(conf.Email.From)
+		message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
 
 		// Recipient list is read every time a SendMail() is called.
 		// This way, the recipient list can be changed without restarting the service.
-		emailfile, err := os.Open(ms.EmailList)
+		emailfile, err := os.Open(conf.Email.RecipientsFile)
 		if err == nil {
 			defer emailfile.Close()
 			filereader := bufio.NewReader(emailfile)
@@ -52,7 +48,7 @@ func (ms *MailServer) SendMail(subject, body string) error {
 				message = fmt.Sprintf("%s\nTo: %s", message, address)
 			}
 		} else {
-			log.Errorf("Email file %s could not be read: %s", ms.EmailList, err.Error())
+			log.Errorf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
 			log.Errorf("Notifying %s", DEFAULTTO)
 			log.Debugf("To: %s", DEFAULTTO)
 			c.Rcpt(DEFAULTTO)
