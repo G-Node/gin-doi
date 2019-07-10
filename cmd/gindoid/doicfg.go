@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/G-Node/gin-cli/ginclient"
@@ -60,7 +61,12 @@ func loadconfig() (*Configuration, error) {
 
 	// NOTE: Temporary workaround. GIN Client internals need a bit of a
 	// redesign to support in-memory configurations.
-	os.Setenv("GIN_CONFIG_DIR", libgin.ReadConf("configdir"))
+	confdir := libgin.ReadConf("configdir")
+	confdir, err := filepath.Abs(confdir)
+	if err != nil {
+		return nil, err
+	}
+	os.Setenv("GIN_CONFIG_DIR", confdir)
 
 	cfg.DOIBase = libgin.ReadConf("doibase")
 
