@@ -9,6 +9,7 @@ require (
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/dustin/go-humanize v1.0.0
 	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/gogits/go-gogs-client v0.0.0-20190616193657-5a05380e4bc2
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect

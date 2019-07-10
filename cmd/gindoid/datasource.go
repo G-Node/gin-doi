@@ -144,7 +144,7 @@ type DOIRegInfo struct {
 	Missing      []string
 	DOI          string
 	UUID         string
-	FileSize     int64
+	FileSize     string
 	Title        string
 	Authors      []Author
 	Description  string

@@ -10,6 +10,7 @@ import (
 
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
+	humanize "github.com/dustin/go-humanize"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,7 +36,8 @@ func Put(job DOIJob) error {
 		preperrors = append(preperrors, err.Error())
 	}
 	createIndexFile(jobname, dReq, conf)
-	dReq.DOIInfo.FileSize = zipsize/(1024*1000) + 1 // Proper size conversion to closest human-readable size
+
+	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
