@@ -1,25 +1,34 @@
 # BUILDER IMAGE
 FROM golang:alpine AS binbuilder
 
+RUN apk add --no-cache git openssh ca-certificates curl musl-dev openssh
+
+# Download git-annex to builder image and extract
 RUN mkdir /git-annex
-ENV PATH="${PATH}:/git-annex/git-annex.linux"
-RUN apk add --no-cache git openssh curl
 RUN curl -Lo /git-annex/git-annex-standalone-amd64.tar.gz https://downloads.kitenet.net/git-annex/linux/current/git-annex-standalone-amd64.tar.gz
 RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
-RUN apk del --no-cache curl
-
-RUN apk add --no-cache musl-dev gcc # for building deps
 
 RUN go version
 COPY ./go.mod ./go.sum /gindoid/
 WORKDIR /gindoid
+
 # download deps before bringing in the main package
 RUN go mod download
 COPY ./cmd /gindoid/cmd/
 RUN go build ./cmd/gindoid
 
+### ============================= ###
+
 # RUNNER IMAGE
 FROM alpine:latest
+
+# Update certificates inside runner container
+RUN apk add --no-cache git openssh ca-certificates
+
+# Copy git-annex from builder image
+COPY --from=binbuilder /git-annex /git-annex
+ENV PATH="${PATH}:/git-annex/git-annex.linux"
+
 # Copy binary and templates into final image
 COPY ./templates /templates
 COPY ./assets /assets
