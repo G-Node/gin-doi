@@ -101,7 +101,7 @@ func cloneandzip(repopath string, jobname string, targetpath string, conf *Confi
 
 	// Uninit the annex and delete .git directory
 	repoparts := strings.SplitN(repopath, "/", 2)
-	reponame := repoparts[1]
+	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(targetpath, reponame)
 	if err := derepoCloneDir(repodir); err != nil {
 		log.WithFields(log.Fields{
