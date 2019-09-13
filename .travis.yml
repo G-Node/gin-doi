@@ -3,24 +3,13 @@ sudo: required
 dist: trusty
 
 go:
- - 1.7
- - 1.8
+ - 1.12
  - tip
 
 
 install:
-  - sudo apt-get update
-  - sudo apt-get install git-annex
-  - go get github.com/Sirupsen/logrus
-  - go get github.com/docopt/docopt-go
-  - go get github.com/G-Node/gin-core/gin
-  - go get golang.org/x/crypto/ssh
-  - go get gopkg.in/yaml.v2
-
-before_script:
-  # in case of non gnode repo this will link correctly otherwise it creates a link inside the folder
-  # which should not be harmful either...
-  - ln -s  $TRAVIS_BUILD_DIR $GOPATH/src/github.com/G-Node/gin-doi
+  - go build ./cmd/gindoid
+  - ./gindoid --version
 
 script:
   - go test ./...
