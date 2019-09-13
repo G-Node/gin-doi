@@ -230,6 +230,10 @@ type Reference struct {
 
 func (ref Reference) GetURL() string {
 	idparts := strings.SplitN(ref.ID, ":", 2)
+	if len(idparts) != 2 {
+		// Malformed ID (no colon)
+		return ""
+	}
 	source := idparts[0]
 	idnum := idparts[1]
 
