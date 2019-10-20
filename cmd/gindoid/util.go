@@ -120,9 +120,12 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
 		return
 	}
+	// Send email notification
+	sendMaster(&dReq, conf)
+	// Add job to queue
 	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.UUID, Config: conf}
 	jobQueue <- job
-	// Render success.
+	// Render success
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
 }
