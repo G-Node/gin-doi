@@ -75,8 +75,12 @@ func Put(job DOIJob) error {
 		}).Error("Could not write to the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
-	dReq.ErrorMessages = preperrors
-	sendMaster(dReq, conf)
+
+	if len(preperrors) > 0 {
+		// Resend email with errors if any occurred
+		dReq.ErrorMessages = preperrors
+		sendMaster(dReq, conf)
+	}
 	return err
 }
 
