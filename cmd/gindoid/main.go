@@ -61,15 +61,24 @@ func main() {
 	dispatcher.Run(NewWorker)
 
 	// Start the HTTP handlers.
+
+	// Root redirects to storage URL (DOI listing page)
 	http.Handle("/", http.RedirectHandler(config.Storage.StoreURL, http.StatusMovedPermanently))
+
+	// register renders the info page with the registration button
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Got request: %s", r.URL.String())
 		InitDOIJob(w, r, config)
 	})
+
+	// do starts the registration job
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
 		DoDOIJob(w, r, jobQueue, config)
 	})
-	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
+
+	// assets fetches static assets using a custom FileSystem
+	assetserver := http.FileServer(NewAssetFS("/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", assetserver))
 
 	fmt.Printf("Listening for connections on port %d\n", config.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))

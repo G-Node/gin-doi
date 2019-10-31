@@ -117,6 +117,7 @@ func cloneandzip(repopath string, jobname string, targetpath string, conf *Confi
 	}
 
 	// Zip
+	log.Infof("Preparing zip file for %s", jobname)
 	zipfilename := filepath.Join(targetpath, jobname+".zip")
 	zipsize, err := zip(repodir, zipfilename)
 	if err != nil {
@@ -127,6 +128,7 @@ func cloneandzip(repopath string, jobname string, targetpath string, conf *Confi
 		}).Error("Could not zip the data")
 		return -1, fmt.Errorf("Failed to create the zip file: %v", err)
 	}
+	log.Infof("Archive size: %d", zipsize)
 	return zipsize, nil
 }
 
