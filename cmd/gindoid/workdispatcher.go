@@ -24,7 +24,8 @@ type DOIJob struct {
 	Config  *Configuration
 }
 
-// newWorker creates takes a numeric id and a channel w/ worker pool.
+// newWorker creates a worker that waits for new jobs on its JobQueue starts a
+// registration process when a job is received.
 func newWorker(id int, workerPool chan chan DOIJob) Worker {
 	return Worker{
 		ID:         id,
@@ -41,6 +42,7 @@ type Worker struct {
 	QuitChan   chan bool
 }
 
+// start the worker and wait for jobs.
 func (w *Worker) start() {
 	go func() {
 		for {
@@ -61,13 +63,16 @@ func (w *Worker) start() {
 	}()
 }
 
+// stop the worker.
 func (w *Worker) stop() {
 	go func() {
 		w.QuitChan <- true
 	}()
 }
 
-// newDispatcher creates, and returns a new Dispatcher object.
+// newDispatcher creates and returns a new Dispatcher object that holds all
+// waiting jobs and sends the next job in the queue to the first available
+// worker.
 func newDispatcher(jobQueue chan DOIJob, maxWorkers int) *Dispatcher {
 	workerPool := make(chan chan DOIJob, maxWorkers)
 
@@ -84,6 +89,8 @@ type Dispatcher struct {
 	jobQueue   chan DOIJob
 }
 
+// run starts the dispatcher after creating and starting a new set of workers
+// (given the provided function and the predefined max workers).
 func (d *Dispatcher) run(makeWorker func(int, chan chan DOIJob) Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := makeWorker(i+1, d.workerPool)

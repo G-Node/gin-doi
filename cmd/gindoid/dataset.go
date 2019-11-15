@@ -18,6 +18,9 @@ const (
 	doixmlfname = "datacite.xml"
 )
 
+// createRegisteredDataset starts the process of registering a dataset. It's
+// the top level function for the dataset registration and calls all other
+// individual functions.
 func createRegisteredDataset(job DOIJob) error {
 	conf := job.Config
 	repopath := job.Source
@@ -83,7 +86,9 @@ func createRegisteredDataset(job DOIJob) error {
 	return err
 }
 
-// cloneAndZip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
+// cloneAndZip clones the source repository into a temporary directory under
+// targetpath, zips the contents, and returns the size of the zip file in
+// bytes.
 func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
@@ -131,6 +136,7 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	return zipsize, nil
 }
 
+// zip a source directory into a file with the given filename.
 func zip(source, zipfilename string) (int64, error) {
 	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
@@ -174,6 +180,8 @@ func zip(source, zipfilename string) (int64, error) {
 	return stat.Size(), nil
 }
 
+// createIndexFile renders and writes a registered dataset landing page based
+// on the landingpage template.
 func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
 	tmpl, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "landingpage.tmpl"))
 	if err != nil {
@@ -209,6 +217,7 @@ func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
 	return nil
 }
 
+// prepDir creates the directory where the dataset will be cloned and archived.
 func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 	storagedir := conf.Storage.TargetDirectory
 	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
@@ -227,7 +236,7 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 			"source":  lpStorage,
 			"error":   err,
 			"jobname": jobname,
-		}).Error("Could not create .httaccess")
+		}).Error("Could not create .htaccess")
 		return err
 	}
 	defer file.Close()
@@ -237,12 +246,14 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 		log.WithFields(log.Fields{
 			"error":   err,
 			"jobname": jobname,
-		}).Error("Could not write to .httaccess")
+		}).Error("Could not write to .htaccess")
 		return err
 	}
 	return nil
 }
 
+// derepoCloneDir de-initialises the annex in a repository and deletes the .git
+// directory.
 func derepoCloneDir(directory string) error {
 	directory, err := filepath.Abs(directory)
 	if err != nil {

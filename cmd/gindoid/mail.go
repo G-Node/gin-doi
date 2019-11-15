@@ -17,6 +17,8 @@ const (
 	DEFAULTTO = "gin@g-node.org" // Fallback email address to notify in case of error
 )
 
+// notifyAdmin prepares an email notification for new jobs and then calls the
+// sendMail function to send it.
 func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
@@ -64,7 +66,7 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 	return sendMail(subject, body, conf)
 }
 
-// sendMail sends an email with a given subject and body.  The supplied
+// sendMail sends an email with a given subject and body. The supplied
 // configuration specifies the server to use, the from address, and a file that
 // lists the addresses of the recipients.
 func sendMail(subject, body string, conf *Configuration) error {

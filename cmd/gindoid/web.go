@@ -51,7 +51,8 @@ const (
 	lpMakeXML = "MakeXML"
 )
 
-// startDOIRegistration starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
+// startDOIRegistration starts the DOI registration process by authenticating
+// with the GIN server and adding a new DOIJob to the jobQueue.
 func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
@@ -119,8 +120,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
 }
 
-// renderRequestPage renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
-// It validates the metadata provided from the GIN repository and shows appropriate error messages and instructions.
+// renderRequestPage renders the page for the staging area, where information
+// is provided to the user and offers to start the DOI registration request.
+// It validates the metadata provided from the GIN repository and shows
+// appropriate error messages and instructions.
 func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
@@ -232,6 +235,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 }
 
+// verifyRequest decrypts the verification string and compares it with the
+// received data.
 func verifyRequest(repo, username, verification, key string) bool {
 	plaintext, err := decrypt([]byte(key), verification)
 	if err != nil {

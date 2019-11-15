@@ -4,10 +4,12 @@ import (
 	"net/http"
 )
 
+// AssetFS embeds a http.FileSystem for serving static assets.
 type AssetFS struct {
 	fs http.FileSystem
 }
 
+// newAssetFS creates a new asset filesystem server rooted at the given path.
 func newAssetFS(path string) AssetFS {
 	dir := http.Dir(path)
 	return AssetFS{dir}

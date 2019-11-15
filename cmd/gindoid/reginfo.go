@@ -69,6 +69,7 @@ type DOIMData struct {
 	} `json:"data"`
 }
 
+// getDOIFile requests the 'datacite.yml' from a given repository and returns the contents of the file.
 func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
 	// https://github.com/go-yaml/yaml.git
@@ -112,6 +113,9 @@ var UUIDMap = map[string]string{
 
 // validDOIFile returns true if the specified URI has a DOI file containing all necessary information.
 func validDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
+	// TODO: The name of this function implies that the information isn't returned.
+	// We should use the getDOIFile function for getting the data and have this
+	// be a separate function that ONLY validates the info.
 	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
