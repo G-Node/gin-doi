@@ -19,8 +19,8 @@ func readBody(r *http.Request) (*string, error) {
 	return &x, err
 }
 
-// Decrypt from base64 to decrypted string
-func Decrypt(key []byte, cryptoText string) (string, error) {
+// decrypt from base64 to decrypted string
+func decrypt(key []byte, cryptoText string) (string, error) {
 	// TODO: Move to libgin
 	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
 
@@ -45,9 +45,9 @@ func Decrypt(key []byte, cryptoText string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
-// IsRegisteredDOI returns True if a given DOI is registered publicly.
+// isRegisteredDOI returns True if a given DOI is registered publicly.
 // It simply checks if https://doi.org/<doi> returns a status code other than NotFound.
-func IsRegisteredDOI(doi string) bool {
+func isRegisteredDOI(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
 	if err != nil {

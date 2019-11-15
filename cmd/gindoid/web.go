@@ -51,8 +51,8 @@ const (
 	lpMakeXML = "MakeXML"
 )
 
-// DoDOIJob starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
-func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
+// startDOIRegistration starts the DOI registration process by authenticating with the GIN server and adding a new DOIJob to the jobQueue.
+func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -66,14 +66,14 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	json.Unmarshal(body, &dReq)
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
-		"source":  "DoDOIJob",
+		"source":  "startDOIRegistration",
 	}).Debug("Received DOI request")
 
 	// verify again
 	if !verifyRequest(dReq.Repository, dReq.Username, dReq.Verification, conf.Key) {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDOIJob",
+			"source":  "startDOIRegistration",
 		}).Error("Invalid request: failed to verify")
 		dReq.Message = template.HTML(msgInvalidRequest)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -84,7 +84,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	if err != nil {
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "DoDOIJob",
+			"source":  "startDOIRegistration",
 			"error":   err,
 		}).Debug("Could not get userdata")
 		dReq.Message = template.HTML(msgNotLoggedIn)
@@ -93,7 +93,7 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	}
 	// TODO Error checking
 	uuid := makeUUID(dReq.Repository)
-	ok, doiInfo := ValidDOIFile(dReq.Repository, conf)
+	ok, doiInfo := validDOIFile(dReq.Repository, conf)
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -104,13 +104,13 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
 
-	if IsRegisteredDOI(doi) {
+	if isRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
 		return
 	}
 	// Send email notification
-	sendMaster(&dReq, conf)
+	notifyAdmin(&dReq, conf)
 	// Add job to queue
 	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.UUID, Config: conf}
 	jobQueue <- job
@@ -119,9 +119,9 @@ func DoDOIJob(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf
 	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
 }
 
-// InitDOIJob renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
+// renderRequestPage renders the page for the staging area, where information is provided to the user and offers to start the DOI registration request.
 // It validates the metadata provided from the GIN repository and shows appropriate error messages and instructions.
-func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
+func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	log.Infof("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
 		log.WithFields(log.Fields{
@@ -134,7 +134,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	t, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "initjob.tmpl")) // Parse template file.
 	if err != nil {
 		log.WithFields(log.Fields{
-			"source": "DoDOIJob",
+			"source": "startDOIRegistration",
 			"error":  err,
 		}).Debug("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -155,7 +155,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	// If any of the values is missing, render invalid request page
 	if len(repository) == 0 || len(username) == 0 || len(verification) == 0 {
 		log.WithFields(log.Fields{
-			"source":       "InitDOIJob",
+			"source":       "renderRequestPage",
 			"repository":   repository,
 			"username":     username,
 			"verification": verification,
@@ -169,7 +169,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	// Check verification string
 	if !verifyRequest(repository, username, verification, conf.Key) {
 		log.WithFields(log.Fields{
-			"source":       "InitDOIJob",
+			"source":       "renderRequestPage",
 			"repository":   repository,
 			"username":     username,
 			"verification": verification,
@@ -181,7 +181,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	}
 
 	// check for doifile
-	if ok, doiInfo := ValidDOIFile(repository, conf); ok {
+	if ok, doiInfo := validDOIFile(repository, conf); ok {
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Debugf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo
@@ -233,7 +233,7 @@ func InitDOIJob(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 }
 
 func verifyRequest(repo, username, verification, key string) bool {
-	plaintext, err := Decrypt([]byte(key), verification)
+	plaintext, err := decrypt([]byte(key), verification)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source":       "verifyRequest",

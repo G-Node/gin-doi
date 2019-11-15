@@ -8,7 +8,7 @@ type AssetFS struct {
 	fs http.FileSystem
 }
 
-func NewAssetFS(path string) AssetFS {
+func newAssetFS(path string) AssetFS {
 	dir := http.Dir(path)
 	return AssetFS{dir}
 }

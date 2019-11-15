@@ -110,8 +110,8 @@ var UUIDMap = map[string]string{
 	"fabee/efish_locking":                        "6953bbf0087ba444b2d549b759de4a06",
 }
 
-// ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func ValidDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
+// validDOIFile returns true if the specified URI has a DOI file containing all necessary information.
+func validDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -208,14 +208,14 @@ type NamedIdentifier struct {
 	ID     string
 }
 
-func (c *Author) GetValidID() *NamedIdentifier {
-	if c.ID == "" {
+func (a *Author) GetValidID() *NamedIdentifier {
+	if a.ID == "" {
 		return nil
 	}
-	if strings.Contains(strings.ToLower(c.ID), "orcid") {
+	if strings.Contains(strings.ToLower(a.ID), "orcid") {
 		// assume the orcid id is a four block number thing eg. 0000-0002-5947-9939
 		var re = regexp.MustCompile(`(\d+-\d+-\d+-\d+)`)
-		nid := string(re.Find([]byte(c.ID)))
+		nid := string(re.Find([]byte(a.ID)))
 		return &NamedIdentifier{URI: "https://orcid.org/", Scheme: "ORCID", ID: nid}
 	}
 	return nil
@@ -311,7 +311,8 @@ func (d *DOIReq) AsHTML() template.HTML {
 	return template.HTML(d.Message)
 }
 
-func GetXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
+// renderXML creates the DataCite XML file contents given the registration data and XML template.
+func renderXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
 	t, err := template.ParseFiles(doixml)
 	if err != nil {
 		log.WithFields(log.Fields{

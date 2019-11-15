@@ -24,8 +24,8 @@ type DOIJob struct {
 	Config  *Configuration
 }
 
-// NewWorker creates takes a numeric id and a channel w/ worker pool.
-func NewWorker(id int, workerPool chan chan DOIJob) Worker {
+// newWorker creates takes a numeric id and a channel w/ worker pool.
+func newWorker(id int, workerPool chan chan DOIJob) Worker {
 	return Worker{
 		ID:         id,
 		JobQueue:   make(chan DOIJob),
@@ -49,7 +49,7 @@ func (w *Worker) start() {
 			select {
 			case job := <-w.JobQueue:
 				// Dispatcher has added a job to my jobQueue.
-				Put(job)
+				createRegisteredDataset(job)
 				log.WithFields(log.Fields{
 					"source": "Worker",
 				}).Debugf("Worker %d Completed %s!\n", w.ID, job.Name)
@@ -67,8 +67,8 @@ func (w *Worker) stop() {
 	}()
 }
 
-// NewDispatcher creates, and returns a new Dispatcher object.
-func NewDispatcher(jobQueue chan DOIJob, maxWorkers int) *Dispatcher {
+// newDispatcher creates, and returns a new Dispatcher object.
+func newDispatcher(jobQueue chan DOIJob, maxWorkers int) *Dispatcher {
 	workerPool := make(chan chan DOIJob, maxWorkers)
 
 	return &Dispatcher{
@@ -84,7 +84,7 @@ type Dispatcher struct {
 	jobQueue   chan DOIJob
 }
 
-func (d *Dispatcher) Run(makeWorker func(int, chan chan DOIJob) Worker) {
+func (d *Dispatcher) run(makeWorker func(int, chan chan DOIJob) Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := makeWorker(i+1, d.workerPool)
 		worker.start()

@@ -18,7 +18,7 @@ const (
 	doixmlfname = "datacite.xml"
 )
 
-func Put(job DOIJob) error {
+func createRegisteredDataset(job DOIJob) error {
 	conf := job.Config
 	repopath := job.Source
 	jobname := job.Name
@@ -28,7 +28,7 @@ func Put(job DOIJob) error {
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
-	zipsize, err := cloneandzip(repopath, jobname, targetpath, conf)
+	zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
 	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 	if err != nil {
 		// failed to clone and zip
@@ -47,14 +47,14 @@ func Put(job DOIJob) error {
 		}).Error("Could not create the metadata template")
 		// XML Creation failed; return with error
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		sendMaster(dReq, conf)
+		notifyAdmin(dReq, conf)
 		return err
 	}
 	defer fp.Close()
 
 	// No registering. But the XML is provided with everything
 	doixml := filepath.Join(conf.TemplatePath, doixmlfname)
-	data, err := GetXML(dReq.DOIInfo, doixml)
+	data, err := renderXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -62,7 +62,7 @@ func Put(job DOIJob) error {
 			"target": jobname,
 		}).Error("Could not parse the metadata file")
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
-		sendMaster(dReq, conf)
+		notifyAdmin(dReq, conf)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -78,13 +78,13 @@ func Put(job DOIJob) error {
 	if len(preperrors) > 0 {
 		// Resend email with errors if any occurred
 		dReq.ErrorMessages = preperrors
-		sendMaster(dReq, conf)
+		notifyAdmin(dReq, conf)
 	}
 	return err
 }
 
-// cloneandzip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
-func cloneandzip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
+// cloneAndZip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
+func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
@@ -93,7 +93,7 @@ func cloneandzip(repopath string, jobname string, targetpath string, conf *Confi
 	}
 
 	// Clone
-	if err := CloneRepo(repopath, targetpath, conf); err != nil {
+	if err := cloneRepo(repopath, targetpath, conf); err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
@@ -312,10 +312,10 @@ func derepoCloneDir(directory string) error {
 	return nil
 }
 
-// CloneRepo clones a git repository (with git-annex) specified by URI to the
+// cloneRepo clones a git repository (with git-annex) specified by URI to the
 // destination directory.
-func CloneRepo(URI string, destdir string, conf *Configuration) error {
-	// NOTE: CloneRepo changes the working directory to the cloned repository
+func cloneRepo(URI string, destdir string, conf *Configuration) error {
+	// NOTE: cloneRepo changes the working directory to the cloned repository
 	// See: https://github.com/G-Node/gin-cli/issues/225
 	// This will need to change when that issue is fixed
 	origdir, err := os.Getwd()
