@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -244,53 +243,6 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 	return nil
 }
 
-func sendMaster(dReq *DOIReq, conf *Configuration) error {
-	urljoin := func(a, b string) string {
-		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
-		base, err := url.Parse(a)
-		if err != nil {
-			return fallback
-		}
-		suffix, err := url.Parse(b)
-		if err != nil {
-			return fallback
-		}
-		return base.ResolveReference(suffix).String()
-	}
-
-	repopath := dReq.Repository
-	userlogin := dReq.Username
-	useremail := "" // TODO: Change when GOGS sends user email with request
-	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
-	uuid := dReq.DOIInfo.UUID
-	doitarget := urljoin(conf.Storage.StoreURL, uuid)
-	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
-
-	errorlist := ""
-	if len(dReq.ErrorMessages) > 0 {
-		errorlist = "The following errors occurred during the dataset preparation\n"
-		for idx, msg := range dReq.ErrorMessages {
-			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
-		}
-	}
-
-	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
-
-	body := `A new DOI registration request has been received.
-
-	Repository: %s [%s]
-	User: %s
-	Email address: %s
-	DOI XML: %s
-	DOI target URL: %s
-	UUID: %s
-
-%s
-`
-	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
-	return SendMail(subject, body, conf)
-}
-
 func derepoCloneDir(directory string) error {
 	directory, err := filepath.Abs(directory)
 	if err != nil {
@@ -357,5 +309,45 @@ func derepoCloneDir(directory string) error {
 		return err
 	}
 
+	return nil
+}
+
+// CloneRepo clones a git repository (with git-annex) specified by URI to the
+// destination directory.
+func CloneRepo(URI string, destdir string, conf *Configuration) error {
+	// NOTE: CloneRepo changes the working directory to the cloned repository
+	// See: https://github.com/G-Node/gin-cli/issues/225
+	// This will need to change when that issue is fixed
+	origdir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
+		return err
+	}
+	defer os.Chdir(origdir)
+	err = os.Chdir(destdir)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Cloning %s", URI)
+
+	clonechan := make(chan git.RepoFileStatus)
+	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
+	for stat := range clonechan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed: %s", stat.Err)
+			return stat.Err
+		}
+	}
+
+	downloadchan := make(chan git.RepoFileStatus)
+	go conf.GIN.Session.GetContent(nil, downloadchan)
+	for stat := range downloadchan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed during annex get: %s", stat.Err)
+			return stat.Err
+		}
+	}
 	return nil
 }

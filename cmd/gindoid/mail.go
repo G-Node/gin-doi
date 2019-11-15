@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/smtp"
+	"net/url"
 	"os"
 	"strings"
 
@@ -15,6 +16,53 @@ const (
 	MAILLOG   = "MailServer"
 	DEFAULTTO = "gin@g-node.org" // Fallback email address to notify in case of error
 )
+
+func sendMaster(dReq *DOIReq, conf *Configuration) error {
+	urljoin := func(a, b string) string {
+		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
+		base, err := url.Parse(a)
+		if err != nil {
+			return fallback
+		}
+		suffix, err := url.Parse(b)
+		if err != nil {
+			return fallback
+		}
+		return base.ResolveReference(suffix).String()
+	}
+
+	repopath := dReq.Repository
+	userlogin := dReq.Username
+	useremail := "" // TODO: Change when GOGS sends user email with request
+	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
+	uuid := dReq.DOIInfo.UUID
+	doitarget := urljoin(conf.Storage.StoreURL, uuid)
+	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
+
+	errorlist := ""
+	if len(dReq.ErrorMessages) > 0 {
+		errorlist = "The following errors occurred during the dataset preparation\n"
+		for idx, msg := range dReq.ErrorMessages {
+			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
+		}
+	}
+
+	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
+
+	body := `A new DOI registration request has been received.
+
+	Repository: %s [%s]
+	User: %s
+	Email address: %s
+	DOI XML: %s
+	DOI target URL: %s
+	UUID: %s
+
+%s
+`
+	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
+	return SendMail(subject, body, conf)
+}
 
 // SendMail sends an email with a given subject and body.  The supplied
 // configuration specifies the server to use, the from address, and a file that

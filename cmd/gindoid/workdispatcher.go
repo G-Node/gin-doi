@@ -6,11 +6,23 @@
 package main
 
 import (
+	"crypto/rsa"
 	_ "expvar"
 	_ "net/http/pprof"
 
+	gogs "github.com/gogits/go-gogs-client"
 	log "github.com/sirupsen/logrus"
 )
+
+// DOIJob holds the attributes needed to perform unit of work.
+type DOIJob struct {
+	Name    string
+	Source  string
+	User    gogs.User
+	Request DOIReq
+	Key     rsa.PrivateKey
+	Config  *Configuration
+}
 
 // NewWorker creates takes a numeric id and a channel w/ worker pool.
 func NewWorker(id int, workerPool chan chan DOIJob) Worker {

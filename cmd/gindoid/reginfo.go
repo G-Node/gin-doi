@@ -2,21 +2,72 @@ package main
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/xml"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/G-Node/gin-cli/git"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
+
+// DOIMData holds all the metadata for a dataset that's in the process of being registered.
+type DOIMData struct {
+	Data struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			DOI        string      `json:"doi"`
+			Identifier string      `json:"identifier"`
+			URL        interface{} `json:"url"`
+			Author     []struct {
+				Literal string `json:"literal"`
+			} `json:"author"`
+			Title               string      `json:"title"`
+			ContainerTitle      string      `json:"container-title"`
+			Description         string      `json:"description"`
+			ResourceTypeSubtype string      `json:"resource-type-subtype"`
+			DataCenterID        string      `json:"data-center-id"`
+			MemberID            string      `json:"member-id"`
+			ResourceTypeID      string      `json:"resource-type-id"`
+			Version             string      `json:"version"`
+			License             interface{} `json:"license"`
+			SchemaVersion       string      `json:"schema-version"`
+			Results             []struct {
+				ID    string `json:"id"`
+				Title string `json:"title"`
+				Count int    `json:"count"`
+			} `json:"results"`
+			RelatedIdentifiers []struct {
+				RelationTypeID    string `json:"relation-type-id"`
+				RelatedIdentifier string `json:"related-identifier"`
+			} `json:"related-identifiers"`
+			Published  string      `json:"published"`
+			Registered time.Time   `json:"registered"`
+			Updated    time.Time   `json:"updated"`
+			Media      interface{} `json:"media"`
+			XML        string      `json:"xml"`
+		} `json:"attributes"`
+		Relationships struct {
+			DataCenter struct {
+				Meta struct {
+				} `json:"meta"`
+			} `json:"data-center"`
+			Member struct {
+				Meta struct {
+				} `json:"meta"`
+			} `json:"member"`
+			ResourceType struct {
+				Meta struct {
+				} `json:"meta"`
+			} `json:"resource-type"`
+		} `json:"relationships"`
+	} `json:"data"`
+}
 
 func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
@@ -51,60 +102,12 @@ func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	return body, nil
 }
 
-// CloneRepo clones a git repository (with git-annex) specified by URI to the
-// destination directory.
-func CloneRepo(URI string, destdir string, conf *Configuration) error {
-	// NOTE: CloneRepo changes the working directory to the cloned repository
-	// See: https://github.com/G-Node/gin-cli/issues/225
-	// This will need to change when that issue is fixed
-	origdir, err := os.Getwd()
-	if err != nil {
-		log.Errorf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
-		return err
-	}
-	defer os.Chdir(origdir)
-	err = os.Chdir(destdir)
-	if err != nil {
-		return err
-	}
-	log.Debugf("Cloning %s", URI)
-
-	clonechan := make(chan git.RepoFileStatus)
-	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
-	for stat := range clonechan {
-		log.Debug(stat)
-		if stat.Err != nil {
-			log.Errorf("Repository cloning failed: %s", stat.Err)
-			return stat.Err
-		}
-	}
-
-	downloadchan := make(chan git.RepoFileStatus)
-	go conf.GIN.Session.GetContent(nil, downloadchan)
-	for stat := range downloadchan {
-		log.Debug(stat)
-		if stat.Err != nil {
-			log.Errorf("Repository cloning failed during annex get: %s", stat.Err)
-			return stat.Err
-		}
-	}
-	return nil
-}
-
 var UUIDMap = map[string]string{
 	"INT/multielectrode_grasp":                   "f83565d148510fede8a277f660e1a419",
 	"ajkumaraswamy/HB-PAC_disinhibitory_network": "1090f803258557299d287c4d44a541b2",
 	"steffi/Kleineidam_et_al_2017":               "f53069de4c4921a3cfa8f17d55ef98bb",
 	"Churan/Morris_et_al_Frontiers_2016":         "97bc1456d3f4bca2d945357b3ec92029",
 	"fabee/efish_locking":                        "6953bbf0087ba444b2d549b759de4a06",
-}
-
-func makeUUID(URI string) string {
-	if doi, ok := UUIDMap[URI]; ok {
-		return doi
-	}
-	currMd5 := md5.Sum([]byte(URI))
-	return hex.EncodeToString(currMd5[:])
 }
 
 // ValidDOIFile returns true if the specified URI has a DOI file containing all necessary information.
@@ -287,4 +290,44 @@ func hasValues(s *DOIRegInfo) bool {
 		}
 	}
 	return len(s.Missing) == 0
+}
+
+type DOIReq struct {
+	Repository    string
+	Username      string
+	Verification  string
+	Message       template.HTML
+	DOIInfo       *DOIRegInfo
+	ErrorMessages []string
+}
+
+func (d *DOIReq) GetDOIURI() string {
+	var re = regexp.MustCompile(`(.+)\/`)
+	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
+
+}
+
+func (d *DOIReq) AsHTML() template.HTML {
+	return template.HTML(d.Message)
+}
+
+func GetXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
+	t, err := template.ParseFiles(doixml)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": lpMakeXML,
+			"error":  err,
+		}).Error("Could not parse template")
+		return "", err
+	}
+	buff := bytes.Buffer{}
+	err = t.Execute(&buff, doiInfo)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"source": lpMakeXML,
+			"error":  err,
+		}).Error("Template execution failed")
+		return "", err
+	}
+	return buff.String(), err
 }
