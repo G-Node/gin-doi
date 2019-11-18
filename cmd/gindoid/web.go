@@ -93,8 +93,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 	// TODO Error checking
 	uuid := makeUUID(dReq.Repository)
-	ok, doiInfo := validDOIFile(dReq.Repository, conf)
-	if !ok {
+	doiInfo, err := parseDOIInfo(dReq.Repository, conf)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -183,7 +183,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 
 	// check for doifile
-	if ok, doiInfo := validDOIFile(repository, conf); ok {
+	if doiInfo, err := parseDOIInfo(repository, conf); err == nil {
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Debugf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo

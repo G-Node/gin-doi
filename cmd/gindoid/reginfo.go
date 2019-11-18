@@ -111,18 +111,15 @@ var UUIDMap = map[string]string{
 	"fabee/efish_locking":                        "6953bbf0087ba444b2d549b759de4a06",
 }
 
-// validDOIFile returns true if the specified URI has a DOI file containing all necessary information.
-func validDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
-	// TODO: The name of this function implies that the information isn't returned.
-	// We should use the getDOIFile function for getting the data and have this
-	// be a separate function that ONLY validates the info.
+// parseDOIInfo parses the DOI registration info and returns a filled DOIRegInfo struct.
+func parseDOIInfo(URI string, conf *Configuration) (*DOIRegInfo, error) {
 	in, err := getDOIFile(URI, conf)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"data":  string(in),
 			"error": err,
 		}).Error("Could not get the DOI file")
-		return false, nil
+		return nil, fmt.Errorf("failed to retrieve file: %s", err.Error())
 	}
 	doiInfo := DOIRegInfo{}
 	err = yaml.Unmarshal(in, &doiInfo)
@@ -133,7 +130,7 @@ func validDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 		}).Error("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
-		return false, &res
+		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
 	}
 	doiInfo.DateTime = time.Now()
 	if !hasValues(&doiInfo) {
@@ -142,9 +139,9 @@ func validDOIFile(URI string, conf *Configuration) (bool, *DOIRegInfo) {
 			"doiInfo": doiInfo,
 			"error":   err,
 		}).Debug("DOI file is missing entries")
-		return false, &doiInfo
+		return &doiInfo, fmt.Errorf("DOI info is missing entries: %s", err.Error())
 	}
-	return true, &doiInfo
+	return &doiInfo, nil
 }
 
 type DOIRegInfo struct {
