@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +18,10 @@ const (
 	doixmlfname = "datacite.xml"
 )
 
-func Put(job DOIJob) error {
+// createRegisteredDataset starts the process of registering a dataset. It's
+// the top level function for the dataset registration and calls all other
+// individual functions.
+func createRegisteredDataset(job DOIJob) error {
 	conf := job.Config
 	repopath := job.Source
 	jobname := job.Name
@@ -29,7 +31,7 @@ func Put(job DOIJob) error {
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
-	zipsize, err := cloneandzip(repopath, jobname, targetpath, conf)
+	zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
 	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 	if err != nil {
 		// failed to clone and zip
@@ -48,14 +50,14 @@ func Put(job DOIJob) error {
 		}).Error("Could not create the metadata template")
 		// XML Creation failed; return with error
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		sendMaster(dReq, conf)
+		notifyAdmin(dReq, conf)
 		return err
 	}
 	defer fp.Close()
 
 	// No registering. But the XML is provided with everything
 	doixml := filepath.Join(conf.TemplatePath, doixmlfname)
-	data, err := GetXML(dReq.DOIInfo, doixml)
+	data, err := renderXML(dReq.DOIInfo, doixml)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -63,7 +65,7 @@ func Put(job DOIJob) error {
 			"target": jobname,
 		}).Error("Could not parse the metadata file")
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
-		sendMaster(dReq, conf)
+		notifyAdmin(dReq, conf)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -79,13 +81,15 @@ func Put(job DOIJob) error {
 	if len(preperrors) > 0 {
 		// Resend email with errors if any occurred
 		dReq.ErrorMessages = preperrors
-		sendMaster(dReq, conf)
+		notifyAdmin(dReq, conf)
 	}
 	return err
 }
 
-// cloneandzip clones the source repository into a temporary directory under targetpath, zips the contents, and returns the size of the zip file in bytes.
-func cloneandzip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
+// cloneAndZip clones the source repository into a temporary directory under
+// targetpath, zips the contents, and returns the size of the zip file in
+// bytes.
+func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
@@ -94,7 +98,7 @@ func cloneandzip(repopath string, jobname string, targetpath string, conf *Confi
 	}
 
 	// Clone
-	if err := CloneRepo(repopath, targetpath, conf); err != nil {
+	if err := cloneRepo(repopath, targetpath, conf); err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
 			"error":  err,
@@ -132,6 +136,7 @@ func cloneandzip(repopath string, jobname string, targetpath string, conf *Confi
 	return zipsize, nil
 }
 
+// zip a source directory into a file with the given filename.
 func zip(source, zipfilename string) (int64, error) {
 	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
@@ -175,6 +180,8 @@ func zip(source, zipfilename string) (int64, error) {
 	return stat.Size(), nil
 }
 
+// createIndexFile renders and writes a registered dataset landing page based
+// on the landingpage template.
 func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
 	tmpl, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "landingpage.tmpl"))
 	if err != nil {
@@ -210,6 +217,7 @@ func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
 	return nil
 }
 
+// prepDir creates the directory where the dataset will be cloned and archived.
 func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 	storagedir := conf.Storage.TargetDirectory
 	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
@@ -228,7 +236,7 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 			"source":  lpStorage,
 			"error":   err,
 			"jobname": jobname,
-		}).Error("Could not create .httaccess")
+		}).Error("Could not create .htaccess")
 		return err
 	}
 	defer file.Close()
@@ -238,59 +246,14 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 		log.WithFields(log.Fields{
 			"error":   err,
 			"jobname": jobname,
-		}).Error("Could not write to .httaccess")
+		}).Error("Could not write to .htaccess")
 		return err
 	}
 	return nil
 }
 
-func sendMaster(dReq *DOIReq, conf *Configuration) error {
-	urljoin := func(a, b string) string {
-		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
-		base, err := url.Parse(a)
-		if err != nil {
-			return fallback
-		}
-		suffix, err := url.Parse(b)
-		if err != nil {
-			return fallback
-		}
-		return base.ResolveReference(suffix).String()
-	}
-
-	repopath := dReq.Repository
-	userlogin := dReq.Username
-	useremail := "" // TODO: Change when GOGS sends user email with request
-	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
-	uuid := dReq.DOIInfo.UUID
-	doitarget := urljoin(conf.Storage.StoreURL, uuid)
-	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
-
-	errorlist := ""
-	if len(dReq.ErrorMessages) > 0 {
-		errorlist = "The following errors occurred during the dataset preparation\n"
-		for idx, msg := range dReq.ErrorMessages {
-			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
-		}
-	}
-
-	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
-
-	body := `A new DOI registration request has been received.
-
-	Repository: %s [%s]
-	User: %s
-	Email address: %s
-	DOI XML: %s
-	DOI target URL: %s
-	UUID: %s
-
-%s
-`
-	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
-	return SendMail(subject, body, conf)
-}
-
+// derepoCloneDir de-initialises the annex in a repository and deletes the .git
+// directory.
 func derepoCloneDir(directory string) error {
 	directory, err := filepath.Abs(directory)
 	if err != nil {
@@ -357,5 +320,45 @@ func derepoCloneDir(directory string) error {
 		return err
 	}
 
+	return nil
+}
+
+// cloneRepo clones a git repository (with git-annex) specified by URI to the
+// destination directory.
+func cloneRepo(URI string, destdir string, conf *Configuration) error {
+	// NOTE: cloneRepo changes the working directory to the cloned repository
+	// See: https://github.com/G-Node/gin-cli/issues/225
+	// This will need to change when that issue is fixed
+	origdir, err := os.Getwd()
+	if err != nil {
+		log.Errorf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
+		return err
+	}
+	defer os.Chdir(origdir)
+	err = os.Chdir(destdir)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Cloning %s", URI)
+
+	clonechan := make(chan git.RepoFileStatus)
+	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
+	for stat := range clonechan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed: %s", stat.Err)
+			return stat.Err
+		}
+	}
+
+	downloadchan := make(chan git.RepoFileStatus)
+	go conf.GIN.Session.GetContent(nil, downloadchan)
+	for stat := range downloadchan {
+		log.Debug(stat)
+		if stat.Err != nil {
+			log.Errorf("Repository cloning failed during annex get: %s", stat.Err)
+			return stat.Err
+		}
+	}
 	return nil
 }

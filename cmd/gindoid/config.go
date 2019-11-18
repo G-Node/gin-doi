@@ -55,7 +55,7 @@ type Configuration struct {
 	}
 }
 
-// loadconfig reads all the configuration variables (from the environment)
+// loadconfig reads all the configuration variables (from the environment).
 func loadconfig() (*Configuration, error) {
 	cfg := Configuration{}
 

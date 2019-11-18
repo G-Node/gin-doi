@@ -57,8 +57,8 @@ func main() {
 	defer config.GIN.Session.Logout()
 
 	jobQueue := make(chan DOIJob, config.MaxQueue)
-	dispatcher := NewDispatcher(jobQueue, config.MaxWorkers)
-	dispatcher.Run(NewWorker)
+	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
+	dispatcher.run(newWorker)
 
 	// Start the HTTP handlers.
 
@@ -68,16 +68,16 @@ func main() {
 	// register renders the info page with the registration button
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Got request: %s", r.URL.String())
-		InitDOIJob(w, r, config)
+		renderRequestPage(w, r, config)
 	})
 
 	// do starts the registration job
 	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
-		DoDOIJob(w, r, jobQueue, config)
+		startDOIRegistration(w, r, jobQueue, config)
 	})
 
 	// assets fetches static assets using a custom FileSystem
-	assetserver := http.FileServer(NewAssetFS("/assets"))
+	assetserver := http.FileServer(newAssetFS("/assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", assetserver))
 
 	fmt.Printf("Listening for connections on port %d\n", config.Port)
