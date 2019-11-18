@@ -191,7 +191,7 @@ function doify(event) {
 										<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
 										<li>Does your repository contain a good description of the data?</li>
 									</ul>
-									Furthermore, <p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
+									<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
 									Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
 									<p><b>All files and data in the repository will be part of the public archive!</b></p>
 								</div>
