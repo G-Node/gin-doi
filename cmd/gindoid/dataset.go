@@ -39,7 +39,7 @@ func createRegisteredDataset(job DOIJob) error {
 		preperrors = append(preperrors, err.Error())
 		dReq.DOIInfo.FileSize = ""
 	}
-	createIndexFile(jobname, dReq, conf)
+	createLandingPage(jobname, dReq, conf)
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
@@ -179,10 +179,10 @@ func zip(source, zipfilename string) (int64, error) {
 	return stat.Size(), nil
 }
 
-// createIndexFile renders and writes a registered dataset landing page based
-// on the landingpage template.
-func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
-	tmpl, err := template.New("indexfile").Parse(landingPageTmpl)
+// createLandingPage renders and writes a registered dataset landing page based
+// on the landingPageTmpl template.
+func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
+	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{
