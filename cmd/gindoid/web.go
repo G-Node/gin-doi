@@ -93,7 +93,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 	// TODO Error checking
 	uuid := makeUUID(dReq.Repository)
-	doiInfo, err := parseDOIInfo(dReq.Repository, conf)
+	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
+	doiInfo, err := parseDOIInfo(infoyml)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -182,8 +183,9 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	// check for doifile
-	if doiInfo, err := parseDOIInfo(repository, conf); err == nil {
+	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
+	if doiInfo, err := parseDOIInfo(infoyml); err == nil {
+		// TODO: Simplify this chain of conditions
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Debugf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo
@@ -201,7 +203,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 			"doiInfo": doiInfo,
 			"source":  "Init",
 			"error":   err,
-		}).Debug("DOIfile File invalid")
+		}).Debug("DOI file invalid")
 		if doiInfo.Missing != nil {
 			dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
 		} else {

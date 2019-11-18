@@ -69,21 +69,23 @@ type DOIMData struct {
 	} `json:"data"`
 }
 
-// getDOIFile requests the 'datacite.yml' from a given repository and returns the contents of the file.
-func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
-	// git archive --remote=git://git.foo.com/project.git HEAD:path/to/directory filename
-	// https://github.com/go-yaml/yaml.git
-	// git@github.com:go-yaml/yaml.git
-	// TODO: config variables for path etc.
-	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", URI)
+// dataciteURL returns the full URL to a repository's datacite.yml file.
+func dataciteURL(repopath string, conf *Configuration) string {
+	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", repopath)
+	url := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), fetchRepoPath)
+	return url
+}
+
+// readFileAtURL returns the contents of a file at a given URL.
+func readFileAtURL(url string) ([]byte, error) {
 	client := &http.Client{}
-	log.Debugf("Fetching datacite file from %s", fetchRepoPath)
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), fetchRepoPath), nil)
+	log.Debugf("Fetching datacite file from %s", url)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		// todo Try to infer what went wrong
 		log.WithFields(log.Fields{
-			"path":  fetchRepoPath,
+			"path":  url,
 			"error": err,
 		}).Debug("Could not get DOI file")
 		return nil, err
@@ -95,7 +97,7 @@ func getDOIFile(URI string, conf *Configuration) ([]byte, error) {
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"path":  fetchRepoPath,
+			"path":  url,
 			"error": err,
 		}).Debug("Could not read from received datacite.yml file")
 		return nil, err
@@ -112,20 +114,12 @@ var UUIDMap = map[string]string{
 }
 
 // parseDOIInfo parses the DOI registration info and returns a filled DOIRegInfo struct.
-func parseDOIInfo(URI string, conf *Configuration) (*DOIRegInfo, error) {
-	in, err := getDOIFile(URI, conf)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"data":  string(in),
-			"error": err,
-		}).Error("Could not get the DOI file")
-		return nil, fmt.Errorf("failed to retrieve file: %s", err.Error())
-	}
+func parseDOIInfo(infoyml []byte) (*DOIRegInfo, error) {
 	doiInfo := DOIRegInfo{}
-	err = yaml.Unmarshal(in, &doiInfo)
+	err := yaml.Unmarshal(infoyml, &doiInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"data":  string(in),
+			"data":  string(infoyml),
 			"error": err,
 		}).Error("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
@@ -135,7 +129,7 @@ func parseDOIInfo(URI string, conf *Configuration) (*DOIRegInfo, error) {
 	doiInfo.DateTime = time.Now()
 	if !hasValues(&doiInfo) {
 		log.WithFields(log.Fields{
-			"data":    string(in),
+			"data":    string(infoyml),
 			"doiInfo": doiInfo,
 			"error":   err,
 		}).Debug("DOI file is missing entries")
