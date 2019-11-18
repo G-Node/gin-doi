@@ -36,9 +36,8 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 	repopath := dReq.Repository
 	userlogin := dReq.Username
 	useremail := "" // TODO: Change when GOGS sends user email with request
-	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.UUID)
-	uuid := dReq.DOIInfo.UUID
-	doitarget := urljoin(conf.Storage.StoreURL, uuid)
+	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.DOI)
+	doitarget := urljoin(conf.Storage.StoreURL, dReq.DOIInfo.DOI)
 	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
 
 	errorlist := ""
@@ -58,11 +57,10 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 	Email address: %s
 	DOI XML: %s
 	DOI target URL: %s
-	UUID: %s
 
 %s
 `
-	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, uuid, errorlist)
+	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, errorlist)
 	return sendMail(subject, body, conf)
 }
 

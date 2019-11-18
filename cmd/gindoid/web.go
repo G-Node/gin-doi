@@ -113,7 +113,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	// Send email notification
 	notifyAdmin(&dReq, conf)
 	// Add job to queue
-	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.UUID, Config: conf}
+	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
 	jobQueue <- job
 	// Render success
 	w.WriteHeader(http.StatusCreated)
