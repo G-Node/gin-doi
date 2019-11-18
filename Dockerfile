@@ -29,8 +29,6 @@ RUN apk add --no-cache git openssh ca-certificates
 COPY --from=binbuilder /git-annex /git-annex
 ENV PATH="${PATH}:/git-annex/git-annex.linux"
 
-# Copy binary and templates into final image
-COPY ./templates /templates
 COPY ./assets /assets
 COPY --from=binbuilder /gindoid/gindoid /
 VOLUME ["/doidata"]
