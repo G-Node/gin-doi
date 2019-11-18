@@ -56,8 +56,7 @@ func createRegisteredDataset(job DOIJob) error {
 	defer fp.Close()
 
 	// No registering. But the XML is provided with everything
-	doixml := filepath.Join(conf.TemplatePath, doixmlfname)
-	data, err := renderXML(dReq.DOIInfo, doixml)
+	data, err := renderXML(dReq.DOIInfo)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpStorage,
@@ -183,7 +182,7 @@ func zip(source, zipfilename string) (int64, error) {
 // createIndexFile renders and writes a registered dataset landing page based
 // on the landingpage template.
 func createIndexFile(target string, info *DOIReq, conf *Configuration) error {
-	tmpl, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "landingpage.tmpl"))
+	tmpl, err := template.New("indexfile").Parse(landingPageTmpl)
 	if err != nil {
 		if err != nil {
 			log.WithFields(log.Fields{

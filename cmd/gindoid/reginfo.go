@@ -316,8 +316,8 @@ func (d *DOIReq) AsHTML() template.HTML {
 }
 
 // renderXML creates the DataCite XML file contents given the registration data and XML template.
-func renderXML(doiInfo *DOIRegInfo, doixml string) (string, error) {
-	t, err := template.ParseFiles(doixml)
+func renderXML(doiInfo *DOIRegInfo) (string, error) {
+	t, err := template.New("doixml").Parse(doiXML)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpMakeXML,

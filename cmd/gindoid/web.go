@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -134,7 +133,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
-	t, err := template.ParseFiles(filepath.Join(conf.TemplatePath, "initjob.tmpl")) // Parse template file.
+	t, err := template.New("requestpage").Parse(requestPageTmpl)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "startDOIRegistration",

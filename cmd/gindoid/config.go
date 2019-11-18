@@ -19,8 +19,6 @@ type Configuration struct {
 	Port uint16
 	// The encryption key, shared with GIN Web for verification
 	Key string
-	// HTML templates location for the GIN DOI service
-	TemplatePath string
 	// Processing queue length and max concurrent workers
 	MaxQueue   int
 	MaxWorkers int
@@ -77,8 +75,6 @@ func loadconfig() (*Configuration, error) {
 	cfg.Storage.TargetDirectory = libgin.ReadConf("target")
 	cfg.Storage.StoreURL = libgin.ReadConf("storeurl")
 	cfg.Storage.XMLURL = libgin.ReadConf("xmlurl")
-
-	cfg.TemplatePath = libgin.ReadConf("templates")
 
 	cfg.Key = libgin.ReadConf("key")
 	maxqueue, err := strconv.Atoi(libgin.ReadConfDefault("maxqueue", "100"))
