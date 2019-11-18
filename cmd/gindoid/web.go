@@ -133,7 +133,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
-	t, err := template.New("requestpage").Parse(requestPageTmpl)
+	tmpl, err := template.New("requestpage").Parse(requestPageTmpl)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": "startDOIRegistration",
@@ -164,7 +164,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}).Error("Invalid request: missing fields in query string")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
-		t.Execute(w, dReq)
+		tmpl.Execute(w, dReq)
 		return
 	}
 
@@ -178,7 +178,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}).Error("Invalid request: failed to verify")
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
-		t.Execute(w, dReq)
+		tmpl.Execute(w, dReq)
 		return
 	}
 
@@ -187,7 +187,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Debugf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo
-		err = t.Execute(w, dReq)
+		err = tmpl.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"request": dReq,
@@ -208,7 +208,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 			dReq.Message = template.HTML(msgInvalidDOI + msgBadEncoding)
 		}
 		dReq.DOIInfo = &DOIRegInfo{}
-		err = t.Execute(w, dReq)
+		err = tmpl.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"doiInfo": doiInfo,
@@ -221,7 +221,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	} else {
 		dReq.Message = template.HTML(msgInvalidDOI)
-		t.Execute(w, dReq)
+		tmpl.Execute(w, dReq)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"request": dReq,
