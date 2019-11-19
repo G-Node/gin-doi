@@ -131,9 +131,8 @@ func parseDOIInfo(infoyml []byte) (*DOIRegInfo, error) {
 		log.WithFields(log.Fields{
 			"data":    string(infoyml),
 			"doiInfo": doiInfo,
-			"error":   err,
 		}).Debug("DOI file is missing entries")
-		return &doiInfo, fmt.Errorf("DOI info is missing entries: %s", err.Error())
+		return &doiInfo, fmt.Errorf("DOI info is missing entries")
 	}
 	return &doiInfo, nil
 }
