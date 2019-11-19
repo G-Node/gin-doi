@@ -1,31 +1,14 @@
-[![Docker Automated build](https://img.shields.io/docker/automated/cgars/gin-doi.svg)](https://hub.docker.com/r/cgars/gin-doi/builds/)
+[![Docker Automated build](https://img.shields.io/docker/automated/gnode/gin-doi.svg)](https://hub.docker.com/r/gnode/gin-doi/builds/)
 
-# gin-doi
-G-Node DOI Service
+# GIN DOI
+GIN-DOI is the G-Node Infrastructure DOI service.
+The service can, at the request of a repository owner, copy a public repository, pack everything into an archive file, store it in a safe location, and provide a DOI (digital object identifier) with which the archive can be cited.
 
-## What is a DOI and why should i use it
-> A Digital Object Identifier or DOI is a persistent identifier or handle used to uniquely identify objects, standardized by the ISO. An implementation of the Handle System,[2][3] DOIs are in wide use mainly to identify academic, professional, and government information, such as journal articles, research reports and data sets, and official publications though they also have been used to identify other types of information resources, such as commercial videos.
+Registered datasets can be found on the [Registered Datasets](https://doid.gin.g-node.org) on GIN.
 
-## What is gin-doi
-gin-doi is the G-Node Infrastructure DOI service. A Service which can copy your public repository, packs everything into an archive file, stores it in a safe location and provides you with a DOI such that you can cite this data.
-gin-doi fulfills the [DataCite](https://www.datacite.org/) standard which (according to Wikipedia) tries to:
-* Establish easier access to research data on the Internet
-* Increase acceptance of research data as legitimate, citable contributions to the scholarly record
+For instructions on how to register a repository, see the [relevant help pages](https://gin.g-node.org/G-Node/Info/wiki/DOIfile).
+
+GIN-DOI fulfills the [DataCite](https://www.datacite.org/) standard which (according to Wikipedia) tries to:
+* Establish easier access to research data on the Internet.
+* Increase acceptance of research data as legitimate, citable contributions to the scholarly record.
 * Support data archiving that will permit results to be verified and re-purposed for future study.
-
-## What is needed
-To get a DOI you need to provide a file called datacite.yml which needs to be put (and pushed) into the root of your repository.
-This file needs to be a valid [YAML](https://en.wikipedia.org/wiki/YAML) file and should look [like this example file](templates/example_datacite.yml).
-You need to provide  at least the following entries:
-* authors
-* title
-* description
-* keywords
-* license
-* references
-
-**please note that the keys (authors, title, description, etc.) need to be lower case and followed by a colon.**
-
-Furthermore the repository which you want to register must be public.
-
-You can find datasets that are already registered and have received a DOI [here](http://doid.gin.g-node.org).
