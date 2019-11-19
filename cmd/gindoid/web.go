@@ -61,9 +61,26 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 
 	dReq := DOIReq{}
-	// TODO: Error checking
-	body, _ := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &dReq)
+
+	// Send email notification even if the registration fails beyond this point
+	defer notifyAdmin(&dReq, conf)
+
+	// NOTE: If this function responds with an error header, the same error is
+	// rendered regardless of the type. The error is rendered by the inline
+	// 'doify' function in the requestPageTmpl template.
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		dReq.ErrorMessages = []string{"Failed to read request body. No info available."}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = json.Unmarshal(body, &dReq)
+	if err != nil {
+		dReq.ErrorMessages = []string{"Failed to unmarshal request body. Some information may be missing."}
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "startDOIRegistration",
@@ -76,6 +93,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 			"source":  "startDOIRegistration",
 		}).Error("Invalid request: failed to verify")
 		w.WriteHeader(http.StatusUnauthorized)
+		dReq.ErrorMessages = []string{"Failed to verify request"}
 		return
 	}
 
@@ -86,16 +104,21 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 			"source":  "startDOIRegistration",
 			"error":   err,
 		}).Debug("Could not get userdata")
-		dReq.Message = template.HTML(msgNotLoggedIn)
 		w.WriteHeader(http.StatusUnauthorized)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
 		return
 	}
-	// TODO Error checking
 	uuid := makeUUID(dReq.Repository)
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		return
+	}
 	doiInfo, err := parseDOIInfo(infoyml)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
 		return
 	}
 
@@ -107,10 +130,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	if isRegisteredDOI(doi) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
+		dReq.ErrorMessages = []string{"This DOI is already registered"}
 		return
 	}
-	// Send email notification
-	notifyAdmin(&dReq, conf)
+
 	// Add job to queue
 	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
 	jobQueue <- job
