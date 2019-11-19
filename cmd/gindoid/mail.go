@@ -33,11 +33,16 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 		return base.ResolveReference(suffix).String()
 	}
 
+	doi := ""
+	if dReq.DOIInfo != nil {
+		doi = dReq.DOIInfo.DOI
+	}
+
 	repopath := dReq.Repository
 	userlogin := dReq.Username
 	useremail := "" // TODO: Change when GOGS sends user email with request
-	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, dReq.DOIInfo.DOI)
-	doitarget := urljoin(conf.Storage.StoreURL, dReq.DOIInfo.DOI)
+	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
+	doitarget := urljoin(conf.Storage.StoreURL, doi)
 	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
 
 	errorlist := ""
