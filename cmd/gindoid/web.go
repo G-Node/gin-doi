@@ -75,7 +75,6 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "startDOIRegistration",
 		}).Error("Invalid request: failed to verify")
-		dReq.Message = template.HTML(msgInvalidRequest)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
