@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -52,6 +51,13 @@ const (
 	lpMakeXML = "MakeXML"
 )
 
+type reqResultData struct {
+	Success bool
+	Level   string // success, warning, error
+	Message template.HTML
+	Request *DOIReq
+}
+
 // startDOIRegistration starts the DOI registration process by authenticating
 // with the GIN server and adding a new DOIJob to the jobQueue.
 func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
@@ -63,26 +69,42 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 
 	dReq := DOIReq{}
+	resData := reqResultData{Request: &dReq}
 
-	// Send email notification even if the registration fails beyond this point
-	defer notifyAdmin(&dReq, conf)
-
-	// NOTE: If this function responds with an error header, the same error is
-	// rendered regardless of the type. The error is rendered by the inline
-	// 'doify' function in the requestPageTmpl template.
-
-	body, err := ioutil.ReadAll(r.Body)
+	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
 	if err != nil {
-		dReq.ErrorMessages = []string{"Failed to read request body. No info available."}
+		log.WithFields(log.Fields{
+			"request": dReq,
+			"source":  "Init",
+			"error":   err,
+		}).Error("Could not parse template")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = json.Unmarshal(body, &dReq)
-	if err != nil {
-		dReq.ErrorMessages = []string{"Failed to unmarshal request body. Some information may be missing."}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+
+	defer func() {
+		err := notifyAdmin(&dReq, conf)
+		if err != nil {
+			// Email send failed
+			// Log the error
+			log.WithFields(log.Fields{
+				"request": fmt.Sprintf("%+v", dReq),
+				"source":  "startDOIRegistration",
+			}).Error("Failed to send notification email")
+			// Ask the user to contact us
+			resData.Success = false
+			resData.Level = "error"
+			resData.Message = template.HTML(msgSubmitFailed)
+		}
+		// Render the result
+		tmpl.Execute(w, &resData)
+	}()
+
+	r.ParseForm()
+	dReq.Repository = r.Form["repository"][0]
+	dReq.Username = r.Form["username"][0]
+	dReq.Verification = r.Form["verification"][0]
+
 	log.WithFields(log.Fields{
 		"request": fmt.Sprintf("%+v", dReq),
 		"source":  "startDOIRegistration",
@@ -94,32 +116,48 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "startDOIRegistration",
 		}).Error("Invalid request: failed to verify")
-		w.WriteHeader(http.StatusUnauthorized)
+		// NOTE: Email shouldn't be sent here, since the request is invalid and
+		// could have been triggered by random data coming in. Let's allow the
+		// email to be sent anyway and see if this kind of thing happens.
 		dReq.ErrorMessages = []string{"Failed to verify request"}
+		resData.Success = false
+		resData.Level = "error"
+		resData.Message = template.HTML(msgInvalidRequest)
 		return
 	}
 
 	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
 	if err != nil {
+		// Can happen if the DOI service isn't logged in to GIN
 		log.WithFields(log.Fields{
 			"request": fmt.Sprintf("%+v", dReq),
 			"source":  "startDOIRegistration",
 			"error":   err,
 		}).Debug("Could not get userdata")
-		w.WriteHeader(http.StatusUnauthorized)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
 	uuid := makeUUID(dReq.Repository)
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		// Can happen if the datacite.yml file or the repository is removed (or
+		// made private) between preparing the request and submitting it
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgSubmitError)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		return
 	}
 	doiInfo, err := parseDOIInfo(infoyml)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		// Can happen if the datacite.yml file is modified (and made invalid)
+		// between preparing the request and submitting it
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgSubmitError)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
 		return
 	}
@@ -130,8 +168,9 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	dReq.DOIInfo = doiInfo
 
 	if isRegisteredDOI(doi) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgAlreadyRegistered)
 		dReq.ErrorMessages = []string{"This DOI is already registered"}
 		return
 	}
@@ -140,8 +179,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
 	jobQueue <- job
 	// Render success
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
+	message := fmt.Sprintf(msgServerIsArchiving, doi)
+	resData.Success = true
+	resData.Level = "success"
+	resData.Message = template.HTML(message)
 }
 
 // renderRequestPage renders the page for the staging area, where information
