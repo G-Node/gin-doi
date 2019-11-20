@@ -163,7 +163,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 									<p><b>All files and data in the repository will be part of the public archive!</b></p>
 								</div>
 							</div>
-							<form action="/do" method="post">
+							<form action="/submit" method="post">
 								<input type="hidden" id="repository" name="repository" value="{{.Repository}}">
 								<input type="hidden" id="username" name="username" value="{{.Username}}">
 								<input type="hidden" id="verification" name="verification" value="{{.Verification}}">
