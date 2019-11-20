@@ -27,39 +27,6 @@ const requestPageTmpl = `<!DOCTYPE html>
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
 
-		<script src="/assets/js/jquery-1.11.3.min.js"></script>
-		<script>
-			$(document).ready(function () {
-				$ = jQuery.noConflict();
-				$.ajaxSetup({cache: false});
-				$("#main").on('click', "#doify", doify);
-			});
-
-function doify(event) {
-	$(event.target).addClass("disabled");
-	$.ajax({
-		url: "/do/",
-		type: "POST",
-		contentType: "text/plain",
-		data: "{\"repository\":\"{{.Repository}}\",\"username\":\"{{.Username}}\",\"verification\":\"{{.Verification}}\"}",
-		dataType: "text",
-		success: function (data) {
-			$("#info").html($.parseHTML(data));
-			$("#info").toggleClass("ui positive message");
-			$("#info").toggleClass("ui info icon message");
-			$("#infotable").hide();
-			$("#warning").hide();
-		},
-		error: function (data) {
-			$("#info").html("An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request.");
-			$("#info").toggleClass("ui positive message");
-			$("#info").toggleClass("ui negative message");
-			$("#infotable").hide();
-			$("#warning").hide();
-		}
-	});
-}
-		</script>
 		<title>GIN-DOI</title>
 
 		<meta name="theme-color" content="#ffffff">
@@ -196,7 +163,12 @@ function doify(event) {
 									<p><b>All files and data in the repository will be part of the public archive!</b></p>
 								</div>
 							</div>
-							<div class="ui primary button" id="doify">Request DOI Now</div>
+							<form action="/do" method="post">
+								<input type="hidden" id="repository" name="repository" value="{{.Repository}}">
+								<input type="hidden" id="username" name="username" value="{{.Username}}">
+								<input type="hidden" id="verification" name="verification" value="{{.Verification}}">
+								<button class="ui primary button" type="submit">Request DOI Now</button>
+							</form>
 						{{else}}
 							<div class="ui warning message">
 								<div><b>DOI request failed</b>
