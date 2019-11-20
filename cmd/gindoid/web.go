@@ -23,7 +23,7 @@ const (
 						</div>`
 	msgServerIsArchiving = `<div class="content">
 			<div class="header">The DOI server has started archiving your repository.</div>
-		We will try to register the following DOI for your dataset:<br>
+		We have reserved the following DOI for your dataset:<br>
 		<div class ="ui label label-default">%s</div><br>
 		In rare cases the final DOI might be different.<br>
 		Please note that the final step in the registration process requires us to manually review your request.
@@ -44,6 +44,8 @@ const (
 	msgInvalidReference = "A specified Reference is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
+	msgSubmitError  = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
+	msgSubmitFailed = "An internal error occurred while we were processing your request.  Your request was not submitted.  Please <a href=mailto:gin@g-node.org>contact us</a> for further assistance."
 	// Log Prefixes
 	lpAuth    = "GinOAP"
 	lpStorage = "Storage"
