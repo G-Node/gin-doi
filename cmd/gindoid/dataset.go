@@ -121,7 +121,9 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 
 	// Zip
 	log.Infof("Preparing zip file for %s", jobname)
-	zipfilename := filepath.Join(targetpath, jobname+".zip")
+	// use DOI with / replacement for zip filename
+	zipbasename := strings.ReplaceAll(jobname, "/", "-")
+	zipfilename := filepath.Join(targetpath, zipbasename+".zip")
 	zipsize, err := zip(repodir, zipfilename)
 	if err != nil {
 		log.WithFields(log.Fields{

@@ -51,7 +51,7 @@ function doify(event) {
 			$("#warning").hide();
 		},
 		error: function (data) {
-			$("#info").html("An internal error occured while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request.");
+			$("#info").html("An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request.");
 			$("#info").toggleClass("ui positive message");
 			$("#info").toggleClass("ui negative message");
 			$("#infotable").hide();
@@ -334,7 +334,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 						</tr>
 						<tr>
 							<td>DOI</td>
-							<td><a href="#" class ="ui grey label">{{.DOIInfo.DOI}}</a></td>
+							<td><a href="https://doi.org/{{.DOIInfo.DOI}}" class ="ui grey label">{{.DOIInfo.DOI}}</a></td>
 						</tr>
 						<tr>
 							<td>Citation</td>
