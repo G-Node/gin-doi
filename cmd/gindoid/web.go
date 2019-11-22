@@ -135,13 +135,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
 	if err != nil {
 		// Can happen if the DOI service isn't logged in to GIN
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "startDOIRegistration",
-			"error":   err,
-		}).Debug("Could not get userdata")
+		log.Errorf("Failed to get user data: %s", err.Error())
+		log.Errorf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
-		resData.Success = false
+		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
 		return
@@ -150,20 +147,24 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
 		// made private) between preparing the request and submitting it
-		resData.Success = false
+		log.Errorf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Errorf("Request data: %+v", dReq)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		return
 	}
 	doiInfo, err := parseDOIInfo(infoyml)
 	if err != nil {
 		// Can happen if the datacite.yml file is modified (and made invalid)
 		// between preparing the request and submitting it
-		resData.Success = false
+		log.Errorf("Failed to parse datacite.yml: %s", err.Error())
+		log.Errorf("Request data: %+v", dReq)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
+		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
 		return
 	}
 
