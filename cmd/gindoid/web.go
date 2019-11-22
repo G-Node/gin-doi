@@ -43,8 +43,9 @@ const (
 	msgInvalidReference = "A specified Reference is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
-	msgSubmitError  = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
-	msgSubmitFailed = "An internal error occurred while we were processing your request.  Your request was not submitted.  Please <a href=mailto:gin@g-node.org>contact us</a> for further assistance."
+	msgSubmitError     = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
+	msgSubmitFailed    = "An internal error occurred while we were processing your request.  Your request was not submitted.  Please <a href=mailto:gin@g-node.org>contact us</a> for further assistance."
+	msgNoTemplateError = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to contact us at gin@g-node.org if you would like to provide more information or ask about the status of your request."
 	// Log Prefixes
 	lpAuth    = "GinOAP"
 	lpStorage = "Storage"
@@ -56,6 +57,22 @@ type reqResultData struct {
 	Level   string // success, warning, error
 	Message template.HTML
 	Request *DOIReq
+}
+
+// renderResult renders the results of a registration request using the
+// 'requestResultTmpl' template. It returns an error if there was a problem
+// rendering the template.
+func renderResult(w http.ResponseWriter, resData *reqResultData) error {
+	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
+	if err != nil {
+		log.Errorf("Failed to parse template: %s", err.Error())
+		log.Errorf("Request data: %+v", resData)
+		// failed to render result template; just show the message wrapped in html tags
+		w.Write([]byte("<html>" + resData.Message + "</html>"))
+		return err
+	}
+	tmpl.Execute(w, &resData)
+	return nil
 }
 
 // startDOIRegistration starts the DOI registration process by authenticating
@@ -71,16 +88,22 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	dReq := DOIReq{}
 	resData := reqResultData{Request: &dReq}
 
-	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"request": dReq,
-			"source":  "Init",
-			"error":   err,
-		}).Error("Could not parse template")
-		w.WriteHeader(http.StatusInternalServerError)
+	dReq.Repository = r.PostFormValue("repository")
+	dReq.Username = r.PostFormValue("username")
+	dReq.Verification = r.PostFormValue("verification")
+
+	// verify again
+	if !verifyRequest(dReq.Repository, dReq.Username, dReq.Verification, conf.Key) {
+		log.Errorf("Invalid request: failed to verify")
+		log.Errorf("Request data: %+v", dReq)
+		dReq.ErrorMessages = []string{"Failed to verify request"}
+		resData.Message = template.HTML(msgInvalidRequest)
+		// ignore the error, no email to send
+		renderResult(w, &resData)
 		return
 	}
+
+	log.Debugf("Received DOI request: %+v", dReq)
 
 	defer func() {
 		err := notifyAdmin(&dReq, conf)
@@ -97,34 +120,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 			resData.Message = template.HTML(msgSubmitFailed)
 		}
 		// Render the result
-		tmpl.Execute(w, &resData)
+		// tmpl.Execute(w, &resData)
 	}()
-
-	r.ParseForm()
-	dReq.Repository = r.Form["repository"][0]
-	dReq.Username = r.Form["username"][0]
-	dReq.Verification = r.Form["verification"][0]
-
-	log.WithFields(log.Fields{
-		"request": fmt.Sprintf("%+v", dReq),
-		"source":  "startDOIRegistration",
-	}).Debug("Received DOI request")
-
-	// verify again
-	if !verifyRequest(dReq.Repository, dReq.Username, dReq.Verification, conf.Key) {
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "startDOIRegistration",
-		}).Error("Invalid request: failed to verify")
-		// NOTE: Email shouldn't be sent here, since the request is invalid and
-		// could have been triggered by random data coming in. Let's allow the
-		// email to be sent anyway and see if this kind of thing happens.
-		dReq.ErrorMessages = []string{"Failed to verify request"}
-		resData.Success = false
-		resData.Level = "error"
-		resData.Message = template.HTML(msgInvalidRequest)
-		return
-	}
 
 	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
 	if err != nil {
