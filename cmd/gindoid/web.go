@@ -115,22 +115,21 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
+	// everything beyond this point should trigger an email notification
 	defer func() {
 		err := notifyAdmin(&dReq, conf)
 		if err != nil {
 			// Email send failed
 			// Log the error
-			log.WithFields(log.Fields{
-				"request": fmt.Sprintf("%+v", dReq),
-				"source":  "startDOIRegistration",
-			}).Error("Failed to send notification email")
+			log.Errorf("Failed to send notification email: %s", err.Error())
+			log.Errorf("Request data: %+v", dReq)
 			// Ask the user to contact us
 			resData.Success = false
 			resData.Level = "error"
 			resData.Message = template.HTML(msgSubmitFailed)
 		}
 		// Render the result
-		// tmpl.Execute(w, &resData)
+		renderResult(w, &resData)
 	}()
 
 	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
