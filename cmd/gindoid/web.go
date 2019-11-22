@@ -61,19 +61,18 @@ type reqResultData struct {
 }
 
 // renderResult renders the results of a registration request using the
-// 'requestResultTmpl' template. It returns an error if there was a problem
-// rendering the template.
-func renderResult(w http.ResponseWriter, resData *reqResultData) error {
+// 'requestResultTmpl' template. If it fails to parse the template, it renders
+// the Message from the result data in plain HTML.
+func renderResult(w http.ResponseWriter, resData *reqResultData) {
 	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
 	if err != nil {
 		log.Errorf("Failed to parse template: %s", err.Error())
 		log.Errorf("Request data: %+v", resData)
 		// failed to render result template; just show the message wrapped in html tags
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
-		return err
+		return
 	}
 	tmpl.Execute(w, &resData)
-	return nil
 }
 
 // startDOIRegistration starts the DOI registration process by authenticating
