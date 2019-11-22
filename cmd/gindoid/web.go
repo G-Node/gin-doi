@@ -13,14 +13,12 @@ const (
 	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
 	msgInvalidDOI        = `The DOI file was not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
 	msgInvalidURI        = "Please provide a valid repository URI"
-	msgAlreadyRegistered = `<i class="info icon"></i>
-						<div class="content">
-							<div class="header"> A DOI is already registered for your dataset.</div>
-							Your DOI is: <br>
-								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a>
-							</div>.
-							If this is incorrect or you would like to register a new version of your dataset, please <a href=mailto:gin@g-node.org>contact us</a>.
-						</div>`
+	msgAlreadyRegistered = `<div class="content">
+								<div class="header"> A DOI is already registered for your dataset.</div>
+								Your DOI is: <br>
+								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a></div></br>
+								If this is incorrect or you would like to register a new version of your dataset, please <a href=mailto:gin@g-node.org>contact us</a>.
+							</div>`
 	msgServerIsArchiving = `<div class="content">
 			<div class="header">The DOI server has started archiving your repository.</div>
 		We have reserved the following DOI for your dataset:<br>
