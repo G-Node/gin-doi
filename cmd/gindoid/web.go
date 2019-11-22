@@ -19,6 +19,7 @@ const (
 							Your DOI is: <br>
 								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a>
 							</div>.
+							If this is incorrect or you would like to register a new version of your dataset, please <a href=mailto:gin@g-node.org>contact us</a>.
 						</div>`
 	msgServerIsArchiving = `<div class="content">
 			<div class="header">The DOI server has started archiving your repository.</div>
@@ -105,6 +106,18 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	log.Debugf("Received DOI request: %+v", dReq)
 
+	// calculate DOI
+	uuid := makeUUID(dReq.Repository)
+	doi := conf.DOIBase + uuid[:6]
+
+	if isRegisteredDOI(doi) {
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(fmt.Sprintf(msgAlreadyRegistered, doi, doi))
+		renderResult(w, &resData)
+		return
+	}
+
 	defer func() {
 		err := notifyAdmin(&dReq, conf)
 		if err != nil {
@@ -137,7 +150,6 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
-	uuid := makeUUID(dReq.Repository)
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
@@ -160,17 +172,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 
 	doiInfo.UUID = uuid
-	doi := conf.DOIBase + doiInfo.UUID[:6]
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
-
-	if isRegisteredDOI(doi) {
-		resData.Success = false
-		resData.Level = "warning"
-		resData.Message = template.HTML(msgAlreadyRegistered)
-		dReq.ErrorMessages = []string{"This DOI is already registered"}
-		return
-	}
 
 	// Add job to queue
 	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
