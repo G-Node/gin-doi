@@ -301,6 +301,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 // verifyRequest decrypts the verification string and compares it with the
 // received data.
 func verifyRequest(repo, username, verification, key string) bool {
+	if repo == "" || username == "" || verification == "" {
+		// missing data; don't bother
+		return false
+	}
 	plaintext, err := decrypt([]byte(key), verification)
 	if err != nil {
 		log.WithFields(log.Fields{
