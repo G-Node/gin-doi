@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -14,16 +13,15 @@ const (
 	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
 	msgInvalidDOI        = `The DOI file was not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
 	msgInvalidURI        = "Please provide a valid repository URI"
-	msgAlreadyRegistered = `<i class="info icon"></i>
-						<div class="content">
-							<div class="header"> A DOI is already registered for your dataset.</div>
-							Your DOI is: <br>
-								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a>
-							</div>.
-						</div>`
+	msgAlreadyRegistered = `<div class="content">
+								<div class="header"> A DOI is already registered for your dataset.</div>
+								Your DOI is: <br>
+								<div class ="ui label label-default"><a href="https://doi.org/%s">%s</a></div></br>
+								If this is incorrect or you would like to register a new version of your dataset, please <a href=mailto:gin@g-node.org>contact us</a>.
+							</div>`
 	msgServerIsArchiving = `<div class="content">
 			<div class="header">The DOI server has started archiving your repository.</div>
-		We will try to register the following DOI for your dataset:<br>
+		We have reserved the following DOI for your dataset:<br>
 		<div class ="ui label label-default">%s</div><br>
 		In rare cases the final DOI might be different.<br>
 		Please note that the final step in the registration process requires us to manually review your request.
@@ -44,11 +42,36 @@ const (
 	msgInvalidReference = "A specified Reference is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
+	msgSubmitError     = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
+	msgSubmitFailed    = "An internal error occurred while we were processing your request.  Your request was not submitted and the service failed to notify the G-Node team.  Please <a href=mailto:gin@g-node.org>contact us</a> to report this error."
+	msgNoTemplateError = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to contact us at gin@g-node.org if you would like to provide more information or ask about the status of your request."
 	// Log Prefixes
 	lpAuth    = "GinOAP"
 	lpStorage = "Storage"
 	lpMakeXML = "MakeXML"
 )
+
+type reqResultData struct {
+	Success bool
+	Level   string // success, warning, error
+	Message template.HTML
+	Request *DOIReq
+}
+
+// renderResult renders the results of a registration request using the
+// 'requestResultTmpl' template. If it fails to parse the template, it renders
+// the Message from the result data in plain HTML.
+func renderResult(w http.ResponseWriter, resData *reqResultData) {
+	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
+	if err != nil {
+		log.Errorf("Failed to parse template: %s", err.Error())
+		log.Errorf("Request data: %+v", resData)
+		// failed to render result template; just show the message wrapped in html tags
+		w.Write([]byte("<html>" + resData.Message + "</html>"))
+		return
+	}
+	tmpl.Execute(w, &resData)
+}
 
 // startDOIRegistration starts the DOI registration process by authenticating
 // with the GIN server and adding a new DOIJob to the jobQueue.
@@ -61,85 +84,102 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 
 	dReq := DOIReq{}
+	resData := reqResultData{Request: &dReq}
 
-	// Send email notification even if the registration fails beyond this point
-	defer notifyAdmin(&dReq, conf)
-
-	// NOTE: If this function responds with an error header, the same error is
-	// rendered regardless of the type. The error is rendered by the inline
-	// 'doify' function in the requestPageTmpl template.
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		dReq.ErrorMessages = []string{"Failed to read request body. No info available."}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	err = json.Unmarshal(body, &dReq)
-	if err != nil {
-		dReq.ErrorMessages = []string{"Failed to unmarshal request body. Some information may be missing."}
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	log.WithFields(log.Fields{
-		"request": fmt.Sprintf("%+v", dReq),
-		"source":  "startDOIRegistration",
-	}).Debug("Received DOI request")
+	dReq.Repository = r.PostFormValue("repository")
+	dReq.Username = r.PostFormValue("username")
+	dReq.Verification = r.PostFormValue("verification")
 
 	// verify again
 	if !verifyRequest(dReq.Repository, dReq.Username, dReq.Verification, conf.Key) {
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "startDOIRegistration",
-		}).Error("Invalid request: failed to verify")
-		w.WriteHeader(http.StatusUnauthorized)
+		log.Errorf("Invalid request: failed to verify")
+		log.Errorf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{"Failed to verify request"}
+		resData.Message = template.HTML(msgInvalidRequest)
+		// ignore the error, no email to send
+		renderResult(w, &resData)
 		return
 	}
 
-	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"request": fmt.Sprintf("%+v", dReq),
-			"source":  "startDOIRegistration",
-			"error":   err,
-		}).Debug("Could not get userdata")
-		w.WriteHeader(http.StatusUnauthorized)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
+	log.Debugf("Received DOI request: %+v", dReq)
+
+	// calculate DOI
+	uuid := makeUUID(dReq.Repository)
+	doi := conf.DOIBase + uuid[:6]
+
+	if isRegisteredDOI(doi) {
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(fmt.Sprintf(msgAlreadyRegistered, doi, doi))
+		renderResult(w, &resData)
 		return
 	}
-	uuid := makeUUID(dReq.Repository)
+
+	// everything beyond this point should trigger an email notification
+	defer func() {
+		err := notifyAdmin(&dReq, conf)
+		if err != nil {
+			// Email send failed
+			// Log the error
+			log.Errorf("Failed to send notification email: %s", err.Error())
+			log.Errorf("Request data: %+v", dReq)
+			// Ask the user to contact us
+			resData.Success = false
+			resData.Level = "error"
+			resData.Message = template.HTML(msgSubmitFailed)
+		}
+		// Render the result
+		renderResult(w, &resData)
+	}()
+
+	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
+	if err != nil {
+		// Can happen if the DOI service isn't logged in to GIN
+		log.Errorf("Failed to get user data: %s", err.Error())
+		log.Errorf("Request data: %+v", dReq)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
+		resData.Success = true
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgSubmitError)
+		return
+	}
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		// Can happen if the datacite.yml file or the repository is removed (or
+		// made private) between preparing the request and submitting it
+		log.Errorf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Errorf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		resData.Success = true
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
 	doiInfo, err := parseDOIInfo(infoyml)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		// Can happen if the datacite.yml file is modified (and made invalid)
+		// between preparing the request and submitting it
+		log.Errorf("Failed to parse datacite.yml: %s", err.Error())
+		log.Errorf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
+		resData.Success = true
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
 
 	doiInfo.UUID = uuid
-	doi := conf.DOIBase + doiInfo.UUID[:6]
 	doiInfo.DOI = doi
 	dReq.DOIInfo = doiInfo
-
-	if isRegisteredDOI(doi) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf(msgAlreadyRegistered, doi, doi)))
-		dReq.ErrorMessages = []string{"This DOI is already registered"}
-		return
-	}
 
 	// Add job to queue
 	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
 	jobQueue <- job
 	// Render success
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf(msgServerIsArchiving, doi)))
+	message := fmt.Sprintf(msgServerIsArchiving, doi)
+	resData.Success = true
+	resData.Level = "success"
+	resData.Message = template.HTML(message)
 }
 
 // renderRequestPage renders the page for the staging area, where information
@@ -261,6 +301,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 // verifyRequest decrypts the verification string and compares it with the
 // received data.
 func verifyRequest(repo, username, verification, key string) bool {
+	if repo == "" || username == "" || verification == "" {
+		// missing data; don't bother
+		return false
+	}
 	plaintext, err := decrypt([]byte(key), verification)
 	if err != nil {
 		log.WithFields(log.Fields{

@@ -71,8 +71,8 @@ func main() {
 		renderRequestPage(w, r, config)
 	})
 
-	// do starts the registration job
-	http.HandleFunc("/do/", func(w http.ResponseWriter, r *http.Request) {
+	// submit starts the registration job
+	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
 		startDOIRegistration(w, r, jobQueue, config)
 	})
 
