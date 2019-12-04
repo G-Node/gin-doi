@@ -394,7 +394,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<td>Data</td>
 							<td>
 								This dataset can be browsed online <a href="https://gin.g-node.org/{{.GetDOIURI}}">here</a> or downloaded as a
-								<a href="{{.DOIInfo.UUID}}.zip">zip archive ({{.DOIInfo.FileSize}})</a>.
+								<a href="{{.DOIInfo.FileName}}">zip archive ({{.DOIInfo.FileSize}})</a>.
 								The current version of the dataset repository, possibly with updates, can be found <a href="https://gin.g-node.org/{{.Repository}}">here</a>.
 							</td>
 						</tr>
