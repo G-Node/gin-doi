@@ -141,6 +141,7 @@ type DOIRegInfo struct {
 	Missing      []string
 	DOI          string
 	UUID         string
+	FileName     string
 	FileSize     string
 	Title        string
 	Authors      []Author
@@ -298,7 +299,6 @@ type DOIReq struct {
 func (d *DOIReq) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
 	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
-
 }
 
 func (d *DOIReq) AsHTML() template.HTML {

@@ -31,7 +31,8 @@ func createRegisteredDataset(job DOIJob) error {
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
-	zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
+	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
+	dReq.DOIInfo.FileName = zipfname
 	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
 	if err != nil {
 		// failed to clone and zip
@@ -86,14 +87,14 @@ func createRegisteredDataset(job DOIJob) error {
 }
 
 // cloneAndZip clones the source repository into a temporary directory under
-// targetpath, zips the contents, and returns the size of the zip file in
-// bytes.
-func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (int64, error) {
+// targetpath, zips the contents, and returns the archive filename and its size
+// in bytes.
+func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (string, int64, error) {
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
 		log.Error(errmsg)
-		return -1, fmt.Errorf(errmsg)
+		return "", -1, fmt.Errorf(errmsg)
 	}
 
 	// Clone
@@ -103,7 +104,7 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 			"error":  err,
 			"target": jobname,
 		}).Error("Repository cloning failed")
-		return -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
+		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
 	}
 
 	// Uninit the annex and delete .git directory
@@ -116,14 +117,14 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 			"error":  err,
 			"target": jobname,
 		}).Error("Repository cleanup (uninit & derepo) failed")
-		return -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
+		return "", -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
 	}
 
 	// Zip
 	log.Infof("Preparing zip file for %s", jobname)
 	// use DOI with / replacement for zip filename
-	zipbasename := strings.ReplaceAll(jobname, "/", "-")
-	zipfilename := filepath.Join(targetpath, zipbasename+".zip")
+	zipbasename := strings.ReplaceAll(jobname, "/", "-") + ".zip"
+	zipfilename := filepath.Join(targetpath, zipbasename)
 	zipsize, err := zip(repodir, zipfilename)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -131,10 +132,10 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 			"error":  err,
 			"target": jobname,
 		}).Error("Could not zip the data")
-		return -1, fmt.Errorf("Failed to create the zip file: %v", err)
+		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
 	}
 	log.Infof("Archive size: %d", zipsize)
-	return zipsize, nil
+	return zipbasename, zipsize, nil
 }
 
 // zip a source directory into a file with the given filename.
