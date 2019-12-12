@@ -400,7 +400,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 						</tr>
 						<tr>
 							<td>DOI</td>
-							<td><a href="https://doi.org/{{.DOIInfo.DOI}}" class ="ui grey label">{{.DOIInfo.DOI}}</a></td>
+							<td><a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a></td>
 						</tr>
 						<tr>
 							<td>Citation</td>
