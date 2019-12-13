@@ -40,7 +40,7 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 
 	repopath := dReq.Repository
 	username := dReq.Username
-	realname := dReq.RealName
+	realname := dReq.Realname
 	useremail := dReq.Email
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)

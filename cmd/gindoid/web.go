@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/G-Node/libgin/libgin"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -97,10 +98,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	dReq.Username = reqdata["username"]
-	dReq.RealName = reqdata["realname"]
-	dReq.Email = reqdata["email"]
-	dReq.Repository = reqdata["repository"]
+	dReq.DOIRequestData = reqdata
 
 	log.Debugf("Received DOI request: %+v", dReq)
 
@@ -223,10 +221,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	dReq.Username = reqdata["username"]
-	dReq.RealName = reqdata["realname"]
-	dReq.Email = reqdata["email"]
-	dReq.Repository = reqdata["repository"]
+	dReq.DOIRequestData = reqdata
 	dReq.RequestData = regrequest // Forward it through the hidden form in the template
 
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
@@ -286,25 +281,22 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 // error if the decryption fails, the encrypted data is not a valid JSON
 // object, or if any of the expected keys (username, realname, repository,
 // email) are not present.
-func decryptRequestData(regrequest string, key string) (map[string]string, error) {
+func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, error) {
 	plaintext, err := decrypt([]byte(key), regrequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt verification string: %s", err.Error())
 	}
 
-	data := make(map[string]string)
+	data := libgin.DOIRequestData{}
 	err = json.Unmarshal([]byte(plaintext), &data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request data: %s", err.Error())
 	}
 
 	// Required info: username, repo, email
-	// realname is not required on GIN so it can be empty
-	for _, key := range []string{"username", "repository", "email"} {
-		if value, ok := data[key]; !ok || value == "" {
-			return nil, fmt.Errorf("invalid request: key %q is missing or empty", key)
-		}
+	if data.Username == "" || data.Repository == "" || data.Email == "" {
+		return nil, fmt.Errorf("invalid request: required key is missing or empty")
 	}
 
-	return data, nil
+	return &data, nil
 }

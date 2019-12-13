@@ -12,6 +12,7 @@ import (
 	txttemplate "text/template"
 	"time"
 
+	"github.com/G-Node/libgin/libgin"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -289,11 +290,8 @@ func hasValues(s *DOIRegInfo) bool {
 }
 
 type DOIReq struct {
-	RequestData   string
-	Username      string
-	RealName      string
-	Email         string
-	Repository    string
+	RequestData string
+	*libgin.DOIRequestData
 	Message       template.HTML
 	DOIInfo       *DOIRegInfo
 	ErrorMessages []string
