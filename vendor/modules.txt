@@ -1,37 +1,15 @@
-# cloud.google.com/go v0.39.0
-cloud.google.com/go/civil
 # github.com/G-Node/gig v0.0.0-20171025133355-6d784b40b534
 github.com/G-Node/gig
 # github.com/G-Node/gin-cli v0.0.0-20190607111314-16814609dc55
 github.com/G-Node/gin-cli/ginclient
 github.com/G-Node/gin-cli/ginclient/config
+github.com/G-Node/gin-cli/ginclient/log
+github.com/G-Node/gin-cli/gincmd/ginerrors
 github.com/G-Node/gin-cli/git
 github.com/G-Node/gin-cli/git/shell
-github.com/G-Node/gin-cli/ginclient/log
 github.com/G-Node/gin-cli/web
-github.com/G-Node/gin-cli/gincmd/ginerrors
-# github.com/G-Node/gin-core v0.0.0-20170209174104-8f7087dffbd7
-github.com/G-Node/gin-core/gin
-# github.com/G-Node/libgin v0.0.0-20190524160103-ce8318ea7167
+# github.com/G-Node/libgin v0.0.0-20190701175326-c461e1ae688b
 github.com/G-Node/libgin/libgin
-# github.com/Unknwon/cae v0.0.0-20160715032808-c6aac99ea2ca
-github.com/Unknwon/cae/zip
-github.com/Unknwon/cae
-# github.com/Unknwon/com v0.0.0-20190321035513-0fed4efef755
-github.com/Unknwon/com
-# github.com/Unknwon/i18n v0.0.0-20171114194641-b64d33658966
-github.com/Unknwon/i18n
-# github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
-github.com/boombuler/barcode
-github.com/boombuler/barcode/qr
-github.com/boombuler/barcode/utils
-# github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668
-github.com/bradfitz/gomemcache/memcache
-# github.com/chaseadamsio/goorgeous v0.0.0-20170427125010-677defd0e024
-github.com/chaseadamsio/goorgeous
-# github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3
-github.com/denisenkom/go-mssqldb
-github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 github.com/docopt/docopt-go
 # github.com/dustin/go-humanize v1.0.0
@@ -40,124 +18,33 @@ github.com/dustin/go-humanize
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
-# github.com/go-macaron/binding v0.0.0-20170611065819-ac54ee249c27
-github.com/go-macaron/binding
-# github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
-github.com/go-macaron/cache/memcache
-github.com/go-macaron/cache/redis
-github.com/go-macaron/cache
-# github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
-github.com/go-macaron/inject
-# github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
-github.com/go-macaron/session
-github.com/go-macaron/session/redis
-# github.com/go-sql-driver/mysql v1.4.1
-github.com/go-sql-driver/mysql
-# github.com/go-xorm/builder v0.3.4
-github.com/go-xorm/builder
-# github.com/go-xorm/core v0.6.2
-github.com/go-xorm/core
-# github.com/go-xorm/xorm v0.7.1
-github.com/go-xorm/xorm
-# github.com/gogits/go-gogs-client v0.0.0-20181217004319-1cd0db3113de
+# github.com/gogits/go-gogs-client v0.0.0-20190616193657-5a05380e4bc2
 github.com/gogits/go-gogs-client
-# github.com/gogs/chardet v0.0.0-20150115103509-2404f7772561
-github.com/gogs/chardet
-# github.com/gogs/git-module v0.0.0-20190412001904-d1773fe06f37
-github.com/gogs/git-module
-# github.com/gogs/go-gogs-client v0.0.0-20181217004319-1cd0db3113de
-github.com/gogs/go-gogs-client
-# github.com/gogs/go-libravatar v0.0.0-20161120025154-cd1abbd55d09
-github.com/gogs/go-libravatar
-# github.com/gogs/gogs v0.11.86
-github.com/gogs/gogs/models
-github.com/gogs/gogs/models/errors
-github.com/gogs/gogs/models/migrations
-github.com/gogs/gogs/pkg/auth/github
-github.com/gogs/gogs/pkg/auth/ldap
-github.com/gogs/gogs/pkg/auth/pam
-github.com/gogs/gogs/pkg/avatar
-github.com/gogs/gogs/pkg/bindata
-github.com/gogs/gogs/pkg/httplib
-github.com/gogs/gogs/pkg/mailer
-github.com/gogs/gogs/pkg/markup
-github.com/gogs/gogs/pkg/process
-github.com/gogs/gogs/pkg/setting
-github.com/gogs/gogs/pkg/sync
-github.com/gogs/gogs/pkg/template/highlight
-github.com/gogs/gogs/pkg/tool
-github.com/gogs/gogs/pkg/user
-# github.com/gogs/minwinsvc v0.0.0-20170301035411-95be6356811a
-github.com/gogs/minwinsvc
-# github.com/google/go-github v17.0.0+incompatible
-github.com/google/go-github/github
-# github.com/google/go-querystring v1.0.0
-github.com/google/go-querystring/query
 # github.com/hashicorp/hcl v1.0.0
 github.com/hashicorp/hcl
-github.com/hashicorp/hcl/hcl/printer
 github.com/hashicorp/hcl/hcl/ast
 github.com/hashicorp/hcl/hcl/parser
-github.com/hashicorp/hcl/hcl/token
-github.com/hashicorp/hcl/json/parser
+github.com/hashicorp/hcl/hcl/printer
 github.com/hashicorp/hcl/hcl/scanner
 github.com/hashicorp/hcl/hcl/strconv
+github.com/hashicorp/hcl/hcl/token
+github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/issue9/identicon v1.0.1
-github.com/issue9/identicon
-# github.com/jaytaylor/html2text v0.0.0-20190408195923-01ec452cbe43
-github.com/jaytaylor/html2text
-# github.com/json-iterator/go v1.1.6
-github.com/json-iterator/go
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/lib/pq v1.1.1
-github.com/lib/pq
-github.com/lib/pq/oid
-github.com/lib/pq/scram
 # github.com/magiconair/properties v1.8.1
 github.com/magiconair/properties
 # github.com/mattn/go-colorable v0.1.2
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.8
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.4
-github.com/mattn/go-runewidth
-# github.com/mattn/go-sqlite3 v1.10.0
-github.com/mattn/go-sqlite3
-# github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
-github.com/mcuadros/go-version
-# github.com/microcosm-cc/bluemonday v1.0.2
-github.com/microcosm-cc/bluemonday
 # github.com/mitchellh/mapstructure v1.1.2
 github.com/mitchellh/mapstructure
-# github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
-github.com/modern-go/concurrent
-# github.com/modern-go/reflect2 v1.0.1
-github.com/modern-go/reflect2
-# github.com/msteinert/pam v0.0.0-20190215180659-f29b9f28d6f9
-github.com/msteinert/pam
-# github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-github.com/nfnt/resize
-# github.com/olekukonko/tablewriter v0.0.1
-github.com/olekukonko/tablewriter
 # github.com/pelletier/go-toml v1.4.0
 github.com/pelletier/go-toml
-# github.com/pquerna/otp v1.2.0
-github.com/pquerna/otp/totp
-github.com/pquerna/otp
-github.com/pquerna/otp/hotp
-# github.com/russross/blackfriday v2.0.0+incompatible
-github.com/russross/blackfriday
-# github.com/satori/go.uuid v1.2.0
-github.com/satori/go.uuid
-# github.com/sergi/go-diff v1.0.0
-github.com/sergi/go-diff/diffmatchpatch
 # github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0
 github.com/shibukawa/configdir
-# github.com/shurcooL/sanitized_anchor_name v1.0.0
-github.com/shurcooL/sanitized_anchor_name
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 # github.com/spf13/afero v1.2.2
@@ -171,66 +58,20 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.4.0
 github.com/spf13/viper
-# github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf
-github.com/ssor/bom
-# golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
-golang.org/x/crypto/ssh
-golang.org/x/crypto/ssh/knownhosts
-golang.org/x/crypto/pbkdf2
+# golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
-golang.org/x/crypto/internal/chacha20
-golang.org/x/crypto/poly1305
-golang.org/x/crypto/md4
 golang.org/x/crypto/ed25519/internal/edwards25519
+golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
-# golang.org/x/net v0.0.0-20190606173856-1492cefac77f
-golang.org/x/net/html/charset
-golang.org/x/net/html
-golang.org/x/net/html/atom
-# golang.org/x/sys v0.0.0-20190606203320-7fc4e5ec1444
-golang.org/x/sys/unix
+golang.org/x/crypto/poly1305
+golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/knownhosts
+# golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 golang.org/x/sys/cpu
-golang.org/x/sys/windows/svc
-golang.org/x/sys/windows
+golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
 golang.org/x/text/transform
-golang.org/x/text/encoding
-golang.org/x/text/encoding/charmap
-golang.org/x/text/encoding/htmlindex
 golang.org/x/text/unicode/norm
-golang.org/x/text/encoding/internal/identifier
-golang.org/x/text/encoding/internal
-golang.org/x/text/encoding/japanese
-golang.org/x/text/encoding/korean
-golang.org/x/text/encoding/simplifiedchinese
-golang.org/x/text/encoding/traditionalchinese
-golang.org/x/text/encoding/unicode
-golang.org/x/text/language
-golang.org/x/text/internal/utf8internal
-golang.org/x/text/runes
-golang.org/x/text/internal/language
-golang.org/x/text/internal/language/compact
-golang.org/x/text/internal/tag
-# google.golang.org/appengine v1.6.1
-google.golang.org/appengine/cloudsql
-# gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc
-gopkg.in/alexcesaro/quotedprintable.v3
-# gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
-gopkg.in/asn1-ber.v1
-# gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e
-gopkg.in/bufio.v1
-# gopkg.in/clog.v1 v1.2.0
-gopkg.in/clog.v1
-# gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.42.0
-gopkg.in/ini.v1
-# gopkg.in/ldap.v2 v2.5.1
-gopkg.in/ldap.v2
-# gopkg.in/macaron.v1 v1.3.2
-gopkg.in/macaron.v1
-# gopkg.in/redis.v2 v2.3.2
-gopkg.in/redis.v2
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
