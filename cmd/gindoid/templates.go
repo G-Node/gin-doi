@@ -164,9 +164,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 								</div>
 							</div>
 							<form action="/submit" method="post">
-								<input type="hidden" id="repository" name="repository" value="{{.Repository}}">
-								<input type="hidden" id="username" name="username" value="{{.Username}}">
-								<input type="hidden" id="verification" name="verification" value="{{.Verification}}">
+								<input type="hidden" id="reqdata" name="reqdata" value="{{.RequestData}}">
 								<button class="ui primary button" type="submit">Request DOI Now</button>
 							</form>
 						{{else}}

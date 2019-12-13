@@ -86,20 +86,21 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	dReq := DOIReq{}
 	resData := reqResultData{Request: &dReq}
 
-	dReq.Repository = r.PostFormValue("repository")
-	dReq.Username = r.PostFormValue("username")
-	dReq.Verification = r.PostFormValue("verification")
-
-	// verify again
-	if !verifyRequest(dReq.Repository, dReq.Username, dReq.Verification, conf.Key) {
-		log.Errorf("Invalid request: failed to verify")
-		log.Errorf("Request data: %+v", dReq)
+	dReq.RequestData = r.PostFormValue("reqdata")
+	reqdata, err := decryptRequestData(dReq.RequestData, conf.Key)
+	if err != nil {
+		log.Errorf("Invalid request: %s", err.Error())
 		dReq.ErrorMessages = []string{"Failed to verify request"}
 		resData.Message = template.HTML(msgInvalidRequest)
 		// ignore the error, no email to send
 		renderResult(w, &resData)
 		return
 	}
+
+	dReq.Username = reqdata["username"]
+	dReq.RealName = reqdata["realname"]
+	dReq.Email = reqdata["email"]
+	dReq.Repository = reqdata["repository"]
 
 	log.Debugf("Received DOI request: %+v", dReq)
 
@@ -207,43 +208,26 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	repository := r.Form.Get("repo")
-	verification := r.Form.Get("verification")
-	username := r.Form.Get("user")
+	regrequest := r.Form.Get("regrequest")
 
-	log.Infof("Got request: [repository: %s] [username: %s] [verification: %s]", repository, username, verification)
-	dReq := DOIReq{Username: username, Repository: repository, Verification: verification}
+	log.Infof("Got request: %s", regrequest)
+
+	dReq := DOIReq{}
 	dReq.DOIInfo = &DOIRegInfo{}
-
-	// If all are missing, redirect to root path?
-
-	// If any of the values is missing, render invalid request page
-	if len(repository) == 0 || len(username) == 0 || len(verification) == 0 {
-		log.WithFields(log.Fields{
-			"source":       "renderRequestPage",
-			"repository":   repository,
-			"username":     username,
-			"verification": verification,
-		}).Error("Invalid request: missing fields in query string")
+	reqdata, err := decryptRequestData(regrequest, conf.Key)
+	if err != nil {
+		log.Errorf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
 		tmpl.Execute(w, dReq)
 		return
 	}
 
-	// Check verification string
-	if !verifyRequest(repository, username, verification, conf.Key) {
-		log.WithFields(log.Fields{
-			"source":       "renderRequestPage",
-			"repository":   repository,
-			"username":     username,
-			"verification": verification,
-		}).Error("Invalid request: failed to verify")
-		w.WriteHeader(http.StatusBadRequest)
-		dReq.Message = template.HTML(msgInvalidRequest)
-		tmpl.Execute(w, dReq)
-		return
-	}
+	dReq.Username = reqdata["username"]
+	dReq.RealName = reqdata["realname"]
+	dReq.Email = reqdata["email"]
+	dReq.Repository = reqdata["repository"]
+	dReq.RequestData = regrequest // Forward it through the hidden form in the template
 
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
 	if doiInfo, err := parseDOIInfo(infoyml); err == nil {
@@ -298,23 +282,29 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 }
 
-// verifyRequest decrypts the verification string and compares it with the
-// received data.
-func verifyRequest(repo, username, verification, key string) bool {
-	if repo == "" || username == "" || verification == "" {
-		// missing data; don't bother
-		return false
-	}
-	plaintext, err := decrypt([]byte(key), verification)
+// decryptRequestData decrypts the submitted data into a map.  Returns with
+// error if the decryption fails, the encrypted data is not a valid JSON
+// object, or if any of the expected keys (username, realname, repository,
+// email) are not present.
+func decryptRequestData(regrequest string, key string) (map[string]string, error) {
+	plaintext, err := decrypt([]byte(key), regrequest)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source":       "verifyRequest",
-			"repo":         repo,
-			"username":     username,
-			"verification": verification,
-		}).Error("Invalid request: failed to decrypt verification string")
-		return false
+		return nil, fmt.Errorf("failed to decrypt verification string: %s", err.Error())
 	}
 
-	return plaintext == repo+username
+	data := make(map[string]string)
+	err = json.Unmarshal([]byte(plaintext), &data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request data: %s", err.Error())
+	}
+
+	// Required info: username, repo, email
+	// realname is not required on GIN so it can be empty
+	for _, key := range []string{"username", "repository", "email"} {
+		if value, ok := data[key]; !ok || value == "" {
+			return nil, fmt.Errorf("invalid request: key %q is missing or empty", key)
+		}
+	}
+
+	return data, nil
 }

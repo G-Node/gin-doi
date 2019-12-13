@@ -288,9 +288,11 @@ func hasValues(s *DOIRegInfo) bool {
 }
 
 type DOIReq struct {
-	Repository    string
+	RequestData   string
 	Username      string
-	Verification  string
+	RealName      string
+	Email         string
+	Repository    string
 	Message       template.HTML
 	DOIInfo       *DOIRegInfo
 	ErrorMessages []string
