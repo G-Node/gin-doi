@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	txttemplate "text/template"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -309,7 +310,7 @@ func (d *DOIReq) AsHTML() template.HTML {
 
 // renderXML creates the DataCite XML file contents given the registration data and XML template.
 func renderXML(doiInfo *DOIRegInfo) (string, error) {
-	tmpl, err := template.New("doixml").Parse(doiXML)
+	tmpl, err := txttemplate.New("doixml").Parse(doiXML)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpMakeXML,
