@@ -14,10 +14,14 @@ import (
 	"github.com/G-Node/gin-cli/git/shell"
 )
 
+// The following appears in the 'note' field when a file is added to git
+// instead of annex
+const addedToGitNote = "non-large file; adding content to git repository"
+
 // Git annex commands
 
-// Determine if json or normal command is used
-var JsonBool bool = true
+// RawMode disables --json output for annex commands
+var RawMode bool = false
 
 // Types (private)
 type annexAction struct {
@@ -152,47 +156,32 @@ func AnnexPull(remote string) error {
 	args := []string{"sync", "--verbose", "--no-push", "--no-commit", remote}
 	cmd := AnnexCommand(args...)
 	stdout, stderr, err := cmd.OutputError()
-	cmd.Wait()
 	sstdout := string(stdout)
 	sstderr := string(stderr)
-	if err != nil {
-		log.Write("Error during AnnexPull.")
-		log.Write("[Error]: %v", err)
-		logstd(stdout, stderr)
-		mergeAbort() // abort a potential failed merge attempt
-		// TODO: Use giterror
-		if strings.Contains(sstderr, "Permission denied") {
-			return fmt.Errorf("download failed: permission denied")
-		} else if strings.Contains(sstderr, "Host key verification failed") {
-			// Bad host key configured
-			return fmt.Errorf("download failed: server key does not match known host key")
-		} else {
-			err = checkMergeErrors(sstdout, sstderr)
-			if err == nil {
-				err = fmt.Errorf("failed")
-			}
-			return err
-		}
+
+	// some errors don't return with an error status, so we need to check
+	// stderr for common error strings
+	if err := parseSyncErrors(sstderr); err != nil {
+		return fmt.Errorf("download failed: %v", err)
 	}
 
 	// some conflicts are resolved automatically and don't produce an error in some combinations
-	return checkMergeErrors(sstdout, sstderr)
-}
-
-func checkMergeErrors(stdout, stderr string) error {
-	messages := strings.ToLower(stdout + stderr)
-	if strings.Contains(messages, "would be overwritten by merge") {
-		// Untracked local file conflicts with file being pulled
-		return fmt.Errorf("download failed: local modified or untracked files would be overwritten by download:\n  %s", strings.Join(parseFilesOverwrite(messages), ", "))
-	} else if strings.Contains(messages, "unresolved conflict") {
-		// Merge conflict in git files
-		return fmt.Errorf("download failed: files changed locally and remotely and cannot be automatically merged (merge conflict):\n %s", strings.Join(parseFilesConflict(messages), ", "))
-		// abort merge
-	} else if strings.Contains(messages, "merge conflict was automatically resolved") {
-		// Merge conflict in annex files (automatically resolved by keeping both copies)
-		return fmt.Errorf("files changed locally and remotely. Both files have been kept:\n %s", strings.Join(parseFilesAnnexConflict(stdout), ", "))
-		// TODO: This should probably instead become a warning or notice, instead of a full error
+	if err := checkMergeErrors(sstdout, sstderr); err != nil {
+		mergeAbort() // abort a potential failed merge attempt
+		return fmt.Errorf("download failed: %v", err)
 	}
+
+	if err != nil { // command actually failed
+		log.Write("Error during AnnexPull")
+		log.Write("[Error]: %v", err)
+		logstd(stdout, stderr)
+		mergeAbort() // abort a potential failed merge attempt (that wasn't caught earlier)
+
+		// since we don't know what the error was, show the internal annex sync
+		// error to the user
+		return fmt.Errorf("download failed: %s", sstderr)
+	}
+
 	return nil
 }
 
@@ -206,58 +195,32 @@ func AnnexSync(content bool) error {
 	}
 	cmd := AnnexCommand(cmdargs...)
 	stdout, stderr, err := cmd.OutputError()
-	cmd.Wait()
-	if err != nil {
-		log.Write("Error during AnnexSync.")
+	sstdout := string(stdout)
+	sstderr := string(stderr)
+
+	// some errors don't return with an error status, so we need to check
+	// stderr for common error strings
+	if err := parseSyncErrors(sstderr); err != nil {
+		return fmt.Errorf("sync failed: %v", err)
+	}
+
+	// some conflicts are resolved automatically and don't produce an error in some combinations
+	if err := checkMergeErrors(sstdout, sstderr); err != nil {
+		mergeAbort() // abort a potential failed merge attempt
+		return fmt.Errorf("sync failed: %v", err)
+	}
+
+	if err != nil { // command actually failed
+		log.Write("Error during AnnexSync")
 		log.Write("[Error]: %v", err)
 		logstd(stdout, stderr)
-		return fmt.Errorf(string(stderr))
+		mergeAbort() // abort a potential failed merge attempt (that wasn't caught earlier)
+
+		// since we don't know what the error was, show the internal annex sync
+		// error to the user
+		return fmt.Errorf("sync failed: %s", sstderr)
 	}
 	return nil
-}
-
-func parseFilesConflict(errmsg string) []string {
-	lines := strings.Split(errmsg, "\n")
-	var filenames []string
-	delim := "merge conflict in "
-	for _, l := range lines {
-		if idx := strings.Index(l, delim); idx > -1 {
-			filenames = append(filenames, l[idx+len(delim):])
-		}
-	}
-	return filenames
-}
-
-func parseFilesAnnexConflict(errmsg string) []string {
-	lines := strings.Split(errmsg, "\n")
-	var filenames []string
-	delim := ": needs merge"
-	for _, l := range lines {
-		if idx := strings.Index(l, delim); idx > -1 {
-			filenames = append(filenames, l[0:idx])
-		}
-	}
-	return filenames
-}
-
-func parseFilesOverwrite(errmsg string) []string {
-	lines := strings.Split(errmsg, "\n")
-	var filenames []string
-	start := false
-	for _, l := range lines {
-		if strings.Contains(l, "error: the following") || strings.Contains(l, "error: your local") {
-			start = true
-			continue
-		}
-		if strings.Contains(l, "please move or remove") || strings.Contains(l, "please commit your changes") {
-			break
-		}
-		if start {
-			filenames = append(filenames, strings.TrimSpace(l))
-		}
-	}
-	return filenames
-
 }
 
 // AnnexPush uploads all changes and new content to the default remote.
@@ -267,20 +230,24 @@ func AnnexPush(paths []string, remote string, pushchan chan<- RepoFileStatus) {
 	defer close(pushchan)
 	cmd := AnnexCommand("sync", "--verbose", "--no-pull", "--no-commit", remote) // NEVER commit changes when doing annex-sync
 	stdout, stderr, err := cmd.OutputError()
-	if err != nil {
-		log.Write("Error during AnnexPush (sync --no-pull)")
+	sstderr := string(stderr)
+
+	// some errors don't return with an error status, so we need to check
+	// stderr for common error strings
+	if err := parseSyncErrors(sstderr); err != nil {
+		pushchan <- RepoFileStatus{Err: fmt.Errorf("upload failed: %v", err)}
+		return
+	}
+
+	if err != nil { // command actually failed
+		log.Write("Error during AnnexPush")
 		log.Write("[Error]: %v", err)
 		logstd(stdout, stderr)
-		errmsg := "failed"
-		sstderr := string(stderr)
-		if strings.Contains(sstderr, "Permission denied") {
-			errmsg = "upload failed: permission denied"
-		} else if strings.Contains(sstderr, "Host key verification failed") {
-			errmsg = "upload failed: server key does not match known host key"
-		} else if strings.Contains(sstderr, "rejected") {
-			errmsg = "upload failed: changes were made on the server that have not been downloaded; run 'gin download' to update local copies"
-		}
-		pushchan <- RepoFileStatus{Err: fmt.Errorf(errmsg)}
+		mergeAbort() // abort a potential failed merge attempt (that wasn't caught earlier)
+
+		// since we don't know what the error was, show the internal annex sync
+		// error to the user
+		pushchan <- RepoFileStatus{Err: fmt.Errorf(sstderr)}
 		return
 	}
 
@@ -299,11 +266,11 @@ func AnnexPush(paths []string, remote string, pushchan chan<- RepoFileStatus) {
 	}
 
 	var args []string
-	if JsonBool {
-		args = []string{"copy", "--json-progress", fmt.Sprintf("--to=%s", remote)}
-	} else {
-		args = []string{"copy", "--verbose", fmt.Sprintf("--to=%s", remote)}
+	outflag := "--json-progress"
+	if RawMode {
+		outflag = "--verbose"
 	}
+	args = []string{"copy", outflag, fmt.Sprintf("--to=%s", remote)}
 	if len(paths) == 0 {
 		paths = []string{"--all"}
 	}
@@ -336,7 +303,7 @@ func AnnexPush(paths []string, remote string, pushchan chan<- RepoFileStatus) {
 			// skip empty lines
 			continue
 		}
-		if !JsonBool {
+		if RawMode {
 			status.RawOutput = string(outline)
 			lineInput := cmd.Args
 			input := strings.Join(lineInput, " ")
@@ -430,7 +397,7 @@ func baseAnnexGet(cmdargs []string, getchan chan<- RepoFileStatus) {
 			continue
 		}
 
-		if !JsonBool {
+		if RawMode {
 			lineInput := cmd.Args
 			input := strings.Join(lineInput, " ")
 			status.RawInput = input
@@ -490,12 +457,11 @@ func baseAnnexGet(cmdargs []string, getchan chan<- RepoFileStatus) {
 // (git annex get)
 func AnnexGet(filepaths []string, getchan chan<- RepoFileStatus) {
 	defer close(getchan)
-	var cmdargs []string
-	if JsonBool {
-		cmdargs = append([]string{"get", "--json-progress"}, filepaths...)
-	} else {
-		cmdargs = append([]string{"get"}, filepaths...)
+	cmdargs := []string{"get"}
+	if !RawMode {
+		cmdargs = append(cmdargs, "--json-progress")
 	}
+	cmdargs = append(cmdargs, filepaths...)
 	baseAnnexGet(cmdargs, getchan)
 }
 
@@ -514,12 +480,12 @@ func AnnexGetKey(key string, getchan chan<- RepoFileStatus) {
 // (git annex drop)
 func AnnexDrop(filepaths []string, dropchan chan<- RepoFileStatus) {
 	defer close(dropchan)
-	var cmdargs []string
-	if JsonBool {
-		cmdargs = append([]string{"drop", "--json"}, filepaths...)
-	} else {
-		cmdargs = append([]string{"drop"}, filepaths...)
+	cmdargs := []string{"drop"}
+	if !RawMode {
+		cmdargs = append(cmdargs, "--json")
 	}
+	cmdargs = append(cmdargs, filepaths...)
+
 	cmd := AnnexCommand(cmdargs...)
 	err := cmd.Start()
 	if err != nil {
@@ -545,7 +511,7 @@ func AnnexDrop(filepaths []string, dropchan chan<- RepoFileStatus) {
 			continue
 		}
 
-		if !JsonBool {
+		if RawMode {
 			lineInput := cmd.Args
 			input := strings.Join(lineInput, " ")
 			status.RawInput = input
@@ -710,11 +676,9 @@ func AnnexLock(filepaths []string, lockchan chan<- RepoFileStatus) {
 		log.Write("No paths to lock. Nothing to do.")
 		return
 	}
-	var cmdargs []string
-	if JsonBool {
-		cmdargs = []string{"lock", "--json-error-messages"}
-	} else {
-		cmdargs = []string{"lock"}
+	cmdargs := []string{"lock"}
+	if !RawMode {
+		cmdargs = append(cmdargs, "--json-error-messages")
 	}
 
 	cmdargs = append(cmdargs, filepaths...)
@@ -737,7 +701,7 @@ func AnnexLock(filepaths []string, lockchan chan<- RepoFileStatus) {
 			// Empty line output. Ignore
 			continue
 		}
-		if !JsonBool {
+		if RawMode {
 			status.RawOutput = string(outline)
 			lineInput := cmd.Args
 			input := strings.Join(lineInput, " ")
@@ -793,11 +757,9 @@ func AnnexLock(filepaths []string, lockchan chan<- RepoFileStatus) {
 // (git annex unlock)
 func AnnexUnlock(filepaths []string, unlockchan chan<- RepoFileStatus) {
 	defer close(unlockchan)
-	var cmdargs []string
-	if JsonBool {
-		cmdargs = []string{"unlock", "--json"}
-	} else {
-		cmdargs = []string{"unlock"}
+	cmdargs := []string{"unlock"}
+	if !RawMode {
+		cmdargs = append(cmdargs, "--json")
 	}
 	cmdargs = append(cmdargs, filepaths...)
 	cmd := AnnexCommand(cmdargs...)
@@ -818,7 +780,7 @@ func AnnexUnlock(filepaths []string, unlockchan chan<- RepoFileStatus) {
 			// Empty line output. Ignore
 			continue
 		}
-		if !JsonBool {
+		if RawMode {
 			lineInput := cmd.Args
 			input := strings.Join(lineInput, " ")
 			status.RawInput = input
@@ -967,11 +929,9 @@ func AnnexAdd(filepaths []string, addchan chan<- RepoFileStatus) {
 		log.Write("No paths to add to annex. Nothing to do.")
 		return
 	}
-	var cmdargs []string
-	if JsonBool {
-		cmdargs = []string{"add", "--json"}
-	} else {
-		cmdargs = []string{"add"}
+	cmdargs := []string{"add"}
+	if !RawMode {
+		cmdargs = append(cmdargs, "--json")
 	}
 	exclargs := annexExclArgs()
 	if len(exclargs) > 0 {
@@ -991,14 +951,13 @@ func AnnexAdd(filepaths []string, addchan chan<- RepoFileStatus) {
 	var status RepoFileStatus
 	var addresult annexAction
 	// NOTE Can differentiate "git" and "annex" files from note in JSON struct
-	status.State = "Adding"
 	var filenames []string
 	for rerr = nil; rerr == nil; outline, rerr = cmd.OutReader.ReadBytes('\n') {
 		if len(outline) == 0 {
 			// Empty line output. Ignore
 			continue
 		}
-		if !JsonBool {
+		if RawMode {
 			status.RawOutput = string(outline)
 			lineInput := cmd.Args
 			input := strings.Join(lineInput, " ")
@@ -1006,6 +965,7 @@ func AnnexAdd(filepaths []string, addchan chan<- RepoFileStatus) {
 			addchan <- status
 			continue
 		}
+		addresult = annexAction{} // clear existing result
 		err := json.Unmarshal(outline, &addresult)
 		if err != nil || addresult.Command == "" {
 			// Couldn't parse output
@@ -1020,7 +980,13 @@ func AnnexAdd(filepaths []string, addchan chan<- RepoFileStatus) {
 		status.RawInput = input
 		status.RawOutput = string(outline)
 		if addresult.Success {
-			log.Write("%s added to annex", addresult.File)
+			if addresult.Note == addedToGitNote {
+				status.State = "Added to git"
+				log.Write("%s added to git", addresult.File)
+			} else {
+				status.State = "Added to annex"
+				log.Write("%s added to annex", addresult.File)
+			}
 			status.Err = nil
 			filenames = append(filenames, status.FileName)
 		} else {
@@ -1039,8 +1005,12 @@ func AnnexAdd(filepaths []string, addchan chan<- RepoFileStatus) {
 		logstd(nil, stderr)
 	}
 	// Add metadata
+	status.State = "Writing filename metadata"
 	for _, fname := range filenames {
 		setAnnexMetadataName(fname)
+		status.FileName = fname
+		status.Progress = progcomplete
+		addchan <- status
 	}
 	return
 }
@@ -1103,4 +1073,79 @@ func AnnexCommand(args ...string) shell.Cmd {
 	workingdir, _ := filepath.Abs(".")
 	log.Write("Running shell command (Dir: %s): %s", workingdir, strings.Join(cmd.Args, " "))
 	return cmd
+}
+
+// parseSyncErrors is used by all annex sync commands to check the
+// output for common error messages and return the appropriate gin message.
+func parseSyncErrors(messages string) error {
+	if strings.Contains(messages, "Permission denied") {
+		return fmt.Errorf("permission denied")
+	} else if strings.Contains(messages, "Host key verification failed") {
+		// Bad host key configured
+		return fmt.Errorf("server key does not match known host key")
+	} else if strings.Contains(messages, "rejected") { // push error: remote is ahead of local
+		return fmt.Errorf("changes were made on the server that have not been downloaded; run 'gin download' to update local copies")
+	}
+	return nil
+}
+
+func checkMergeErrors(stdout, stderr string) error {
+	messages := strings.ToLower(stdout + stderr)
+	if strings.Contains(messages, "would be overwritten by merge") {
+		// Untracked local file conflicts with file being pulled
+		return fmt.Errorf("local modified or untracked files would be overwritten by download:\n  %s", strings.Join(parseFilesOverwrite(messages), ", "))
+	} else if strings.Contains(messages, "unresolved conflict") {
+		// Merge conflict in git files
+		return fmt.Errorf("files changed locally and remotely and cannot be automatically merged (merge conflict):\n %s", strings.Join(parseFilesConflict(messages), ", "))
+		// abort merge
+	} else if strings.Contains(messages, "merge conflict was automatically resolved") {
+		// Merge conflict in annex files (automatically resolved by keeping both copies)
+		return fmt.Errorf("files changed locally and remotely. Both files have been kept:\n %s", strings.Join(parseFilesAnnexConflict(stdout), ", "))
+		// TODO: This should probably instead become a warning or notice, instead of a full error
+	}
+	return nil
+}
+
+func parseFilesConflict(errmsg string) []string {
+	lines := strings.Split(errmsg, "\n")
+	var filenames []string
+	delim := "merge conflict in "
+	for _, l := range lines {
+		if idx := strings.Index(l, delim); idx > -1 {
+			filenames = append(filenames, l[idx+len(delim):])
+		}
+	}
+	return filenames
+}
+
+func parseFilesAnnexConflict(errmsg string) []string {
+	lines := strings.Split(errmsg, "\n")
+	var filenames []string
+	delim := ": needs merge"
+	for _, l := range lines {
+		if idx := strings.Index(l, delim); idx > -1 {
+			filenames = append(filenames, l[0:idx])
+		}
+	}
+	return filenames
+}
+
+func parseFilesOverwrite(errmsg string) []string {
+	lines := strings.Split(errmsg, "\n")
+	var filenames []string
+	start := false
+	for _, l := range lines {
+		if strings.Contains(l, "error: the following") || strings.Contains(l, "error: your local") {
+			start = true
+			continue
+		}
+		if strings.Contains(l, "please move or remove") || strings.Contains(l, "please commit your changes") {
+			break
+		}
+		if start {
+			filenames = append(filenames, strings.TrimSpace(l))
+		}
+	}
+	return filenames
+
 }

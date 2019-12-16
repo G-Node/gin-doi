@@ -22,7 +22,7 @@ import (
 // High level functions for managing repositories.
 // These functions either end up performing web calls (using the web package) or git shell commands (using the git package).
 
-const unknownhostname = "(unknown)"
+const unknownhostname = "(unknownhost)"
 
 // Types
 
@@ -240,17 +240,33 @@ func Add(paths []string, addchan chan<- git.RepoFileStatus) {
 	}
 
 	if len(paths) > 0 {
+		gitaddpaths := make([]string, 0) // most times, this wont be used, so start with 0
+		statuschan := make(chan git.AnnexStatusRes)
+		go git.AnnexStatus(paths, statuschan)
+		for stat := range statuschan {
+			if stat.Status == "D" {
+				// deleted files match but weren't added
+				// this can happen when the annex filters don't match a file
+				// and it doesn't go through to get added to git
+				gitaddpaths = append(gitaddpaths, stat.File)
+			}
+		}
+
+		// Run git add on deleted files only
+		if len(gitaddpaths) > 0 {
+			gitaddchan := make(chan git.RepoFileStatus)
+			go git.Add(gitaddpaths, gitaddchan)
+			for addstat := range gitaddchan {
+				addstat.State = "Removing"
+				addchan <- addstat
+			}
+		}
+
 		// Run git annex add using exclusion filters
 		// Files matching filters are automatically added to git
 		annexaddchan := make(chan git.RepoFileStatus)
 		go git.AnnexAdd(paths, annexaddchan)
 		for addstat := range annexaddchan {
-			addchan <- addstat
-		}
-
-		gitaddchan := make(chan git.RepoFileStatus)
-		go git.Add(paths, gitaddchan)
-		for addstat := range gitaddchan {
 			addchan <- addstat
 		}
 	}
@@ -438,7 +454,8 @@ func (gincl *Client) CloneRepo(repopath string, clonechan chan<- git.RepoFileSta
 // If a new commit is created and a default remote exists, the new commit is pushed to initialise the remote as well.
 // Returns 'true' if (and only if) a commit was created.
 func CommitIfNew() (bool, error) {
-	if !git.IsRepo() {
+	if git.Checkwd() == git.NotRepository {
+		// Other errors allowed
 		return false, fmt.Errorf("not a repository")
 	}
 	_, err := git.RevParse("HEAD")
@@ -619,7 +636,7 @@ func CheckoutFileCopies(commithash string, paths []string, outpath string, suffi
 // Optionally initialised as a bare repository (for annex directory remotes).
 func (gincl *Client) InitDir(bare bool) error {
 	initerr := ginerror{Origin: "InitDir", Description: "Error initialising local directory"}
-	if !git.IsRepo() {
+	if git.Checkwd() == git.NotRepository {
 		err := git.Init(bare)
 		if err != nil {
 			initerr.UError = err.Error()

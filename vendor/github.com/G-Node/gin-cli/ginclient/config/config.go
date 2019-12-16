@@ -26,14 +26,14 @@ var (
 	ginDefaultServer = ServerCfg{
 		WebCfg{
 			Protocol: "https",
-			Host:     "web.gin.g-node.org",
+			Host:     "gin.g-node.org",
 			Port:     443,
 		},
 		GitCfg{
 			Host:    "gin.g-node.org",
 			Port:    22,
 			User:    "git",
-			HostKey: "gin.g-node.org,141.84.41.216 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE5IBgKP3nUryEFaACwY4N3jlqDx8Qw1xAxU2Xpt5V0p9RNefNnedVmnIBV6lA3n+9kT1OSbyqA/+SgsQ57nHo0=",
+			HostKey: "gin.g-node.org,141.84.41.219 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE5IBgKP3nUryEFaACwY4N3jlqDx8Qw1xAxU2Xpt5V0p9RNefNnedVmnIBV6lA3n+9kT1OSbyqA/+SgsQ57nHo0=",
 		},
 	}
 
@@ -64,7 +64,7 @@ type WebCfg struct {
 }
 
 // AddressStr constructs a full address string from the configuration.
-// The string has the format Scheme://Host:Port (e.g., https://web.gin.g-node.org:443)
+// The string has the format Scheme://Host:Port (e.g., https://gin.g-node.org:443)
 func (c WebCfg) AddressStr() string {
 	return fmt.Sprintf("%s://%s:%d", c.Protocol, c.Host, c.Port)
 }
