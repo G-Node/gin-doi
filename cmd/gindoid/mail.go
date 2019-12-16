@@ -39,8 +39,9 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 	}
 
 	repopath := dReq.Repository
-	userlogin := dReq.Username
-	useremail := "" // TODO: Change when GOGS sends user email with request
+	username := dReq.Username
+	realname := dReq.Realname
+	useremail := dReq.Email
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
 	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
@@ -55,6 +56,11 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
+	namestr := username
+	if realname != "" {
+		namestr = fmt.Sprintf("%s (%s)", namestr, realname)
+	}
+
 	body := `A new DOI registration request has been received.
 
 	Repository: %s [%s]
@@ -65,7 +71,7 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 
 %s
 `
-	body = fmt.Sprintf(body, repopath, repourl, userlogin, useremail, xmlurl, doitarget, errorlist)
+	body = fmt.Sprintf(body, repopath, repourl, namestr, useremail, xmlurl, doitarget, errorlist)
 	return sendMail(subject, body, conf)
 }
 

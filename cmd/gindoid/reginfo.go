@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	txttemplate "text/template"
 	"time"
 
+	"github.com/G-Node/libgin/libgin"
 	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -288,9 +290,8 @@ func hasValues(s *DOIRegInfo) bool {
 }
 
 type DOIReq struct {
-	Repository    string
-	Username      string
-	Verification  string
+	RequestData string
+	*libgin.DOIRequestData
 	Message       template.HTML
 	DOIInfo       *DOIRegInfo
 	ErrorMessages []string
@@ -307,7 +308,7 @@ func (d *DOIReq) AsHTML() template.HTML {
 
 // renderXML creates the DataCite XML file contents given the registration data and XML template.
 func renderXML(doiInfo *DOIRegInfo) (string, error) {
-	tmpl, err := template.New("doixml").Parse(doiXML)
+	tmpl, err := txttemplate.New("doixml").Parse(doiXML)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"source": lpMakeXML,

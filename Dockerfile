@@ -10,11 +10,10 @@ RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-
 
 RUN go version
 COPY ./go.mod ./go.sum /gindoid/
+COPY ./vendor /gindoid/vendor/
+COPY ./cmd /gindoid/cmd/
 WORKDIR /gindoid
 
-# download deps before bringing in the main package
-RUN go mod download
-COPY ./cmd /gindoid/cmd/
 RUN go build ./cmd/gindoid
 
 ### ============================= ###
