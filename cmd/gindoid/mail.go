@@ -79,10 +79,10 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 // lists the addresses of the recipients.
 func sendMail(subject, body string, conf *Configuration) error {
 	if conf.Email.Server != "" {
-		log.Println("Preparing mail")
+		log.Print("Preparing mail")
 		c, err := smtp.Dial(conf.Email.Server)
 		if err != nil {
-			log.Println("Could not reach server")
+			log.Print("Could not reach server")
 			return err
 		}
 		defer c.Close()
@@ -112,19 +112,19 @@ func sendMail(subject, body string, conf *Configuration) error {
 
 		message = fmt.Sprintf("%s\n\n%s", message, body)
 		// Send the email body.
-		log.Println("Sending mail")
+		log.Print("Sending mail")
 
 		wc, err := c.Data()
 		if err != nil {
-			log.Println("Could not write mail")
+			log.Print("Could not write mail")
 			return err
 		}
 		defer wc.Close()
 		buf := bytes.NewBufferString(message)
 		if _, err = buf.WriteTo(wc); err != nil {
-			log.Println("Could not write mail")
+			log.Print("Could not write mail")
 		}
-		log.Println("sendMail Done")
+		log.Print("sendMail Done")
 	} else {
 		log.Printf("Fake mail body: %s", body)
 	}

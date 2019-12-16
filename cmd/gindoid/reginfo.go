@@ -94,7 +94,7 @@ func readFileAtURL(url string) ([]byte, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		// TODO Try to infer what went wrong
-		log.Println("Could not get DOI file")
+		log.Print("Could not get DOI file")
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -103,7 +103,7 @@ func readFileAtURL(url string) ([]byte, error) {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("Could not read from received datacite.yml file")
+		log.Print("Could not read from received datacite.yml file")
 		return nil, err
 	}
 	return body, nil
@@ -114,14 +114,14 @@ func parseDOIInfo(infoyml []byte) (*DOIRegInfo, error) {
 	doiInfo := DOIRegInfo{}
 	err := yaml.Unmarshal(infoyml, &doiInfo)
 	if err != nil {
-		log.Println("Could not unmarshal DOI file")
+		log.Print("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
 	}
 	doiInfo.DateTime = time.Now()
 	if !hasValues(&doiInfo) {
-		log.Println("DOI file is missing entries")
+		log.Print("DOI file is missing entries")
 		return &doiInfo, fmt.Errorf("DOI info is missing entries")
 	}
 	return &doiInfo, nil
@@ -298,13 +298,13 @@ func (d *DOIReq) AsHTML() template.HTML {
 func renderXML(doiInfo *DOIRegInfo) (string, error) {
 	tmpl, err := txttemplate.New("doixml").Parse(doiXML)
 	if err != nil {
-		log.Println("Could not parse template")
+		log.Print("Could not parse template")
 		return "", err
 	}
 	buff := bytes.Buffer{}
 	err = tmpl.Execute(&buff, doiInfo)
 	if err != nil {
-		log.Println("Template execution failed")
+		log.Print("Template execution failed")
 		return "", err
 	}
 	return buff.String(), err

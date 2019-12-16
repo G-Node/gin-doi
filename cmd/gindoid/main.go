@@ -25,7 +25,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	log.Println("Starting up")
+	log.Print("Starting up")
 
 	config, err := loadconfig()
 	if err != nil {
@@ -38,12 +38,12 @@ func main() {
 	cc.Key = "[HIDDEN]"
 	cc.GIN.Password = "[HIDDEN]"
 	j, _ := json.MarshalIndent(cc, "", "  ")
-	log.Println(string(j))
+	log.Print(string(j))
 
 	log.Printf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
 	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
 	if err != nil {
-		log.Println(err)
+		log.Print(err)
 		os.Exit(-1)
 	}
 

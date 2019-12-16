@@ -44,7 +44,7 @@ func createRegisteredDataset(job DOIJob) error {
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
-		log.Println("Could not create the metadata template")
+		log.Print("Could not create the metadata template")
 		// XML Creation failed; return with error
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
 		notifyAdmin(dReq, conf)
@@ -55,14 +55,14 @@ func createRegisteredDataset(job DOIJob) error {
 	// No registering. But the XML is provided with everything
 	data, err := renderXML(dReq.DOIInfo)
 	if err != nil {
-		log.Println("Could not parse the metadata file")
+		log.Print("Could not parse the metadata file")
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
 		notifyAdmin(dReq, conf)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
 	if err != nil {
-		log.Println("Could not write to the metadata file")
+		log.Print("Could not write to the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 
@@ -81,13 +81,13 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
-		log.Println(errmsg)
+		log.Print(errmsg)
 		return "", -1, fmt.Errorf(errmsg)
 	}
 
 	// Clone
 	if err := cloneRepo(repopath, targetpath, conf); err != nil {
-		log.Println("Repository cloning failed")
+		log.Print("Repository cloning failed")
 		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
 	}
 
@@ -96,7 +96,7 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(targetpath, reponame)
 	if err := derepoCloneDir(repodir); err != nil {
-		log.Println("Repository cleanup (uninit & derepo) failed")
+		log.Print("Repository cleanup (uninit & derepo) failed")
 		return "", -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
 	}
 
@@ -107,7 +107,7 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	zipfilename := filepath.Join(targetpath, zipbasename)
 	zipsize, err := zip(repodir, zipfilename)
 	if err != nil {
-		log.Println("Could not zip the data")
+		log.Print("Could not zip the data")
 		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
 	}
 	log.Printf("Archive size: %d", zipsize)
@@ -164,7 +164,7 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
 		if err != nil {
-			log.Println("Could not parse the DOI template")
+			log.Print("Could not parse the DOI template")
 			return err
 		}
 		return err
@@ -172,12 +172,12 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 
 	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
 	if err != nil {
-		log.Println("Could not create the DOI index.html")
+		log.Print("Could not create the DOI index.html")
 		return err
 	}
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
-		log.Println("Could not execute the DOI template")
+		log.Print("Could not execute the DOI template")
 		return err
 	}
 	return nil
@@ -188,20 +188,20 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 	storagedir := conf.Storage.TargetDirectory
 	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
 	if err != nil {
-		log.Println("Could not create the target directory")
+		log.Print("Could not create the target directory")
 		return err
 	}
 	// Deny access per default
 	file, err := os.Create(filepath.Join(storagedir, jobname, ".htaccess"))
 	if err != nil {
-		log.Println("Could not create .htaccess")
+		log.Print("Could not create .htaccess")
 		return err
 	}
 	defer file.Close()
 	// todo check
 	_, err = file.Write([]byte("deny from all"))
 	if err != nil {
-		log.Println("Could not write to .htaccess")
+		log.Print("Could not write to .htaccess")
 		return err
 	}
 	return nil
@@ -299,7 +299,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
 	for stat := range clonechan {
-		log.Println(stat)
+		log.Print(stat)
 		if stat.Err != nil {
 			log.Printf("Repository cloning failed: %s", stat.Err)
 			return stat.Err
@@ -309,7 +309,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	downloadchan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
-		log.Println(stat)
+		log.Print(stat)
 		if stat.Err != nil {
 			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
 			return stat.Err

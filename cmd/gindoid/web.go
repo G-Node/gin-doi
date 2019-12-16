@@ -188,14 +188,14 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configuration) {
 	log.Printf("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
-		log.Println("Could not parse form data")
+		log.Print("Could not parse form data")
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email (maybe)
 		return
 	}
 	tmpl, err := template.New("requestpage").Parse(requestPageTmpl)
 	if err != nil {
-		log.Println("Could not parse init template")
+		log.Print("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email
 		return
@@ -227,11 +227,11 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = doiInfo
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Println("Could not parse template")
+			log.Print("Could not parse template")
 			return
 		}
 	} else if doiInfo != nil {
-		log.Println("DOI file invalid")
+		log.Print("DOI file invalid")
 		if doiInfo.Missing != nil {
 			dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
 		} else {
@@ -240,7 +240,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = &DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Println("Could not parse template")
+			log.Print("Could not parse template")
 			return
 		}
 		return
@@ -248,7 +248,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.Message = template.HTML(msgInvalidDOI)
 		tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Println("Could not parse template")
+			log.Print("Could not parse template")
 			return
 		}
 		return
