@@ -5,7 +5,7 @@ go 1.12
 require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/G-Node/gin-cli v0.0.0-20190819162807-7786caf50bbd
-	github.com/G-Node/libgin v0.0.0-20190701175326-c461e1ae688b
+	github.com/G-Node/libgin v0.0.0-20191216094436-47f8aadc0067
 	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect

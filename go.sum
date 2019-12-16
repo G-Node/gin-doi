@@ -16,6 +16,8 @@ github.com/G-Node/gin-cli v0.0.0-20190819162807-7786caf50bbd h1:LV6U43cTTlP4bs3s
 github.com/G-Node/gin-cli v0.0.0-20190819162807-7786caf50bbd/go.mod h1:2f1LjS6FFL02x9J1WI3NuVr9wXGSlPolMLcubry3ES0=
 github.com/G-Node/libgin v0.0.0-20190701175326-c461e1ae688b h1:XSI2CmFTnoiVK7ATV4IRgRieZe0SdkQx4J+vBxtvRzs=
 github.com/G-Node/libgin v0.0.0-20190701175326-c461e1ae688b/go.mod h1:2yLXQnNbwjH8mslxnzU8Kb+d7c2Zqo8DIgR6Pgp7lCg=
+github.com/G-Node/libgin v0.0.0-20191216094436-47f8aadc0067 h1:JXz3L3qJZiS0sHilcJFTyfx/e/6d3INXibDFArGytZQ=
+github.com/G-Node/libgin v0.0.0-20191216094436-47f8aadc0067/go.mod h1:2yLXQnNbwjH8mslxnzU8Kb+d7c2Zqo8DIgR6Pgp7lCg=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OneOfOne/xxhash v1.2.5/go.mod h1:eZbhyaAYD41SGSSsnmcpxVoRiQ/MPUTjUdIIOT9Um7Q=
 github.com/achilleas-k/libgin v0.0.0-20191213163843-09c7089063f0 h1:8ZwJ4/k1tX8DEmXlYjaVNaDPlkybfTZABPzh6/S9G8I=
