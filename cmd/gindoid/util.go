@@ -8,9 +8,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func readBody(r *http.Request) (*string, error) {
@@ -51,7 +50,7 @@ func isRegisteredDOI(doi string) bool {
 	url := fmt.Sprintf("https://doi.org/%s", doi)
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Errorf("Could not query for doi: %s at %s", doi, url)
+		log.Printf("Could not query for doi: %s at %s", doi, url)
 		return false
 	}
 	if resp.StatusCode != http.StatusNotFound {

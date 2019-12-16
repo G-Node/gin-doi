@@ -4,12 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"net/smtp"
 	"net/url"
 	"os"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -80,13 +79,10 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 // lists the addresses of the recipients.
 func sendMail(subject, body string, conf *Configuration) error {
 	if conf.Email.Server != "" {
-		log.Debug("Preparing mail")
+		log.Println("Preparing mail")
 		c, err := smtp.Dial(conf.Email.Server)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"source": MAILLOG,
-				"error":  err,
-			}).Errorf("Could not reach server")
+			log.Println("Could not reach server")
 			return err
 		}
 		defer c.Close()
@@ -102,43 +98,35 @@ func sendMail(subject, body string, conf *Configuration) error {
 			filereader := bufio.NewReader(emailfile)
 			for address, lerr := filereader.ReadString('\n'); lerr == nil; address, lerr = filereader.ReadString('\n') {
 				address = strings.TrimSpace(address)
-				log.Debugf("To: %s", address)
+				log.Printf("To: %s", address)
 				c.Rcpt(address)
 				message = fmt.Sprintf("%s\nTo: %s", message, address)
 			}
 		} else {
-			log.Errorf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
-			log.Errorf("Notifying %s", DEFAULTTO)
-			log.Debugf("To: %s", DEFAULTTO)
+			log.Printf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
+			log.Printf("Notifying %s", DEFAULTTO)
+			log.Printf("To: %s", DEFAULTTO)
 			c.Rcpt(DEFAULTTO)
 			message = fmt.Sprintf("%s\nTo: %s", message, DEFAULTTO)
 		}
 
 		message = fmt.Sprintf("%s\n\n%s", message, body)
 		// Send the email body.
-		log.Debug("Sending mail")
+		log.Println("Sending mail")
 
 		wc, err := c.Data()
 		if err != nil {
-			log.WithFields(log.Fields{
-				"source": MAILLOG,
-				"error":  err,
-			}).Errorf("Could not write mail")
+			log.Println("Could not write mail")
 			return err
 		}
 		defer wc.Close()
 		buf := bytes.NewBufferString(message)
 		if _, err = buf.WriteTo(wc); err != nil {
-			log.WithFields(log.Fields{
-				"source": MAILLOG,
-				"error":  err,
-			}).Errorf("Could not write mail")
+			log.Println("Could not write mail")
 		}
-		log.Debug("sendMail Done")
+		log.Println("sendMail Done")
 	} else {
-		log.WithFields(log.Fields{
-			"source": MAILLOG,
-		}).Infof("Fake mail body: %s", body)
+		log.Printf("Fake mail body: %s", body)
 	}
 	return nil
 }

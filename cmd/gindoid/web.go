@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 
 	"github.com/G-Node/libgin/libgin"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -65,8 +65,8 @@ type reqResultData struct {
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
 	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
 	if err != nil {
-		log.Errorf("Failed to parse template: %s", err.Error())
-		log.Errorf("Request data: %+v", resData)
+		log.Printf("Failed to parse template: %s", err.Error())
+		log.Printf("Request data: %+v", resData)
 		// failed to render result template; just show the message wrapped in html tags
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
 		return
@@ -90,7 +90,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	dReq.RequestData = r.PostFormValue("reqdata")
 	reqdata, err := decryptRequestData(dReq.RequestData, conf.Key)
 	if err != nil {
-		log.Errorf("Invalid request: %s", err.Error())
+		log.Printf("Invalid request: %s", err.Error())
 		dReq.ErrorMessages = []string{"Failed to verify request"}
 		resData.Message = template.HTML(msgInvalidRequest)
 		// ignore the error, no email to send
@@ -100,7 +100,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	dReq.DOIRequestData = reqdata
 
-	log.Debugf("Received DOI request: %+v", dReq)
+	log.Printf("Received DOI request: %+v", dReq)
 
 	// calculate DOI
 	uuid := makeUUID(dReq.Repository)
@@ -120,8 +120,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		if err != nil {
 			// Email send failed
 			// Log the error
-			log.Errorf("Failed to send notification email: %s", err.Error())
-			log.Errorf("Request data: %+v", dReq)
+			log.Printf("Failed to send notification email: %s", err.Error())
+			log.Printf("Request data: %+v", dReq)
 			// Ask the user to contact us
 			resData.Success = false
 			resData.Level = "error"
@@ -134,8 +134,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
 	if err != nil {
 		// Can happen if the DOI service isn't logged in to GIN
-		log.Errorf("Failed to get user data: %s", err.Error())
-		log.Errorf("Request data: %+v", dReq)
+		log.Printf("Failed to get user data: %s", err.Error())
+		log.Printf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
 		resData.Success = true
 		resData.Level = "warning"
@@ -146,8 +146,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
 		// made private) between preparing the request and submitting it
-		log.Errorf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Errorf("Request data: %+v", dReq)
+		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Printf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		resData.Success = true
 		resData.Level = "warning"
@@ -158,8 +158,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	if err != nil {
 		// Can happen if the datacite.yml file is modified (and made invalid)
 		// between preparing the request and submitting it
-		log.Errorf("Failed to parse datacite.yml: %s", err.Error())
-		log.Errorf("Request data: %+v", dReq)
+		log.Printf("Failed to parse datacite.yml: %s", err.Error())
+		log.Printf("Request data: %+v", dReq)
 		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
 		resData.Success = true
 		resData.Level = "warning"
@@ -186,21 +186,16 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 // It validates the metadata provided from the GIN repository and shows
 // appropriate error messages and instructions.
 func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configuration) {
-	log.Infof("Got a new DOI request")
+	log.Printf("Got a new DOI request")
 	if err := r.ParseForm(); err != nil {
-		log.WithFields(log.Fields{
-			"source": "Init",
-		}).Debug("Could not parse form data")
+		log.Println("Could not parse form data")
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email (maybe)
 		return
 	}
 	tmpl, err := template.New("requestpage").Parse(requestPageTmpl)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": "startDOIRegistration",
-			"error":  err,
-		}).Debug("Could not parse init template")
+		log.Println("Could not parse init template")
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email
 		return
@@ -208,13 +203,13 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	regrequest := r.Form.Get("regrequest")
 
-	log.Infof("Got request: %s", regrequest)
+	log.Printf("Got request: %s", regrequest)
 
 	dReq := DOIReq{}
 	dReq.DOIInfo = &DOIRegInfo{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
-		log.Errorf("Invalid request: %s", err.Error())
+		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		dReq.Message = template.HTML(msgInvalidRequest)
 		tmpl.Execute(w, dReq)
@@ -228,23 +223,15 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	if doiInfo, err := parseDOIInfo(infoyml); err == nil {
 		// TODO: Simplify this chain of conditions
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
-		log.Debugf("Received DOI information: %s", string(j))
+		log.Printf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"request": dReq,
-				"source":  "Init",
-				"error":   err,
-			}).Error("Could not parse template")
+			log.Println("Could not parse template")
 			return
 		}
 	} else if doiInfo != nil {
-		log.WithFields(log.Fields{
-			"doiInfo": doiInfo,
-			"source":  "Init",
-			"error":   err,
-		}).Debug("DOI file invalid")
+		log.Println("DOI file invalid")
 		if doiInfo.Missing != nil {
 			dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
 		} else {
@@ -253,12 +240,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = &DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"doiInfo": doiInfo,
-				"request": dReq,
-				"source":  "Init",
-				"error":   err,
-			}).Error("Could not parse template")
+			log.Println("Could not parse template")
 			return
 		}
 		return
@@ -266,11 +248,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.Message = template.HTML(msgInvalidDOI)
 		tmpl.Execute(w, dReq)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"request": dReq,
-				"source":  "Init",
-				"error":   err,
-			}).Error("Could not parse template")
+			log.Println("Could not parse template")
 			return
 		}
 		return

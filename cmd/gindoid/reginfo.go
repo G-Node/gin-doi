@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"github.com/G-Node/libgin/libgin"
-	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -89,15 +89,12 @@ func dataciteURL(repopath string, conf *Configuration) string {
 // readFileAtURL returns the contents of a file at a given URL.
 func readFileAtURL(url string) ([]byte, error) {
 	client := &http.Client{}
-	log.Debugf("Fetching datacite file from %s", url)
+	log.Printf("Fetching datacite file from %s", url)
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
-		// todo Try to infer what went wrong
-		log.WithFields(log.Fields{
-			"path":  url,
-			"error": err,
-		}).Debug("Could not get DOI file")
+		// TODO Try to infer what went wrong
+		log.Println("Could not get DOI file")
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -106,10 +103,7 @@ func readFileAtURL(url string) ([]byte, error) {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"path":  url,
-			"error": err,
-		}).Debug("Could not read from received datacite.yml file")
+		log.Println("Could not read from received datacite.yml file")
 		return nil, err
 	}
 	return body, nil
@@ -120,20 +114,14 @@ func parseDOIInfo(infoyml []byte) (*DOIRegInfo, error) {
 	doiInfo := DOIRegInfo{}
 	err := yaml.Unmarshal(infoyml, &doiInfo)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"data":  string(infoyml),
-			"error": err,
-		}).Error("Could not unmarshal DOI file")
+		log.Println("Could not unmarshal DOI file")
 		res := DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
 	}
 	doiInfo.DateTime = time.Now()
 	if !hasValues(&doiInfo) {
-		log.WithFields(log.Fields{
-			"data":    string(infoyml),
-			"doiInfo": doiInfo,
-		}).Debug("DOI file is missing entries")
+		log.Println("DOI file is missing entries")
 		return &doiInfo, fmt.Errorf("DOI info is missing entries")
 	}
 	return &doiInfo, nil
@@ -178,7 +166,7 @@ func (c *DOIRegInfo) GetCitation() string {
 func (c *DOIRegInfo) EscXML(txt string) string {
 	buf := new(bytes.Buffer)
 	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
-		log.Errorf("Could not escape:%s, %+v", txt, err)
+		log.Printf("Could not escape:%s, %+v", txt, err)
 		return ""
 	}
 	return buf.String()
@@ -310,19 +298,13 @@ func (d *DOIReq) AsHTML() template.HTML {
 func renderXML(doiInfo *DOIRegInfo) (string, error) {
 	tmpl, err := txttemplate.New("doixml").Parse(doiXML)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpMakeXML,
-			"error":  err,
-		}).Error("Could not parse template")
+		log.Println("Could not parse template")
 		return "", err
 	}
 	buff := bytes.Buffer{}
 	err = tmpl.Execute(&buff, doiInfo)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpMakeXML,
-			"error":  err,
-		}).Error("Template execution failed")
+		log.Println("Template execution failed")
 		return "", err
 	}
 	return buff.String(), err

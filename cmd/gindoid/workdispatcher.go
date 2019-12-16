@@ -8,10 +8,10 @@ package main
 import (
 	"crypto/rsa"
 	_ "expvar"
+	"log"
 	_ "net/http/pprof"
 
 	gogs "github.com/gogits/go-gogs-client"
-	log "github.com/sirupsen/logrus"
 )
 
 // DOIJob holds the attributes needed to perform unit of work.
@@ -52,9 +52,7 @@ func (w *Worker) start() {
 			case job := <-w.JobQueue:
 				// Dispatcher has added a job to my jobQueue.
 				createRegisteredDataset(job)
-				log.WithFields(log.Fields{
-					"source": "Worker",
-				}).Debugf("Worker %d Completed %s!\n", w.ID, job.Name)
+				log.Printf("Worker %d Completed %s!", w.ID, job.Name)
 			case <-w.QuitChan:
 				// We have been asked to stop.
 				return
@@ -105,11 +103,9 @@ func (d *Dispatcher) dispatch() {
 		select {
 		case job := <-d.jobQueue:
 			go func() {
-				log.WithFields(log.Fields{"jobname": job.Name}).
-					Infof("Fetching workerJobQueue for: %s\n", job.Name)
+				log.Printf("Fetching workerJobQueue for: %s", job.Name)
 				workerJobQueue := <-d.workerPool
-				log.WithFields(log.Fields{"jobname": job.Name}).
-					Infof("Adding %s to workerJobQueue\n", job.Name)
+				log.Printf("Adding %s to workerJobQueue", job.Name)
 				workerJobQueue <- job
 			}()
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
 	humanize "github.com/dustin/go-humanize"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -44,11 +44,7 @@ func createRegisteredDataset(job DOIJob) error {
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": jobname,
-		}).Error("Could not create the metadata template")
+		log.Println("Could not create the metadata template")
 		// XML Creation failed; return with error
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
 		notifyAdmin(dReq, conf)
@@ -59,22 +55,14 @@ func createRegisteredDataset(job DOIJob) error {
 	// No registering. But the XML is provided with everything
 	data, err := renderXML(dReq.DOIInfo)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": jobname,
-		}).Error("Could not parse the metadata file")
+		log.Println("Could not parse the metadata file")
 		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
 		notifyAdmin(dReq, conf)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": jobname,
-		}).Error("Could not write to the metadata file")
+		log.Println("Could not write to the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 
@@ -93,17 +81,13 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	// Clone under targetpath (will create subdirectory with repository name)
 	if err := os.MkdirAll(targetpath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
-		log.Error(errmsg)
+		log.Println(errmsg)
 		return "", -1, fmt.Errorf(errmsg)
 	}
 
 	// Clone
 	if err := cloneRepo(repopath, targetpath, conf); err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": jobname,
-		}).Error("Repository cloning failed")
+		log.Println("Repository cloning failed")
 		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
 	}
 
@@ -112,29 +96,21 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(targetpath, reponame)
 	if err := derepoCloneDir(repodir); err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": jobname,
-		}).Error("Repository cleanup (uninit & derepo) failed")
+		log.Println("Repository cleanup (uninit & derepo) failed")
 		return "", -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
 	}
 
 	// Zip
-	log.Infof("Preparing zip file for %s", jobname)
+	log.Printf("Preparing zip file for %s", jobname)
 	// use DOI with / replacement for zip filename
 	zipbasename := strings.ReplaceAll(jobname, "/", "_") + ".zip"
 	zipfilename := filepath.Join(targetpath, zipbasename)
 	zipsize, err := zip(repodir, zipfilename)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": jobname,
-		}).Error("Could not zip the data")
+		log.Println("Could not zip the data")
 		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
 	}
-	log.Infof("Archive size: %d", zipsize)
+	log.Printf("Archive size: %d", zipsize)
 	return zipbasename, zipsize, nil
 }
 
@@ -143,20 +119,20 @@ func zip(source, zipfilename string) (int64, error) {
 	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
 	if err != nil {
-		log.Errorf("%s: Failed to get abs path for source directory in function '%s': %v", lpStorage, fn, err)
+		log.Printf("%s: Failed to get abs path for source directory in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
 
 	zipfilename, err = filepath.Abs(zipfilename)
 	if err != nil {
-		log.Errorf("%s: Failed to get abs path for target zip file in function '%s': %v", lpStorage, fn, err)
+		log.Printf("%s: Failed to get abs path for target zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
 
 	// Create zip file IO writer for MakeZip function
 	zipfp, err := os.Create(zipfilename)
 	if err != nil {
-		log.Errorf("%s: Failed to create zip file for writing in function '%s': %v", lpStorage, fn, err)
+		log.Printf("%s: Failed to create zip file for writing in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
 	defer zipfp.Close()
@@ -164,17 +140,17 @@ func zip(source, zipfilename string) (int64, error) {
 	// root-relative.
 	origdir, err := os.Getwd()
 	if err != nil {
-		log.Errorf("%s: Failed to get working directory in function '%s': %v", lpStorage, fn, err)
+		log.Printf("%s: Failed to get working directory in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
 	defer os.Chdir(origdir)
 	if err := os.Chdir(source); err != nil {
-		log.Errorf("%s: Failed to change to source directory to make zip file in function '%s': %v", lpStorage, fn, err)
+		log.Printf("%s: Failed to change to source directory to make zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
 
 	if err := libgin.MakeZip(zipfp, "."); err != nil {
-		log.Errorf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
+		log.Printf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
 
@@ -188,11 +164,7 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
 		if err != nil {
-			log.WithFields(log.Fields{
-				"source": lpStorage,
-				"error":  err,
-				"target": target,
-			}).Error("Could not parse the DOI template")
+			log.Println("Could not parse the DOI template")
 			return err
 		}
 		return err
@@ -200,20 +172,12 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 
 	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source": lpStorage,
-			"error":  err,
-			"target": target,
-		}).Error("Could not create the DOI index.html")
+		log.Println("Could not create the DOI index.html")
 		return err
 	}
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
-		log.WithFields(log.Fields{
-			"source":  lpStorage,
-			"error":   err,
-			"doiInfo": info,
-		}).Error("Could not execute the DOI template")
+		log.Println("Could not execute the DOI template")
 		return err
 	}
 	return nil
@@ -224,31 +188,20 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 	storagedir := conf.Storage.TargetDirectory
 	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source":  lpStorage,
-			"error":   err,
-			"jobname": jobname,
-		}).Error("Could not create the target directory")
+		log.Println("Could not create the target directory")
 		return err
 	}
 	// Deny access per default
 	file, err := os.Create(filepath.Join(storagedir, jobname, ".htaccess"))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"source":  lpStorage,
-			"error":   err,
-			"jobname": jobname,
-		}).Error("Could not create .htaccess")
+		log.Println("Could not create .htaccess")
 		return err
 	}
 	defer file.Close()
 	// todo check
 	_, err = file.Write([]byte("deny from all"))
 	if err != nil {
-		log.WithFields(log.Fields{
-			"error":   err,
-			"jobname": jobname,
-		}).Error("Could not write to .htaccess")
+		log.Println("Could not write to .htaccess")
 		return err
 	}
 	return nil
@@ -259,7 +212,7 @@ func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
 func derepoCloneDir(directory string) error {
 	directory, err := filepath.Abs(directory)
 	if err != nil {
-		log.Errorf("%s: Failed to get abs path for repo directory while cleaning up '%s'. Was our working directory removed?", lpStorage, directory)
+		log.Printf("%s: Failed to get abs path for repo directory while cleaning up '%s'. Was our working directory removed?", lpStorage, directory)
 		return err
 	}
 	// NOTE: Most of the functionality in this method will be moved to libgin
@@ -267,12 +220,12 @@ func derepoCloneDir(directory string) error {
 	// Change into directory to cleanup and defer changing back
 	origdir, err := os.Getwd()
 	if err != nil {
-		log.Errorf("%s: Failed to get abs path for working directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
+		log.Printf("%s: Failed to get abs path for working directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
 		return err
 	}
 	defer os.Chdir(origdir)
 	if err := os.Chdir(directory); err != nil {
-		log.Errorf("%s: Failed to change working directory to '%s': %v", lpStorage, directory, err)
+		log.Printf("%s: Failed to change working directory to '%s': %v", lpStorage, directory, err)
 		return err
 	}
 
@@ -284,12 +237,12 @@ func derepoCloneDir(directory string) error {
 
 	_, err = git.AnnexInfo()
 	if err != nil {
-		log.Errorf("%s: Failed to uninit annex in cloned repository '%s': %v", lpStorage, directory, err)
+		log.Printf("%s: Failed to uninit annex in cloned repository '%s': %v", lpStorage, directory, err)
 	}
 
 	gitdir, err := filepath.Abs(filepath.Join(directory, ".git"))
 	if err != nil {
-		log.Errorf("%s: Failed to get abs path for git directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
+		log.Printf("%s: Failed to get abs path for git directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
 		return err
 	}
 	// Set write permissions on everything under gitdir
@@ -307,18 +260,18 @@ func derepoCloneDir(directory string) error {
 		}
 
 		if err := os.Chmod(path, mode); err != nil {
-			log.Errorf("failed to change permissions on '%s': %v", path, err)
+			log.Printf("failed to change permissions on '%s': %v", path, err)
 		}
 		return nil
 	}
 	if err := filepath.Walk(gitdir, walker); err != nil {
-		log.Errorf("%s: Failed to set write permissions for directories and files under gitdir '%s': %v", lpStorage, gitdir, err)
+		log.Printf("%s: Failed to set write permissions for directories and files under gitdir '%s': %v", lpStorage, gitdir, err)
 		return err
 	}
 
 	// Delete .git directory
 	if err := os.RemoveAll(gitdir); err != nil {
-		log.Errorf("%s: Failed to remove git directory '%s': %v", lpStorage, gitdir, err)
+		log.Printf("%s: Failed to remove git directory '%s': %v", lpStorage, gitdir, err)
 		return err
 	}
 
@@ -333,7 +286,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	// This will need to change when that issue is fixed
 	origdir, err := os.Getwd()
 	if err != nil {
-		log.Errorf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
+		log.Printf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
 		return err
 	}
 	defer os.Chdir(origdir)
@@ -341,14 +294,14 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("Cloning %s", URI)
+	log.Printf("Cloning %s", URI)
 
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
 	for stat := range clonechan {
-		log.Debug(stat)
+		log.Println(stat)
 		if stat.Err != nil {
-			log.Errorf("Repository cloning failed: %s", stat.Err)
+			log.Printf("Repository cloning failed: %s", stat.Err)
 			return stat.Err
 		}
 	}
@@ -356,9 +309,9 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	downloadchan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
-		log.Debug(stat)
+		log.Println(stat)
 		if stat.Err != nil {
-			log.Errorf("Repository cloning failed during annex get: %s", stat.Err)
+			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
 			return stat.Err
 		}
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 	"github.com/G-Node/gin-cli/ginclient/config"
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
-	log "github.com/sirupsen/logrus"
 )
 
 // Configuration is used to store and pass the configuration settings
@@ -105,7 +105,7 @@ func loadconfig() (*Configuration, error) {
 
 	ginurl := libgin.ReadConf("ginurl")
 	giturl := libgin.ReadConf("giturl")
-	log.Debugf("gin: %s -- git: %s", ginurl, giturl)
+	log.Printf("gin: %s -- git: %s", ginurl, giturl)
 
 	webcfg, err := config.ParseWebString(ginurl)
 	if err != nil {
@@ -123,7 +123,7 @@ func loadconfig() (*Configuration, error) {
 		return nil, err
 	}
 	srvcfg.Git.HostKey = hostkeystr
-	log.Debugf("Got hostkey with fingerprint:\n%s", fingerprint)
+	log.Printf("Got hostkey with fingerprint:\n%s", fingerprint)
 	config.AddServerConf("gin", srvcfg)
 	// Update known hosts file
 	err = git.WriteKnownHosts()
