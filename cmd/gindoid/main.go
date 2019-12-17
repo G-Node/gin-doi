@@ -3,54 +3,47 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	docopt "github.com/docopt/docopt-go"
-	log "github.com/sirupsen/logrus"
 )
 
 const usage = `gindoid: DOI service for preparing GIN repositories for publication
 Usage:
-  gindoid [--debug]
+  gindoid
 
-  --debug              Print debug messages
+  No arguments are currently supported.
 `
 
 func main() {
-	args, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
+	_, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
 	if err != nil {
+		// NOTE: Keeping arg parsing around for upcoming CL functions
 		log.Printf("Error while parsing command line: %s", err.Error())
 		os.Exit(-1)
 	}
-	//Debugging?
-	debug := args["--debug"].(bool)
-	if debug {
-		log.SetLevel(log.DebugLevel)
-		log.SetFormatter(&log.TextFormatter{ForceColors: true})
-	}
 
-	log.Debug("Starting up")
+	log.Print("Starting up")
 
 	config, err := loadconfig()
 	if err != nil {
-		log.Errorf("Startup failed: %v", err)
+		log.Printf("Startup failed: %v", err)
 		os.Exit(-1)
 	}
 
-	if debug {
-		// Pretty print configuration when debugging, but hide sensitive stuff
-		cc := *config
-		cc.Key = "[HIDDEN]"
-		cc.GIN.Password = "[HIDDEN]"
-		j, _ := json.MarshalIndent(cc, "", "  ")
-		log.Debug(string(j))
-	}
+	// Pretty print configuration for debugging, but hide sensitive stuff
+	cc := *config
+	cc.Key = "[HIDDEN]"
+	cc.GIN.Password = "[HIDDEN]"
+	j, _ := json.MarshalIndent(cc, "", "  ")
+	log.Print(string(j))
 
-	log.Debugf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
+	log.Printf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
 	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
 	if err != nil {
-		log.Error(err)
+		log.Print(err)
 		os.Exit(-1)
 	}
 
@@ -67,7 +60,7 @@ func main() {
 
 	// register renders the info page with the registration button
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("Got request: %s", r.URL.String())
+		log.Printf("Got request: %s", r.URL.String())
 		renderRequestPage(w, r, config)
 	})
 
