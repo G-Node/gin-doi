@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/xml"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -109,12 +108,12 @@ func readFileAtURL(url string) ([]byte, error) {
 }
 
 // parseDOIInfo parses the DOI registration info and returns a filled DOIRegInfo struct.
-func parseDOIInfo(infoyml []byte) (*DOIRegInfo, error) {
-	doiInfo := DOIRegInfo{}
+func parseDOIInfo(infoyml []byte) (*libgin.DOIRegInfo, error) {
+	doiInfo := libgin.DOIRegInfo{}
 	err := yaml.Unmarshal(infoyml, &doiInfo)
 	if err != nil {
 		log.Print("Could not unmarshal DOI file")
-		res := DOIRegInfo{}
+		res := libgin.DOIRegInfo{}
 		res.Missing = []string{fmt.Sprintf("%s", err)}
 		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
 	}
@@ -124,59 +123,6 @@ func parseDOIInfo(infoyml []byte) (*DOIRegInfo, error) {
 		return &doiInfo, fmt.Errorf("DOI info is missing entries")
 	}
 	return &doiInfo, nil
-}
-
-type DOIRegInfo struct {
-	Missing      []string
-	DOI          string
-	UUID         string
-	FileName     string
-	FileSize     string
-	Title        string
-	Authors      []Author
-	Description  string
-	Keywords     []string
-	References   []Reference
-	Funding      []string
-	License      *License
-	ResourceType string
-	DateTime     time.Time
-}
-
-func (c *DOIRegInfo) GetType() string {
-	if c.ResourceType != "" {
-		return c.ResourceType
-	}
-	return "Dataset"
-}
-
-func (c *DOIRegInfo) GetCitation() string {
-	var authors string
-	for _, auth := range c.Authors {
-		if len(auth.FirstName) > 0 {
-			authors += fmt.Sprintf("%s %s, ", auth.LastName, string(auth.FirstName[0]))
-		} else {
-			authors += fmt.Sprintf("%s, ", auth.LastName)
-		}
-	}
-	return fmt.Sprintf("%s (%s) %s. G-Node. doi:%s", authors, c.Year(), c.Title, c.DOI)
-}
-
-func (c *DOIRegInfo) EscXML(txt string) string {
-	buf := new(bytes.Buffer)
-	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
-		log.Printf("Could not escape:%s, %+v", txt, err)
-		return ""
-	}
-	return buf.String()
-}
-
-func (c *DOIRegInfo) Year() string {
-	return fmt.Sprintf("%d", c.DateTime.Year())
-}
-
-func (c *DOIRegInfo) ISODate() string {
-	return c.DateTime.Format("2006-01-02")
 }
 
 type Author struct {
@@ -210,9 +156,10 @@ func (a *Author) RenderAuthor() string {
 }
 
 type Reference struct {
-	Reftype string
-	Name    string
-	ID      string
+	Reftype  string
+	Name     string
+	Citation string
+	ID       string
 }
 
 func (ref Reference) GetURL() string {
@@ -247,7 +194,7 @@ type License struct {
 	URL  string
 }
 
-func hasValues(s *DOIRegInfo) bool {
+func hasValues(s *libgin.DOIRegInfo) bool {
 	if s.Title == "" {
 		s.Missing = append(s.Missing, msgNoTitle)
 	}
@@ -268,7 +215,7 @@ func hasValues(s *DOIRegInfo) bool {
 	}
 	if s.References != nil {
 		for _, ref := range s.References {
-			if ref.Name == "" || ref.Reftype == "" {
+			if (ref.Citation == "" && ref.Name == "") || ref.Reftype == "" {
 				s.Missing = append(s.Missing, msgInvalidReference)
 			}
 		}
@@ -280,7 +227,7 @@ type DOIReq struct {
 	RequestData string
 	*libgin.DOIRequestData
 	Message       template.HTML
-	DOIInfo       *DOIRegInfo
+	DOIInfo       *libgin.DOIRegInfo
 	ErrorMessages []string
 }
 
@@ -294,7 +241,7 @@ func (d *DOIReq) AsHTML() template.HTML {
 }
 
 // renderXML creates the DataCite XML file contents given the registration data and XML template.
-func renderXML(doiInfo *DOIRegInfo) (string, error) {
+func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
 	tmpl, err := txttemplate.New("doixml").Parse(doiXML)
 	if err != nil {
 		log.Print("Could not parse template")

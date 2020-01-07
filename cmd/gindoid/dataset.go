@@ -184,7 +184,7 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 }
 
 // prepDir creates the directory where the dataset will be cloned and archived.
-func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
+func prepDir(jobname string, info *libgin.DOIRegInfo, conf *Configuration) error {
 	storagedir := conf.Storage.TargetDirectory
 	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
 	if err != nil {

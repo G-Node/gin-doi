@@ -206,7 +206,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	log.Printf("Got request: %s", regrequest)
 
 	dReq := DOIReq{}
-	dReq.DOIInfo = &DOIRegInfo{}
+	dReq.DOIInfo = &libgin.DOIRegInfo{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
@@ -249,7 +249,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		} else {
 			dReq.Message = template.HTML(msgInvalidDOI + msgBadEncoding)
 		}
-		dReq.DOIInfo = &DOIRegInfo{}
+		dReq.DOIInfo = &libgin.DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
 			log.Print("Could not parse template")

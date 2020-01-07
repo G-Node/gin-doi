@@ -114,7 +114,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 											<td>References</td>
 											<td>
 												{{range $index, $ref := .DOIInfo.References}}
-													{{ $ref.Name }} [{{ $ref.ID }}] ({{ $ref.Reftype }})
+													{{ $ref.Name }} {{ $ref.Citation }} [{{ $ref.ID }}] ({{ $ref.Reftype }})
 													<br>
 												{{end}}
 											</td>
