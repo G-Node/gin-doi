@@ -40,7 +40,7 @@ const (
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = "No description provided."
 	msgNoLicense        = "No valid license provided. Please specify URL and name."
-	msgInvalidReference = "A specified Reference is not valid. Please provide the name and type of the reference."
+	msgInvalidReference = "One of the Reference entries is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
 	msgSubmitError     = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
