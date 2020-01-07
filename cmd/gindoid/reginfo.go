@@ -89,17 +89,16 @@ func dataciteURL(repopath string, conf *Configuration) string {
 // readFileAtURL returns the contents of a file at a given URL.
 func readFileAtURL(url string) ([]byte, error) {
 	client := &http.Client{}
-	log.Printf("Fetching datacite file from %s", url)
+	log.Printf("Fetching file at %q", url)
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
-		// TODO Try to infer what went wrong
-		log.Print("Could not get DOI file")
+		log.Printf("Error during request to GIN: %s", err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("could not get DOI file: %s", resp.Status)
+		return nil, fmt.Errorf("Could not get DOI file: %s", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
