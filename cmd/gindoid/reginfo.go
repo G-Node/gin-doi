@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"strings"
 	txttemplate "text/template"
 	"time"
 
@@ -115,75 +114,6 @@ func parseDOIInfo(infoyml []byte) (*libgin.DOIRegInfo, error) {
 		return &doiInfo, fmt.Errorf("DOI info is missing entries")
 	}
 	return &doiInfo, nil
-}
-
-type Author struct {
-	FirstName   string
-	LastName    string
-	Affiliation string
-	ID          string
-}
-
-type NamedIdentifier struct {
-	URI    string
-	Scheme string
-	ID     string
-}
-
-func (a *Author) GetValidID() *NamedIdentifier {
-	if a.ID == "" {
-		return nil
-	}
-	if strings.Contains(strings.ToLower(a.ID), "orcid") {
-		// assume the orcid id is a four block number thing eg. 0000-0002-5947-9939
-		var re = regexp.MustCompile(`(\d+-\d+-\d+-\d+)`)
-		nid := string(re.Find([]byte(a.ID)))
-		return &NamedIdentifier{URI: "https://orcid.org/", Scheme: "ORCID", ID: nid}
-	}
-	return nil
-}
-func (a *Author) RenderAuthor() string {
-	auth := fmt.Sprintf("%s,%s;%s;%s", a.LastName, a.FirstName, a.Affiliation, a.ID)
-	return strings.TrimRight(auth, ";")
-}
-
-type Reference struct {
-	Reftype  string
-	Name     string
-	Citation string
-	ID       string
-}
-
-func (ref Reference) GetURL() string {
-	idparts := strings.SplitN(ref.ID, ":", 2)
-	if len(idparts) != 2 {
-		// Malformed ID (no colon)
-		return ""
-	}
-	source := idparts[0]
-	idnum := idparts[1]
-
-	var prefix string
-	switch strings.ToLower(source) {
-	case "doi":
-		prefix = "https://doi.org/"
-	case "arxiv":
-		// https://arxiv.org/help/arxiv_identifier_for_services
-		prefix = "https://arxiv.org/abs/"
-	case "pmid":
-		// https://www.ncbi.nlm.nih.gov/books/NBK3862/#linkshelp.Retrieve_PubMed_Citations
-		prefix = "https://www.ncbi.nlm.nih.gov/pubmed/"
-	default:
-		// Return an empty string to make the reflink inactive
-		return ""
-	}
-
-	return fmt.Sprintf("%s%s", prefix, idnum)
-}
-
-type License struct {
-	Name string
-	URL  string
 }
 
 func hasValues(s *libgin.DOIRegInfo) bool {
