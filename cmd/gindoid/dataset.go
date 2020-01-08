@@ -55,8 +55,8 @@ func createRegisteredDataset(job DOIJob) error {
 	// No registering. But the XML is provided with everything
 	data, err := renderXML(dReq.DOIInfo)
 	if err != nil {
-		log.Print("Could not parse the metadata file")
-		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
+		log.Print("Could not render the metadata file")
+		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
 		notifyAdmin(dReq, conf)
 		return err
 	}
