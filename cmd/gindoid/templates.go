@@ -360,7 +360,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<td>References</td>
 							<td>
 								{{range $index, $ref := .DOIInfo.References}}
-									{{ $ref.Name }}
+									{{ $ref.Name }} {{ $ref.Citation }}
 									{{if $ref.ID}}
 										[<a href={{$ref.GetURL}}>{{$ref.ID}}</a>]
 									{{end}}
