@@ -234,7 +234,11 @@ func (d *DOIReq) AsHTML() template.HTML {
 
 // renderXML creates the DataCite XML file contents given the registration data and XML template.
 func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
-	tmpl, err := txttemplate.New("doixml").Parse(doiXML)
+	tmplfuncs := map[string]interface{}{
+		"EscXML":               EscXML,
+		"ReferenceDescription": ReferenceDescription,
+	}
+	tmpl, err := txttemplate.New("doixml").Funcs(tmplfuncs).Parse(doiXML)
 	if err != nil {
 		log.Print("Could not parse template")
 		return "", err
