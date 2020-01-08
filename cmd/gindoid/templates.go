@@ -468,8 +468,8 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
      <subject>{{EscXML $kw}}</subject>{{end}}
   </subjects>{{end}}
   {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
-  <relatedIdentifier relatedIdentifierType="Handle" relationType="{{$ref.Reftype}}">{{EscXML $ref.Name}}{{ if and $ref.Name $ref.Citation }} {{ end }}{{EscXML $ref.Citation}}</relatedIdentifier>{{end}}
-  </relatedIdentifiers>{{end}}
+    <relatedIdentifier relatedIdentifierType="{{ ReferenceSource $ref }}" relationType="{{ $ref.Reftype }}">{{ ReferenceID $ref }}</relatedIdentifier>
+  {{end}}</relatedIdentifiers>{{end}}
   {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
   <fundingReference><funderName>{{EscXML $fu}}</funderName></fundingReference>{{end}}
 </fundingReferences>{{end}}

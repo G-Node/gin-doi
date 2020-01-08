@@ -167,6 +167,8 @@ func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
 	tmplfuncs := map[string]interface{}{
 		"EscXML":               EscXML,
 		"ReferenceDescription": ReferenceDescription,
+		"ReferenceID":          ReferenceID,
+		"ReferenceSource":      ReferenceSource,
 	}
 	tmpl, err := txttemplate.New("doixml").Funcs(tmplfuncs).Parse(doiXML)
 	if err != nil {

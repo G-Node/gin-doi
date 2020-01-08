@@ -98,3 +98,27 @@ func ReferenceDescription(ref libgin.Reference) string {
 	}
 	return fmt.Sprintf("%s: %s (%s)", ref.Reftype, namecitation, ref.ID)
 }
+
+// ReferenceSource splits the source type from a reference string of the form <source>:<ID>
+// This is a utility function for the doi.xml template.
+func ReferenceSource(ref libgin.Reference) string {
+	idparts := strings.SplitN(ref.ID, ":", 2)
+	if len(idparts) != 2 {
+		// Malformed ID (no colon)
+		// No source type
+		return ""
+	}
+	return idparts[0]
+}
+
+// ReferenceID splits the ID from a reference string of the form <source>:<ID>
+// This is a utility function for the doi.xml template.
+func ReferenceID(ref libgin.Reference) string {
+	idparts := strings.SplitN(ref.ID, ":", 2)
+	if len(idparts) != 2 {
+		// Malformed ID (no colon)
+		// No source type
+		return idparts[0]
+	}
+	return idparts[1]
+}
