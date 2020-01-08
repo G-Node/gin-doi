@@ -60,7 +60,7 @@ func isRegisteredDOI(doi string) bool {
 }
 
 func makeUUID(URI string) string {
-	if doi, ok := UUIDMap[URI]; ok {
+	if doi, ok := libgin.UUIDMap[URI]; ok {
 		return doi
 	}
 	currMd5 := md5.Sum([]byte(URI))
