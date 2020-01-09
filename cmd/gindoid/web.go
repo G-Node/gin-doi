@@ -12,7 +12,7 @@ import (
 
 const (
 	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
-	msgInvalidDOI        = `The DOI file was not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
+	msgInvalidDOI        = `The DOI file is missing or not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
 	msgInvalidURI        = "Please provide a valid repository URI"
 	msgAlreadyRegistered = `<div class="content">
 								<div class="header"> A DOI is already registered for your dataset.</div>
@@ -40,7 +40,7 @@ const (
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = "No description provided."
 	msgNoLicense        = "No valid license provided. Please specify URL and name."
-	msgInvalidReference = "A specified Reference is not valid. Please provide the name and type of the reference."
+	msgInvalidReference = "One of the Reference entries is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
 	msgSubmitError     = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
@@ -206,7 +206,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	log.Printf("Got request: %s", regrequest)
 
 	dReq := DOIReq{}
-	dReq.DOIInfo = &DOIRegInfo{}
+	dReq.DOIInfo = &libgin.DOIRegInfo{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
@@ -220,6 +220,18 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	dReq.RequestData = regrequest // Forward it through the hidden form in the template
 
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
+	if err != nil {
+		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
+		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Printf("Request data: %+v", dReq)
+		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
+		err = tmpl.Execute(w, dReq)
+		if err != nil {
+			log.Print("Could not parse template")
+		}
+		return
+	}
 	if doiInfo, err := parseDOIInfo(infoyml); err == nil {
 		// TODO: Simplify this chain of conditions
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
@@ -237,7 +249,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		} else {
 			dReq.Message = template.HTML(msgInvalidDOI + msgBadEncoding)
 		}
-		dReq.DOIInfo = &DOIRegInfo{}
+		dReq.DOIInfo = &libgin.DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
 			log.Print("Could not parse template")

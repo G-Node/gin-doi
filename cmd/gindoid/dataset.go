@@ -55,8 +55,8 @@ func createRegisteredDataset(job DOIJob) error {
 	// No registering. But the XML is provided with everything
 	data, err := renderXML(dReq.DOIInfo)
 	if err != nil {
-		log.Print("Could not parse the metadata file")
-		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to parse the XML metadata: %s", err))
+		log.Print("Could not render the metadata file")
+		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
 		notifyAdmin(dReq, conf)
 		return err
 	}
@@ -184,7 +184,7 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 }
 
 // prepDir creates the directory where the dataset will be cloned and archived.
-func prepDir(jobname string, info *DOIRegInfo, conf *Configuration) error {
+func prepDir(jobname string, info *libgin.DOIRegInfo, conf *Configuration) error {
 	storagedir := conf.Storage.TargetDirectory
 	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
 	if err != nil {

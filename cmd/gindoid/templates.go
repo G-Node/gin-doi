@@ -114,7 +114,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 											<td>References</td>
 											<td>
 												{{range $index, $ref := .DOIInfo.References}}
-													{{ $ref.Name }} [{{ $ref.ID }}] ({{ $ref.Reftype }})
+													{{ $ref.Name }} {{ $ref.Citation }} [{{ $ref.ID }}] ({{ $ref.Reftype }})
 													<br>
 												{{end}}
 											</td>
@@ -360,7 +360,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<td>References</td>
 							<td>
 								{{range $index, $ref := .DOIInfo.References}}
-									{{ $ref.Name }}
+									{{ $ref.Name }} {{ $ref.Citation }}
 									{{if $ref.ID}}
 										[<a href={{$ref.GetURL}}>{{$ref.ID}}</a>]
 									{{end}}
@@ -445,30 +445,33 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
   <identifier identifierType="DOI">{{.DOI}}</identifier>
   <creators>{{range $index, $auth := .Authors}}
     <creator>
-      <creatorName>{{$.EscXML $auth.LastName}}, {{$.EscXML $auth.FirstName}}</creatorName>
-        {{if $auth.GetValidID}}<nameIdentifier schemeURI="{{$auth.GetValidID.URI}}" nameIdentifierScheme="{{$auth.GetValidID.Scheme}}">{{$.EscXML $auth.GetValidID.ID}}</nameIdentifier>{{end}}
-        {{if $auth.Affiliation}}<affiliation>{{$.EscXML $auth.Affiliation}}</affiliation>{{end}}
+      <creatorName>{{EscXML $auth.LastName}}, {{EscXML $auth.FirstName}}</creatorName>
+        {{if $auth.GetValidID}}<nameIdentifier schemeURI="{{$auth.GetValidID.URI}}" nameIdentifierScheme="{{$auth.GetValidID.Scheme}}">{{EscXML $auth.GetValidID.ID}}</nameIdentifier>{{end}}
+        {{if $auth.Affiliation}}<affiliation>{{EscXML $auth.Affiliation}}</affiliation>{{end}}
     </creator>{{end}}
   </creators>
   <titles>
-    <title>{{.EscXML .Title}}</title>
+    <title>{EscXML .Title}}</title>
   </titles>
-  {{if .Description}}<descriptions>
-    <description descriptionType="Abstract">
-    {{.EscXML  .Description}}
-    </description>
+  {{ if or .Description .References }}<descriptions>
+    {{ if .Description }}<description descriptionType="Abstract">
+      {{ EscXML .Description }}
+    </description>{{ end }}
+    {{ range $index, $ref := .References }}<description descriptionType="Other">
+      {{ ReferenceDescription $ref }}
+    </description>{{ end }}
   </descriptions>{{end}}
   {{if .License}}<rightsList>
-    <rights {{if .License.URL}}rightsURI="{{.License.URL}}"{{end}}> {{$.EscXML .License.Name}}</rights>
+    <rights {{if .License.URL}}rightsURI="{{.License.URL}}"{{end}}> {{EscXML .License.Name}}</rights>
   </rightsList>{{end}}
   {{if .Keywords}}<subjects>{{range $index, $kw := .Keywords}}
-     <subject>{{$.EscXML $kw}}</subject>{{end}}
+     <subject>{{EscXML $kw}}</subject>{{end}}
   </subjects>{{end}}
   {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
-  <relatedIdentifier relatedIdentifierType="Handle" relationType="{{$ref.Reftype}}">{{$.EscXML $ref.Name}}</relatedIdentifier>{{end}}
-  </relatedIdentifiers>{{end}}
+    <relatedIdentifier relatedIdentifierType="{{ ReferenceSource $ref }}" relationType="{{ $ref.Reftype }}">{{ ReferenceID $ref }}</relatedIdentifier>
+  {{end}}</relatedIdentifiers>{{end}}
   {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
-  <fundingReference><funderName>{{$.EscXML $fu}}</funderName></fundingReference>{{end}}
+  <fundingReference><funderName>{{EscXML $fu}}</funderName></fundingReference>{{end}}
 </fundingReferences>{{end}}
   <contributors>
     <contributor contributorType="HostingInstitution">

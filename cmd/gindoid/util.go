@@ -1,15 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
+
+	"github.com/G-Node/libgin/libgin"
 )
 
 func readBody(r *http.Request) (*string, error) {
@@ -60,9 +65,60 @@ func isRegisteredDOI(doi string) bool {
 }
 
 func makeUUID(URI string) string {
-	if doi, ok := UUIDMap[URI]; ok {
+	if doi, ok := libgin.UUIDMap[URI]; ok {
 		return doi
 	}
 	currMd5 := md5.Sum([]byte(URI))
 	return hex.EncodeToString(currMd5[:])
+}
+
+// EscXML runs a string through xml.EscapeText.
+// This is a utility function for the doi.xml template.
+func EscXML(txt string) string {
+	buf := new(bytes.Buffer)
+	if err := xml.EscapeText(buf, []byte(txt)); err != nil {
+		log.Printf("Could not escape: %q :: %s", txt, err.Error())
+		return ""
+	}
+	return buf.String()
+}
+
+// ReferenceDescription creates a string representation of a reference for use in the XML description tag.
+// This is a utility function for the doi.xml template.
+func ReferenceDescription(ref libgin.Reference) string {
+	var namecitation string
+	if ref.Name != "" && ref.Citation != "" {
+		namecitation = ref.Name + " " + ref.Citation
+	} else {
+		namecitation = ref.Name + ref.Citation
+	}
+
+	if !strings.HasSuffix(namecitation, ".") {
+		namecitation += "."
+	}
+	return fmt.Sprintf("%s: %s (%s)", ref.Reftype, namecitation, ref.ID)
+}
+
+// ReferenceSource splits the source type from a reference string of the form <source>:<ID>
+// This is a utility function for the doi.xml template.
+func ReferenceSource(ref libgin.Reference) string {
+	idparts := strings.SplitN(ref.ID, ":", 2)
+	if len(idparts) != 2 {
+		// Malformed ID (no colon)
+		// No source type
+		return ""
+	}
+	return idparts[0]
+}
+
+// ReferenceID splits the ID from a reference string of the form <source>:<ID>
+// This is a utility function for the doi.xml template.
+func ReferenceID(ref libgin.Reference) string {
+	idparts := strings.SplitN(ref.ID, ":", 2)
+	if len(idparts) != 2 {
+		// Malformed ID (no colon)
+		// No source type
+		return idparts[0]
+	}
+	return idparts[1]
 }
