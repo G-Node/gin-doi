@@ -91,7 +91,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 											<td>Authors</td>
 											<td>
 												{{range $index, $auth := .DOIInfo.Authors}}
-													{{ $auth.LastName }},{{ $auth.FirstName }}; {{ $auth.Affiliation}}; {{$auth.ID}}
+													{{$auth.LastName}},{{$auth.FirstName}}; {{$auth.Affiliation}}; {{$auth.ID}}
 													<br>
 												{{end}}
 											</td>
@@ -114,7 +114,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 											<td>References</td>
 											<td>
 												{{range $index, $ref := .DOIInfo.References}}
-													{{ $ref.Name }} {{ $ref.Citation }} [{{ $ref.ID }}] ({{ $ref.Reftype }})
+													{{$ref.Name}} {{$ref.Citation}} [{{$ref.ID}}] ({{$ref.Reftype}})
 													<br>
 												{{end}}
 											</td>
@@ -123,7 +123,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 											<td>Funding</td>
 											<td>
 												{{range $index, $ref := .DOIInfo.Funding}}
-													{{ $ref}}
+													{{$ref}}
 													<br>
 												{{end}}
 											</td>
@@ -133,7 +133,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 												<td>Keywords</td>
 												<td>
 													{{range $index, $sub := .DOIInfo.Keywords}}
-														{{ $sub }}
+														{{$sub}}
 														<br>
 													{{end}}
 												</td>
@@ -260,11 +260,11 @@ const requestResultTmpl = `<!DOCTYPE html>
 
 				<div class="ui container">
 					<div class="ui {{.Level}} message">
-				{{ if .Success }}
+				{{if .Success}}
 						<div><b>DOI request submitted</b></div>
-				{{ else }}
+				{{else}}
 						<div><b>DOI request failed</b></div>
-				{{ end }}
+				{{end}}
 					</div>
 					<div class="ui info message">
 						{{.Message}}
@@ -338,7 +338,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<td>Authors</td>
 							<td>
 								{{range $index, $auth := .DOIInfo.Authors}}
-									{{ $auth.LastName }} {{ $auth.FirstName }},
+									{{$auth.LastName}} {{$auth.FirstName}},
 								{{end}}
 							</td>
 						</tr>
@@ -360,7 +360,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<td>References</td>
 							<td>
 								{{range $index, $ref := .DOIInfo.References}}
-									{{ $ref.Name }} {{ $ref.Citation }}
+									{{$ref.Name}} {{$ref.Citation}}
 									{{if $ref.ID}}
 										[<a href={{$ref.GetURL}}>{{$ref.ID}}</a>]
 									{{end}}
@@ -372,7 +372,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<td>Funding</td>
 							<td>
 								{{range $index, $ref := .DOIInfo.Funding}}
-									{{ $ref}}
+									{{$ref}}
 									<br>
 								{{end}}
 							</td>
@@ -382,7 +382,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 								<td>Keywords</td>
 								<td>
 									{{range $index, $sub := .DOIInfo.Keywords}}
-										{{ $sub }}
+										{{$sub}}
 										<br>
 									{{end}}
 								</td>
@@ -451,15 +451,15 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
     </creator>{{end}}
   </creators>
   <titles>
-    <title>{EscXML .Title}}</title>
+    <title>{{EscXML .Title}}</title>
   </titles>
-  {{ if or .Description .References }}<descriptions>
-    {{ if .Description }}<description descriptionType="Abstract">
-      {{ EscXML .Description }}
-    </description>{{ end }}
-    {{ range $index, $ref := .References }}<description descriptionType="Other">
-      {{ ReferenceDescription $ref }}
-    </description>{{ end }}
+  {{if or .Description .References}}<descriptions>
+    {{if .Description}}<description descriptionType="Abstract">
+      {{EscXML .Description}}
+    </description>{{end}}
+    {{range $index, $ref := .References}}<description descriptionType="Other">
+      {{ReferenceDescription $ref}}
+    </description>{{end}}
   </descriptions>{{end}}
   {{if .License}}<rightsList>
     <rights {{if .License.URL}}rightsURI="{{.License.URL}}"{{end}}> {{EscXML .License.Name}}</rights>
@@ -468,7 +468,7 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
      <subject>{{EscXML $kw}}</subject>{{end}}
   </subjects>{{end}}
   {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
-    <relatedIdentifier relatedIdentifierType="{{ ReferenceSource $ref }}" relationType="{{ $ref.Reftype }}">{{ ReferenceID $ref }}</relatedIdentifier>
+    <relatedIdentifier relatedIdentifierType="{{ReferenceSource $ref}}" relationType="{{$ref.Reftype}}">{{ReferenceID $ref}}</relatedIdentifier>
   {{end}}</relatedIdentifiers>{{end}}
   {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
   <fundingReference><funderName>{{EscXML $fu}}</funderName></fundingReference>{{end}}
