@@ -6,7 +6,7 @@ github.com/G-Node/gin-cli/gincmd/ginerrors
 github.com/G-Node/gin-cli/git
 github.com/G-Node/gin-cli/git/shell
 github.com/G-Node/gin-cli/web
-# github.com/G-Node/libgin v0.3.2 => github.com/achilleas-k/libgin v0.3.2-0.20200108154615-1c0c5b690df5
+# github.com/G-Node/libgin v0.3.2
 github.com/G-Node/libgin/libgin
 github.com/G-Node/libgin/libgin/gig
 # github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
@@ -55,7 +55,7 @@ github.com/spf13/pflag
 github.com/spf13/viper
 # github.com/subosito/gotenv v1.2.0
 github.com/subosito/gotenv
-# golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
+# golang.org/x/crypto v0.0.0-20200108215511-5d647ca15757
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
