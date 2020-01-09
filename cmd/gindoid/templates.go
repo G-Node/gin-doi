@@ -451,7 +451,7 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
     </creator>{{end}}
   </creators>
   <titles>
-    <title>{EscXML .Title}}</title>
+    <title>{{EscXML .Title}}</title>
   </titles>
   {{ if or .Description .References }}<descriptions>
     {{ if .Description }}<description descriptionType="Abstract">
