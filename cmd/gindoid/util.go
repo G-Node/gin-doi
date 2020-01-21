@@ -96,7 +96,8 @@ func ReferenceDescription(ref libgin.Reference) string {
 	if !strings.HasSuffix(namecitation, ".") {
 		namecitation += "."
 	}
-	return fmt.Sprintf("%s: %s (%s)", ref.Reftype, namecitation, ref.ID)
+	refDesc := fmt.Sprintf("%s: %s (%s)", ref.Reftype, namecitation, ref.ID)
+	return EscXML(refDesc)
 }
 
 // ReferenceSource splits the source type from a reference string of the form <source>:<ID>
@@ -108,7 +109,7 @@ func ReferenceSource(ref libgin.Reference) string {
 		// No source type
 		return ""
 	}
-	return idparts[0]
+	return EscXML(idparts[0])
 }
 
 // ReferenceID splits the ID from a reference string of the form <source>:<ID>
@@ -118,7 +119,29 @@ func ReferenceID(ref libgin.Reference) string {
 	if len(idparts) != 2 {
 		// Malformed ID (no colon)
 		// No source type
-		return idparts[0]
+		return EscXML(idparts[0])
 	}
-	return idparts[1]
+	return EscXML(idparts[1])
+}
+
+// FunderName splits the funder name from a funding string of the form <FunderName>, <AwardNumber>.
+// This is a utility function for the doi.xml template.
+func FunderName(fundref string) string {
+	fuparts := strings.SplitN(fundref, ",", 2)
+	if len(fuparts) != 2 {
+		// No comma, return as is
+		return EscXML(fundref)
+	}
+	return EscXML(strings.TrimSpace(fuparts[0]))
+}
+
+// AwardNumber splits the award number from a funding string of the form <FunderName>, <AwardNumber>.
+// This is a utility function for the doi.xml template.
+func AwardNumber(fundref string) string {
+	fuparts := strings.SplitN(fundref, ",", 2)
+	if len(fuparts) != 2 {
+		// No comma, return empty
+		return ""
+	}
+	return EscXML(strings.TrimSpace(fuparts[1]))
 }
