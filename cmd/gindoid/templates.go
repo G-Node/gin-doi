@@ -468,11 +468,11 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
      <subject>{{EscXML $kw}}</subject>{{end}}
   </subjects>{{end}}
   {{if .References}}<relatedIdentifiers>{{range $index, $ref := .References}}
-    <relatedIdentifier relatedIdentifierType="{{ReferenceSource $ref}}" relationType="{{$ref.Reftype}}">{{ReferenceID $ref}}</relatedIdentifier>
-  {{end}}</relatedIdentifiers>{{end}}
+    <relatedIdentifier relatedIdentifierType="{{ReferenceSource $ref}}" relationType="{{$ref.Reftype}}">{{ReferenceID $ref}}</relatedIdentifier>{{end}}
+  </relatedIdentifiers>{{end}}
   {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
-  <fundingReference><funderName>{{EscXML $fu}}</funderName></fundingReference>{{end}}
-</fundingReferences>{{end}}
+    <fundingReference><funderName>{{EscXML FunderName $fu}}</funderName><awardNumber>{{EscXML AwardNumber $fu}}</awardNumber></fundingReference>{{end}}
+  </fundingReferences>{{end}}
   <contributors>
     <contributor contributorType="HostingInstitution">
       <contributorName>German Neuroinformatics Node</contributorName>

@@ -122,3 +122,25 @@ func ReferenceID(ref libgin.Reference) string {
 	}
 	return idparts[1]
 }
+
+// FunderName splits the funder name from a funding string of the form <FunderName>, <AwardNumber>.
+// This is a utility function for the doi.xml template.
+func FunderName(fundref string) string {
+	fuparts := strings.SplitN(fundref, ",", 2)
+	if len(fuparts) != 2 {
+		// No comma, return as is
+		return fundref
+	}
+	return strings.TrimSpace(fuparts[0])
+}
+
+// AwardNumber splits the award number from a funding string of the form <FunderName>, <AwardNumber>.
+// This is a utility function for the doi.xml template.
+func AwardNumber(fundref string) string {
+	fuparts := strings.SplitN(fundref, ",", 2)
+	if len(fuparts) != 2 {
+		// No comma, return empty
+		return ""
+	}
+	return strings.TrimSpace(fuparts[1])
+}
