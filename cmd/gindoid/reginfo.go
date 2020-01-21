@@ -169,6 +169,8 @@ func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
 		"ReferenceDescription": ReferenceDescription,
 		"ReferenceID":          ReferenceID,
 		"ReferenceSource":      ReferenceSource,
+		"FunderName":           FunderName,
+		"AwardNumber":          AwardNumber,
 	}
 	tmpl, err := txttemplate.New("doixml").Funcs(tmplfuncs).Parse(doiXML)
 	if err != nil {

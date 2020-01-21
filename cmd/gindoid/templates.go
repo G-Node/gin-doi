@@ -471,7 +471,7 @@ const doiXML = `<?xml version="1.0" encoding="UTF-8"?>
     <relatedIdentifier relatedIdentifierType="{{ReferenceSource $ref}}" relationType="{{$ref.Reftype}}">{{ReferenceID $ref}}</relatedIdentifier>{{end}}
   </relatedIdentifiers>{{end}}
   {{if .Funding}}<fundingReferences>{{range $index, $fu := .Funding}}
-    <fundingReference><funderName>{{EscXML FunderName $fu}}</funderName><awardNumber>{{EscXML AwardNumber $fu}}</awardNumber></fundingReference>{{end}}
+    <fundingReference><funderName>{{FunderName $fu}}</funderName><awardNumber>{{AwardNumber $fu}}</awardNumber></fundingReference>{{end}}
   </fundingReferences>{{end}}
   <contributors>
     <contributor contributorType="HostingInstitution">
