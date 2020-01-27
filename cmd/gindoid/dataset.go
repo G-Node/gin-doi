@@ -163,10 +163,7 @@ func zip(source, zipfilename string) (int64, error) {
 func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
-		if err != nil {
-			log.Print("Could not parse the DOI template")
-			return err
-		}
+		log.Print("Could not parse the DOI template")
 		return err
 	}
 
