@@ -34,7 +34,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 
 	</head>
 	<body>
-		<div class="full-height" id="main">
+		<div class="full height" id="main">
 			<div class="following bar light">
 				<div class="ui container">
 					<div class="ui grid">
@@ -234,7 +234,7 @@ const requestResultTmpl = `<!DOCTYPE html>
 		<meta name="theme-color" content="#ffffff">
 	</head>
 	<body>
-		<div class="full-height" id="main">
+		<div class="full height" id="main">
 			<div class="following bar light">
 				<div class="ui container">
 					<div class="ui grid">
@@ -308,114 +308,137 @@ const landingPageTmpl = `<!DOCTYPE html>
 		<title>G-Node GIN-DOI</title>
 	</head>
 	<body>
-		<div class="following bar light">
-			<div class="ui container">
-				<div class="ui grid">
-					<div class="column">
-						<div class="ui top secondary menu">
-							<a class="item brand" href="https://gin.g-node.org/">
-								<img class="ui mini image" src="/assets/img/favicon.png">
-							</a>
-							<a class="item" href="https://doid.gin.g-node.org/">Home</a>
-							<a class="item active" href="">Data</a>
+		<div class="full height">
+			<div class="following bar light">
+				<div class="ui container">
+					<div class="ui grid">
+						<div class="column">
+							<div class="ui top secondary menu">
+								<a class="item brand" href="https://gin.g-node.org/">
+									<img class="ui mini image" src="/assets/img/favicon.png">
+								</a>
+								<a class="item" href="https://doid.gin.g-node.org/">Home</a>
+								<a class="item active" href="">Data</a>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		</div>
 
-		<div class="ui stackable middle very relaxed page grid">
-			<div class="sixteen wide center aligned centered column">
-				<h1>{{.DOIInfo.Title}}</h1>
-				<p><b>Dataset</b></p>
-				<table class="ui very basic table">
-					<tbody>
-						<tr>
-							<td>Title</td>
-							<td>{{.DOIInfo.Title}}</td>
-						</tr>
-						<tr>
-							<td>Authors</td>
-							<td>
-								{{range $index, $auth := .DOIInfo.Authors}}
-									{{$auth.LastName}} {{$auth.FirstName}},
-								{{end}}
-							</td>
-						</tr>
-						{{if .DOIInfo.Description}}
-							<tr>
-								<td>Description</td>
-								<td>{{.DOIInfo.Description}}
-								</td>
-							</tr>
-						{{end}}
-						{{if .DOIInfo.License}}
-							<tr>
-								<td>License</td>
-								<td>{{.DOIInfo.License.Name}} (<a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.URL}}</a>)
-								</td>
-							</tr>
-						{{end}}
-						<tr>
-							<td>References</td>
-							<td>
-								{{range $index, $ref := .DOIInfo.References}}
-									{{$ref.Name}} {{$ref.Citation}}
-									{{if $ref.ID}}
-										[<a href={{$ref.GetURL}}>{{$ref.ID}}</a>]
-									{{end}}
-									<br>
-								{{end}}
-							</td>
-						</tr>
-						<tr>
-							<td>Funding</td>
-							<td>
-								{{range $index, $ref := .DOIInfo.Funding}}
-									{{$ref}}
-									<br>
-								{{end}}
-							</td>
-						</tr>
-						{{if .DOIInfo.Keywords}}
-							<tr>
-								<td>Keywords</td>
-								<td>
-									{{range $index, $sub := .DOIInfo.Keywords}}
-										{{$sub}}
-										<br>
-									{{end}}
-								</td>
-							</tr>
-						{{end}}
-						<tr>
-							<td>Data</td>
-							<td>
-								This dataset can be browsed online <a href="https://gin.g-node.org/{{.GetDOIURI}}">here</a> or downloaded as a
-								<a href="{{.DOIInfo.FileName}}">zip archive ({{.DOIInfo.FileSize}})</a>.
-								The current version of the dataset repository, possibly with updates, can be found <a href="https://gin.g-node.org/{{.Repository}}">here</a>.
-							</td>
-						</tr>
-						<tr>
-							<td>DOI</td>
-							<td><a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a></td>
-						</tr>
-						<tr>
-							<td>Citation</td>
-							<td>
-								<i>This dataset can be cited as:</i><br>
-								{{.DOIInfo.GetCitation}}<br>
-								<i>Please also consider citing the material listed in the references</i>
-							</td>
-						</tr>
-						<tr>
-							<td>Resource Type</td>
-							<td>
-								<i>{{.DOIInfo.GetType}}</i><br>
-							</td>
-						</tr>
-					</tbody>
-				</table>
+			<div class="full height ui stackable middle very relaxed page grid" id="main">
+				<div class="sixteen wide centered column">
+					<h1>{{.DOIInfo.Title}}</h1>
+					<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a>
+					<a href="{{.DOIInfo.FileName}}" class="ui blue label">DOWNLOAD ARCHIVE ({{.DOIInfo.FileSize}})</a>
+					
+					<h3>Sources</h3>
+					<p>
+						<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui light grey label">Browse contents</a>
+						<span class="text italic">Snapshot of the source repository at time of publication</span>
+					</p>
+					<p>
+						<a href="https://gin.g-node.org/{{.Repository}}" class="ui light grey label">Source repository</a>
+						<span class="text italic">May have changed since publication</span>
+					</p>
+
+					<h3>Authors</h3>
+					<span class="doi author">{{AuthorList .DOIInfo.Authors}}</span>
+					{{if .DOIInfo.Description}}
+						<h3>Description</h3>
+						<p>{{.DOIInfo.Description}}</p>
+					{{end}}
+
+
+
+					<!-- <table class="ui very basic table"> -->   
+					<!-- 	<tbody> -->
+					<!-- 		<tr> -->
+					<!-- 			<td>Title</td> -->
+					<!-- 			<td>{{.DOIInfo.Title}}</td> -->
+					<!-- 		</tr> -->
+					<!-- 		<tr> -->
+					<!-- 			<td>Authors</td> -->
+					<!-- 			<td> -->
+					<!-- 				{{range $index, $auth := .DOIInfo.Authors}} -->
+					<!-- 					{{$auth.LastName}} {{$auth.FirstName}}, -->
+					<!-- 				{{end}} -->
+					<!-- 			</td> -->
+					<!-- 		</tr> -->
+					<!-- 		{{if .DOIInfo.Description}} -->
+					<!-- 			<tr> -->
+					<!-- 				<td>Description</td> -->
+					<!-- 				<td>{{.DOIInfo.Description}} -->
+					<!-- 				</td> -->
+					<!-- 			</tr> -->
+					<!-- 		{{end}} -->
+					<!-- 		{{if .DOIInfo.License}} -->
+					<!-- 			<tr> -->
+					<!-- 				<td>License</td> -->
+					<!-- 				<td>{{.DOIInfo.License.Name}} (<a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.URL}}</a>) -->
+					<!-- 				</td> -->
+					<!-- 			</tr> -->
+					<!-- 		{{end}} -->
+					<!-- 		<tr> -->
+					<!-- 			<td>References</td> -->
+					<!-- 			<td> -->
+					<!-- 				{{range $index, $ref := .DOIInfo.References}} -->
+					<!-- 					{{$ref.Name}} {{$ref.Citation}} -->
+					<!-- 					{{if $ref.ID}} -->
+					<!-- 						[<a href={{$ref.GetURL}}>{{$ref.ID}}</a>] -->
+					<!-- 					{{end}} -->
+					<!-- 					<br> -->
+					<!-- 				{{end}} -->
+					<!-- 			</td> -->
+					<!-- 		</tr> -->
+					<!-- 		<tr> -->
+					<!-- 			<td>Funding</td> -->
+					<!-- 			<td> -->
+					<!-- 				{{range $index, $ref := .DOIInfo.Funding}} -->
+					<!-- 					{{$ref}} -->
+					<!-- 					<br> -->
+					<!-- 				{{end}} -->
+					<!-- 			</td> -->
+					<!-- 		</tr> -->
+					<!-- 		{{if .DOIInfo.Keywords}} -->
+					<!-- 			<tr> -->
+					<!-- 				<td>Keywords</td> -->
+					<!-- 				<td> -->
+					<!-- 					{{range $index, $sub := .DOIInfo.Keywords}} -->
+					<!-- 						{{$sub}} -->
+					<!-- 						<br> -->
+					<!-- 					{{end}} -->
+					<!-- 				</td> -->
+					<!-- 			</tr> -->
+					<!-- 		{{end}} -->
+					<!-- 		<tr> -->
+					<!-- 			<td>Data</td> -->
+					<!-- 			<td> -->
+					<!-- 				This dataset can be browsed online <a href="https://gin.g-node.org/{{.GetDOIURI}}">here</a> or downloaded as a -->
+					<!-- 				<a href="{{.DOIInfo.FileName}}">zip archive ({{.DOIInfo.FileSize}})</a>. -->
+					<!-- 				The current version of the dataset repository, possibly with updates, can be found <a href="https://gin.g-node.org/{{.Repository}}">here</a>. -->
+					<!-- 			</td> -->
+					<!-- 		</tr> -->
+					<!-- 		<tr> -->
+					<!-- 			<td>DOI</td> -->
+					<!-- 			<td><a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a></td> -->
+					<!-- 		</tr> -->
+					<!-- 		<tr> -->
+					<!-- 			<td>Citation</td> -->
+					<!-- 			<td> -->
+					<!-- 				<i>This dataset can be cited as:</i><br> -->
+					<!-- 				{{.DOIInfo.GetCitation}}<br> -->
+					<!-- 				<i>Please also consider citing the material listed in the references</i> -->
+					<!-- 			</td> -->
+					<!-- 		</tr> -->
+					<!-- 		<tr> -->
+					<!-- 			<td>Resource Type</td> -->
+					<!-- 			<td> -->
+					<!-- 				<i>{{.DOIInfo.GetType}}</i><br> -->
+					<!-- 			</td> -->
+					<!-- 		</tr> -->
+					<!-- 	</tbody> -->
+					<!-- </table> -->
+				</div>
 			</div>
 		</div>
 		<footer>
