@@ -145,3 +145,28 @@ func AwardNumber(fundref string) string {
 	}
 	return EscXML(strings.TrimSpace(fuparts[1]))
 }
+
+// AuthorList builds a string representation of a slice of authors.
+// This is a utility function for the landing page HTML template.
+func AuthorList(authors []libgin.Author) string {
+	names := make([]string, len(authors))
+	for idx, author := range authors {
+		names[idx] = fmt.Sprintf("%s %s", author.FirstName, author.LastName)
+	}
+
+	authorNames := strings.Join(names, ", ")
+	return authorNames
+}
+
+func AuthorAffiliations(authors []libgin.Author) string {
+	// WIP
+	affiliations := make(map[string]int)
+	numberedAffiliations := ""
+	for _, author := range authors {
+		if _, ok := affiliations[author.Affiliation]; !ok {
+			affiliations[author.Affiliation] = len(affiliations) + 1
+			numberedAffiliations = fmt.Sprintf("%s, %d: %s", numberedAffiliations, affiliations[author.Affiliation], author.Affiliation)
+		}
+	}
+	return ""
+}

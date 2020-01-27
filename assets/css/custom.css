@@ -375,3 +375,6 @@ textarea#description {
   font-size: 1rem;
   vertical-align: middle;
 }
+.doi.author {
+    font-size: 1.4em;
+}

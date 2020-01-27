@@ -107,7 +107,10 @@ func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error)
 }
 
 func writeHTML(req *DOIReq) (string, error) {
-	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
+	funcs := template.FuncMap{
+		"AuthorList": AuthorList,
+	}
+	tmpl, err := template.New("landingpage").Funcs(funcs).Parse(landingPageTmpl)
 	if err != nil {
 		log.Print("Could not parse the DOI template")
 		return "", err
