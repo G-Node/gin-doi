@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/G-Node/libgin/libgin"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -289,4 +290,55 @@ func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, 
 	}
 
 	return &data, nil
+}
+
+func web(cmd *cobra.Command, args []string) {
+	log.Printf("Starting up %s", cmd.Version)
+
+	config, err := loadconfig()
+	if err != nil {
+		log.Fatalf("Startup failed: %v", err)
+	}
+
+	// Pretty print configuration for debugging, but hide sensitive stuff
+	cc := *config
+	cc.Key = "[HIDDEN]"
+	cc.GIN.Password = "[HIDDEN]"
+	j, _ := json.MarshalIndent(cc, "", "  ")
+	log.Print(string(j))
+
+	log.Printf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
+	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer config.GIN.Session.Logout()
+
+	jobQueue := make(chan DOIJob, config.MaxQueue)
+	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
+	dispatcher.run(newWorker)
+
+	// Start the HTTP handlers.
+
+	// Root redirects to storage URL (DOI listing page)
+	http.Handle("/", http.RedirectHandler(config.Storage.StoreURL, http.StatusMovedPermanently))
+
+	// register renders the info page with the registration button
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Got request: %s", r.URL.String())
+		renderRequestPage(w, r, config)
+	})
+
+	// submit starts the registration job
+	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
+		startDOIRegistration(w, r, jobQueue, config)
+	})
+
+	// assets fetches static assets using a custom FileSystem
+	assetserver := http.FileServer(newAssetFS("/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", assetserver))
+
+	fmt.Printf("Listening for connections on port %d\n", config.Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
 }

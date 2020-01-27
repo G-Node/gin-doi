@@ -33,5 +33,5 @@ COPY --from=binbuilder /gindoid/gindoid /
 VOLUME ["/doidata"]
 VOLUME ["/config"]
 
-ENTRYPOINT /gindoid
+ENTRYPOINT /gindoid start
 EXPOSE 10443
