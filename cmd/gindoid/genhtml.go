@@ -4,16 +4,23 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
-const defginurl = "https://gin.g-node.org"
+const (
+	defginurl   = "https://gin.g-node.org"
+	defdoibase  = "10.12751/g-node."
+	defstoreurl = "https://doid.gin.g-node.org"
+)
 
 // mkhtml fetches the metadata file from the configured server for each listed
 // repository and generates the html landing page.
@@ -34,6 +41,26 @@ func mkhtml(cmd *cobra.Command, args []string) {
 		fmt.Printf("Using server at %s\n", ginurl)
 	}
 
+	doibase := libgin.ReadConf("doibase")
+	if doibase == "" {
+		fmt.Printf("Using default DOI prefix: %s\n", defdoibase)
+		doibase = defdoibase
+	}
+
+	var storeurl *url.URL
+	storeurlstr := libgin.ReadConf("storeurl")
+	if storeurlstr == "" {
+		fmt.Printf("Using default store URL: %s\n", defstoreurl)
+		storeurlstr = defstoreurl
+		storeurl, _ = url.Parse(storeurlstr)
+	} else {
+		storeurl, err = url.Parse(storeurlstr)
+		if err != nil {
+			log.Fatalf("Failed to parse registered dataset store URL: %s", storeurlstr)
+		}
+		fmt.Printf("Using store URL %s\n", storeurl)
+	}
+
 	fmt.Printf("Generating %d pages\n", len(args))
 	var success int
 	for idx, repopath := range args {
@@ -43,7 +70,15 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			fmt.Println(err.Error())
 			continue
 		}
-		_, err = writeHTML(doiInfo)
+		// template expects DOIReq that wraps DOIRegInfo and DOIRequestData
+		uuid := makeUUID(repopath)
+		doiInfo.DOI = doibase + uuid[:6]
+		doiInfo.FileSize = getArchiveSize(storeurl, doiInfo.DOI)
+		req := &DOIReq{
+			DOIInfo:        doiInfo,
+			DOIRequestData: &libgin.DOIRequestData{Repository: repopath},
+		}
+		_, err = writeHTML(req)
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
@@ -71,12 +106,14 @@ func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error)
 	return doiInfo, nil
 }
 
-func writeHTML(info *libgin.DOIRegInfo) (string, error) {
+func writeHTML(req *DOIReq) (string, error) {
 	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
 		log.Print("Could not parse the DOI template")
 		return "", err
 	}
+
+	info := req.DOIInfo
 
 	target := info.DOI
 	os.MkdirAll(target, 0777)
@@ -87,11 +124,31 @@ func writeHTML(info *libgin.DOIRegInfo) (string, error) {
 		return "", err
 	}
 	defer fp.Close()
-	if err := tmpl.Execute(fp, info); err != nil {
+	if err := tmpl.Execute(fp, req); err != nil {
 		log.Print("Could not execute the DOI template")
 		return "", err
 	}
 
 	fmt.Printf("HTML page saved  %q\n", filepath)
 	return filepath, nil
+}
+
+// getArchiveSize checks if the DOI is already registered and if it is,
+// retrieves the size of the dataset archive.
+// If it fails in any way, it returns an empty string.
+func getArchiveSize(storeurl *url.URL, doi string) string {
+	zipfname := strings.ReplaceAll(doi, "/", "_") + ".zip"
+	zipurl, _ := url.Parse(storeurl.String())
+	zipurl.Path = path.Join(doi, zipfname)
+
+	resp, err := http.Get(zipurl.String())
+	if err != nil {
+		fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), err.Error())
+		return ""
+	} else if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), resp.Status)
+		return ""
+	}
+	size := resp.ContentLength
+	return humanize.IBytes(uint64(size))
 }
