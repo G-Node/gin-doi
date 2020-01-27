@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 2)
+	cmds := make([]*cobra.Command, 3)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -38,7 +38,15 @@ func setUpCommands(verstr string) *cobra.Command {
 		Use:                   "register <repopath>",
 		Short:                 "Register a repository",
 		Args:                  cobra.ExactArgs(1),
-		Run:                   func(cmd *cobra.Command, args []string) { println("Registering", args[0]) },
+		Run:                   register,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+	cmds[2] = &cobra.Command{
+		Use:                   "make-html <repopath>...",
+		Short:                 "Generate the HTML landing page for one or more repositories from the metadata",
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mkhtml,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
