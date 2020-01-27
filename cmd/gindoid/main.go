@@ -17,15 +17,29 @@ Usage:
   No arguments are currently supported.
 `
 
+var (
+	appversion string
+	build      string
+	commit     string
+)
+
+func init() {
+	if appversion == "" {
+		appversion = "[dev]"
+	}
+}
+
 func main() {
-	_, err := docopt.Parse(usage, nil, true, "gin doi 0.1a", false)
+
+	verstr := fmt.Sprintf("GIN DOI %s Build %s (%s)", appversion, build, commit)
+	_, err := docopt.Parse(usage, nil, true, verstr, false)
 	if err != nil {
 		// NOTE: Keeping arg parsing around for upcoming CL functions
 		log.Printf("Error while parsing command line: %s", err.Error())
 		os.Exit(-1)
 	}
 
-	log.Print("Starting up")
+	log.Printf("Starting up %s", verstr)
 
 	config, err := loadconfig()
 	if err != nil {
