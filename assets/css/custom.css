@@ -383,3 +383,10 @@ textarea#description {
     list-style: none;
     padding: 0;
 }
+.doi.title {
+  margin-top: 1.5em;
+}
+.doi.label {
+    font-size: 1em;
+    margin: 0;
+}
