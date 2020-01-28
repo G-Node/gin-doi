@@ -343,6 +343,11 @@ const landingPageTmpl = `<!DOCTYPE html>
 					<h3>Authors</h3>
 					{{AuthorBlock .DOIInfo.Authors}}
 
+					{{if .DOIInfo.License}}
+						<h3>License</h3>
+						<a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a>
+					{{end}}
+
 					{{if .DOIInfo.Description}}
 						<h3>Description</h3>
 						<p>{{.DOIInfo.Description}}</p>
