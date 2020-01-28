@@ -343,6 +343,15 @@ const landingPageTmpl = `<!DOCTYPE html>
 					<h3>Authors</h3>
 					{{AuthorBlock .DOIInfo.Authors}}
 
+					{{if .DOIInfo.Funding}}
+						<h3>Funded by</h3>
+						<ul class="doi itemlist">
+							{{range $index, $ref := .DOIInfo.Funding}}
+								<li>{{$ref}}</li>
+							{{end}}
+						</ul>
+					{{end}}
+
 					{{if .DOIInfo.License}}
 						<h3>License</h3>
 						<a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a>
