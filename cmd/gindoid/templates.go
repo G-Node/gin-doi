@@ -370,6 +370,15 @@ const landingPageTmpl = `<!DOCTYPE html>
 							</ul>
 					{{end}}
 
+					{{if .DOIInfo.References}}
+						<h3>References</h3>
+						<ul class="doi itemlist">
+							{{range $index, $ref := .DOIInfo.References}}
+								<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}}<a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
+							{{end}}
+						</ul>
+					{{end}}
+
 					{{if .DOIInfo.Description}}
 						<h3>Description</h3>
 						<p>{{.DOIInfo.Description}}</p>
