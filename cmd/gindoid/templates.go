@@ -375,6 +375,10 @@ const landingPageTmpl = `<!DOCTYPE html>
 						<p>{{.DOIInfo.Description}}</p>
 					{{end}}
 
+					<h3>Citation</h3>
+					<i>This dataset can be cited as:</i><br>
+					{{.DOIInfo.GetCitation}}<br>
+					<i>Please also consider citing the material listed in the references</i>
 
 
 					<!-- <table class="ui very basic table"> -->   
