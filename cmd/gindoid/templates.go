@@ -325,8 +325,8 @@ const landingPageTmpl = `<!DOCTYPE html>
 				</div>
 			</div>
 
-			<div class="full height ui stackable middle very relaxed page grid" id="main">
-				<div class="sixteen wide centered column">
+			<div class="home middle very relaxed page grid" id="main">
+				<div class="ui container sixteen wide centered column">
 					<h1>{{.DOIInfo.Title}}</h1>
 					<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a>
 					<a href="{{.DOIInfo.FileName}}" class="ui blue label">DOWNLOAD ARCHIVE ({{.DOIInfo.FileSize}})</a>
