@@ -342,7 +342,8 @@ const landingPageTmpl = `<!DOCTYPE html>
 					</p>
 
 					<h3>Authors</h3>
-					<span class="doi author">{{AuthorList .DOIInfo.Authors}}</span>
+					{{AuthorBlock .DOIInfo.Authors}}
+
 					{{if .DOIInfo.Description}}
 						<h3>Description</h3>
 						<p>{{.DOIInfo.Description}}</p>

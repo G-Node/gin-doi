@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -146,27 +147,26 @@ func AwardNumber(fundref string) string {
 	return EscXML(strings.TrimSpace(fuparts[1]))
 }
 
-// AuthorList builds a string representation of a slice of authors.
+// AuthorBlock builds the author section for the landing page template.
+// It includes a list of authors, their affiliations, and superscripts to associate authors with affiliations.
 // This is a utility function for the landing page HTML template.
-func AuthorList(authors []libgin.Author) string {
+func AuthorBlock(authors []libgin.Author) template.HTML {
 	names := make([]string, len(authors))
+	affiliations := make([]string, 0)
+	affiliationMap := make(map[string]int)
+	// Collect names and figure out affiliation numbering
 	for idx, author := range authors {
-		names[idx] = fmt.Sprintf("%s %s", author.FirstName, author.LastName)
-	}
-
-	authorNames := strings.Join(names, ", ")
-	return authorNames
-}
-
-func AuthorAffiliations(authors []libgin.Author) string {
-	// WIP
-	affiliations := make(map[string]int)
-	numberedAffiliations := ""
-	for _, author := range authors {
-		if _, ok := affiliations[author.Affiliation]; !ok {
-			affiliations[author.Affiliation] = len(affiliations) + 1
-			numberedAffiliations = fmt.Sprintf("%s, %d: %s", numberedAffiliations, affiliations[author.Affiliation], author.Affiliation)
+		// NOTE: An empty affiliation will receive its own number and place in the listing.
+		// Empty affiliations should probably be dealt with manually during review (for now)
+		if _, ok := affiliationMap[author.Affiliation]; !ok {
+			num := len(affiliationMap) + 1
+			affiliationMap[author.Affiliation] = num
+			affiliations = append(affiliations, fmt.Sprintf("<li><sup>%d</sup>%s</li>", num, author.Affiliation))
 		}
+		names[idx] = fmt.Sprintf("%s <strong>%s</strong><sup>%d</sup>", author.FirstName, author.LastName, affiliationMap[author.Affiliation])
 	}
-	return ""
+
+	authorLine := fmt.Sprintf("<span class=\"doi author\">%s</span>", strings.Join(names, ", "))
+	affiliationLine := fmt.Sprintf("<ol class=\"doi affiliation\">%s</ol>", strings.Join(affiliations, "\n"))
+	return template.HTML(authorLine + "\n" + affiliationLine)
 }
