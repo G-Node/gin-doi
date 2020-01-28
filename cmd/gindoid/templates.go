@@ -363,11 +363,9 @@ const landingPageTmpl = `<!DOCTYPE html>
 
 					{{if .DOIInfo.Keywords}}
 						<h3>Keywords</h3>
-							<ul class="doi itemlist">
-								{{range $index, $kw := .DOIInfo.Keywords}}
-									<li><a href="/keywords/{{$kw}}">{{$kw}}</a></li>
-								{{end}}
-							</ul>
+							| {{range $index, $kw := .DOIInfo.Keywords}}
+								<a href="/keywords/{{$kw}}">{{$kw}}</a> |
+							{{end}}
 					{{end}}
 
 					{{if .DOIInfo.References}}
