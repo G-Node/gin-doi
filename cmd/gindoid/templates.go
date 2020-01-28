@@ -303,6 +303,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" href="/assets/css/semantic-2.3.1.min.css">
+		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
 		<title>G-Node GIN-DOI</title>
@@ -326,40 +327,28 @@ const landingPageTmpl = `<!DOCTYPE html>
 			</div>
 
 			<div class="home middle very relaxed page grid" id="main">
-				<div class="ui container sixteen wide centered column">
-					<h1>{{.DOIInfo.Title}}</h1>
-					<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a>
-					<a href="{{.DOIInfo.FileName}}" class="ui blue label">DOWNLOAD ARCHIVE ({{.DOIInfo.FileSize}})</a>
-					<h3>Sources</h3>
-					<ul class="doi itemlist">
-						<li>
-							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black label">Browse contents</a>
-							<span class="text italic">Snapshot of the source repository at time of publication</span>
-						</li>
-					</ul>
-					<ul class="doi itemlist">
-						<li>
-							<a href="https://gin.g-node.org/{{.Repository}}" class="ui black label">Source repository</a>
-							<span class="text italic">May contain updates</span>
-						</li>
-					</ul>
+				<div class="ui container sixteen wide centered column doi">
+					<div>
+						<h1 class="doi title">{{.DOIInfo.Title}}</h1>
+						{{AuthorBlock .DOIInfo.Authors}}
+						<p>
+							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey doi label">{{.DOIInfo.DOI}}</a>
+							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD DATASET ({{.DOIInfo.FileSize}})</a>
+							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE DATASET</a>
+						</p>
+						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
+					</div>
+					<hr>
 
-					<h3>Authors</h3>
-					{{AuthorBlock .DOIInfo.Authors}}
-
-					{{if .DOIInfo.Funding}}
-						<h3>Funded by</h3>
-						<ul class="doi itemlist">
-							{{range $index, $ref := .DOIInfo.Funding}}
-								<li>{{$ref}}</li>
-							{{end}}
-						</ul>
+					{{if .DOIInfo.Description}}
+						<h3>Description</h3>
+						<p>{{.DOIInfo.Description}}</p>
 					{{end}}
 
-					{{if .DOIInfo.License}}
-						<h3>License</h3>
-						<a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a>
-					{{end}}
+					<h3>Source</h3>
+					<p><a href="https://gin.g-node.org/{{.Repository}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a></p>
+					<p><span class="text italic">May contain changes since publication</span></p>
+
 
 					{{if .DOIInfo.Keywords}}
 						<h3>Keywords</h3>
@@ -377,10 +366,15 @@ const landingPageTmpl = `<!DOCTYPE html>
 						</ul>
 					{{end}}
 
-					{{if .DOIInfo.Description}}
-						<h3>Description</h3>
-						<p>{{.DOIInfo.Description}}</p>
+					{{if .DOIInfo.Funding}}
+						<h3>Funded by</h3>
+						<ul class="doi itemlist">
+							{{range $index, $ref := .DOIInfo.Funding}}
+								<li>{{$ref}}</li>
+							{{end}}
+						</ul>
 					{{end}}
+
 
 					<h3>Citation</h3>
 					<i>This dataset can be cited as:</i><br>
