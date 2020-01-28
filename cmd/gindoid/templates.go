@@ -331,14 +331,18 @@ const landingPageTmpl = `<!DOCTYPE html>
 					<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey label">{{.DOIInfo.DOI}}</a>
 					<a href="{{.DOIInfo.FileName}}" class="ui blue label">DOWNLOAD ARCHIVE ({{.DOIInfo.FileSize}})</a>
 					<h3>Sources</h3>
-					<p>
-						<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black label">Browse contents</a>
-						<span class="text italic">Snapshot of the source repository at time of publication</span>
-					</p>
-					<p>
-						<a href="https://gin.g-node.org/{{.Repository}}" class="ui black label">Source repository</a>
-						<span class="text italic">May contain updates</span>
-					</p>
+					<ul class="doi itemlist">
+						<li>
+							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black label">Browse contents</a>
+							<span class="text italic">Snapshot of the source repository at time of publication</span>
+						</li>
+					</ul>
+					<ul class="doi itemlist">
+						<li>
+							<a href="https://gin.g-node.org/{{.Repository}}" class="ui black label">Source repository</a>
+							<span class="text italic">May contain updates</span>
+						</li>
+					</ul>
 
 					<h3>Authors</h3>
 					{{AuthorBlock .DOIInfo.Authors}}
