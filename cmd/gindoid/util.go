@@ -167,6 +167,6 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 	}
 
 	authorLine := fmt.Sprintf("<span class=\"doi author\">%s</span>", strings.Join(names, ", "))
-	affiliationLine := fmt.Sprintf("<ol class=\"doi affiliation\">%s</ol>", strings.Join(affiliations, "\n"))
+	affiliationLine := fmt.Sprintf("<ol class=\"doi itemlist\">%s</ol>", strings.Join(affiliations, "\n"))
 	return template.HTML(authorLine + "\n" + affiliationLine)
 }

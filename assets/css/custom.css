@@ -378,7 +378,7 @@ textarea#description {
 .doi.author {
     font-size: 1.4em;
 }
-.doi.affiliation {
+.doi.itemlist {
     font-size: 1.0em;
     list-style: none;
     padding: 0;
