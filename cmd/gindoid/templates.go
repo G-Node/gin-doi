@@ -328,13 +328,14 @@ const landingPageTmpl = `<!DOCTYPE html>
 
 			<div class="home middle very relaxed page grid" id="main">
 				<div class="ui container sixteen wide centered column doi">
-					<div>
-						<h1 class="doi title">{{.DOIInfo.Title}}</h1>
+					<div class="doi title">
+						<h2>{{.DOIInfo.ResourceType}}</h2>
+						<h1>{{.DOIInfo.Title}}</h1>
 						{{AuthorBlock .DOIInfo.Authors}}
 						<p>
 							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey doi label">{{.DOIInfo.DOI}}</a>
-							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD DATASET ({{.DOIInfo.FileSize}})</a>
-							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE DATASET</a>
+							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE ({{.DOIInfo.FileSize}})</a>
+							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE {{.DOIInfo.ResourceType | Upper}} REPOSITORY</a>
 						</p>
 						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
 					</div>
