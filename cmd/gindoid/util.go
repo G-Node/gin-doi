@@ -156,14 +156,17 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 	affiliationMap := make(map[string]int)
 	// Collect names and figure out affiliation numbering
 	for idx, author := range authors {
-		// NOTE: An empty affiliation will receive its own number and place in the listing.
-		// Empty affiliations should probably be dealt with manually during review (for now)
-		if _, ok := affiliationMap[author.Affiliation]; !ok {
-			num := len(affiliationMap) + 1
-			affiliationMap[author.Affiliation] = num
-			affiliations = append(affiliations, fmt.Sprintf("<li><sup>%d</sup>%s</li>", num, author.Affiliation))
+		var affiliationSup string // if there's no affiliation, don't add a superscript
+		if author.Affiliation != "" {
+			if _, ok := affiliationMap[author.Affiliation]; !ok {
+				// new affiliation; give it a new number, otherwise the existing one will be used below
+				num := len(affiliationMap) + 1
+				affiliationMap[author.Affiliation] = num
+				affiliations = append(affiliations, fmt.Sprintf("<li><sup>%d</sup>%s</li>", num, author.Affiliation))
+			}
+			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
 		}
-		names[idx] = fmt.Sprintf("%s <strong>%s</strong><sup>%d</sup>", author.FirstName, author.LastName, affiliationMap[author.Affiliation])
+		names[idx] = fmt.Sprintf("%s <strong>%s</strong>%s", author.FirstName, author.LastName, affiliationSup)
 	}
 
 	authorLine := fmt.Sprintf("<span class=\"doi author\">%s</span>", strings.Join(names, ", "))
