@@ -218,20 +218,18 @@ const requestResultTmpl = `<!DOCTYPE html>
 		<div class="full height" id="main">
 			<div class="following bar light">
 				<div class="ui container">
-					<div class="ui grid">
-						<div class="column">
-							<div class="ui top secondary menu">
-								<a class="item brand" href="https://gin.g-node.org/">
-									<img class="ui mini image" src="/assets/img/favicon.png">
-								</a>
-								<a class="item active" href="https://gin.g-node.org/{{.Request.Repository}}">Back to GIN</a>
-							</div>
+					<div class="column">
+						<div class="ui top secondary menu">
+							<a class="item brand" href="https://gin.g-node.org/">
+								<img class="ui mini image" src="/assets/img/favicon.png">
+							</a>
+							<a class="item active" href="https://gin.g-node.org/{{.Request.Repository}}">Back to GIN</a>
 						</div>
 					</div>
 				</div>
 			</div>
-			<div>
-				<div class="ui vertically padded grid head">
+			<div class="home middle very relaxed page" id="main">
+				<div class="ui vertically padded head">
 					<div class="column center">
 						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
 					</div>
