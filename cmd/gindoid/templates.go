@@ -67,9 +67,10 @@ const requestPageTmpl = `<!DOCTYPE html>
 							</div>
 						</div>
 						<div class="ui info message" id="infotable">
-							<div id="infobox">The following information will be registered with your DOI request.
-								It will also be presented alongside the data. Please check it thoroughly and modify your datacite file
-								if any information is wrong or missing.
+							<div id="infobox">
+								The following is a preview of the information page for your published repository.
+								Please carefully review all the information for accuracy and correctness.
+								You may use your browser's back button or the <a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a> link to return to your repository and edit the datacite.yml file.
 							</div>
 							<hr>
 							<div id="cloudberry-view" class="tab-size-8">
