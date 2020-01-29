@@ -27,14 +27,12 @@ const requestPageTmpl = `<!DOCTYPE html>
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
 
-		<title>GIN-DOI</title>
+		<title>G-Node DOI</title>
 
 		<meta name="theme-color" content="#ffffff">
-
-
 	</head>
 	<body>
-		<div class="full height" id="main">
+		<div class="full height">
 			<div class="following bar light">
 				<div class="ui container">
 					<div class="ui grid">
@@ -49,16 +47,14 @@ const requestPageTmpl = `<!DOCTYPE html>
 					</div>
 				</div>
 			</div>
-			<div>
-				<div class="ui vertically padded grid head">
+			<div class="home middle very relaxed page grid" id="main">
+				<div class="ui vertically padded head">
 					<div class="column center">
-						<h1>Welcome to the GIN DOI service
-							<i class="mega-octicon octicon octicon-squirrel"></i>
-						</h1>
+						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
 					</div>
 				</div>
 
-				<div class="ui container">
+				<div class="ui container wide centered column doi">
 					{{if .DOIInfo.Title}}
 						<div class="ui positive message" id="info">
 							<div>
@@ -71,118 +67,102 @@ const requestPageTmpl = `<!DOCTYPE html>
 								The following is a preview of the information page for your published repository.
 								Please carefully review all the information for accuracy and correctness.
 								You may use your browser's back button or the <a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a> link to return to your repository and edit the datacite.yml file.
+								When you are ready to submit, scroll to the bottom of this page and click the "Register DOI Now" button.
 							</div>
-							<hr>
-							<div id="cloudberry-view" class="tab-size-8">
-								<table class="ui fixed single line table">
-									<thead>
-										<tr>
-											<th class="three wide">
-											</th>
-											<th class="fourteen wide">
-											</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td>Title</td>
-											<td>{{.DOIInfo.Title}}</td>
-										</tr>
-										<tr>
-											<td>Authors</td>
-											<td>
-												{{range $index, $auth := .DOIInfo.Authors}}
-													{{$auth.LastName}},{{$auth.FirstName}}; {{$auth.Affiliation}}; {{$auth.ID}}
-													<br>
-												{{end}}
-											</td>
-										</tr>
-										{{if .DOIInfo.Description}}
-											<tr>
-												<td>Description</td>
-												<td>{{.DOIInfo.Description}}
-												</td>
-											</tr>
-										{{end}}
-										{{if .DOIInfo.License}}
-											<tr>
-												<td>License</td>
-												<td>{{.DOIInfo.License.Name}} ({{.DOIInfo.License.URL}})
-												</td>
-											</tr>
-										{{end}}
-										<tr>
-											<td>References</td>
-											<td>
-												{{range $index, $ref := .DOIInfo.References}}
-													{{$ref.Name}} {{$ref.Citation}} [{{$ref.ID}}] ({{$ref.Reftype}})
-													<br>
-												{{end}}
-											</td>
-										</tr>
-										<tr>
-											<td>Funding</td>
-											<td>
-												{{range $index, $ref := .DOIInfo.Funding}}
-													{{$ref}}
-													<br>
-												{{end}}
-											</td>
-										</tr>
-										{{if .DOIInfo.Keywords}}
-											<tr>
-												<td>Keywords</td>
-												<td>
-													{{range $index, $sub := .DOIInfo.Keywords}}
-														{{$sub}}
-														<br>
-													{{end}}
-												</td>
-											</tr>
-										{{end}}
-										<tr>
-											<td>Resource Type</td>
-											<td>
-												<i>{{.DOIInfo.GetType}}</i><br>
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-							<div class="ui negative icon message" id="warning">
-								<i class="warning icon"></i>
-								<div class="content">
-									<div class="header">Please thoroughly check the following before proceeding</div>
-									<ul align="left">
-										<li>Did you upload all data?</li>
-										<li>Does your repository contain a LICENSE file?</li>
-										<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
-										<li>Does your repository contain a good description of the data?</li>
-									</ul>
-									<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
-									Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
-									<p><b>All files and data in the repository will be part of the public archive!</b></p>
-								</div>
-							</div>
-							<form action="/submit" method="post">
-								<input type="hidden" id="reqdata" name="reqdata" value="{{.RequestData}}">
-								<button class="ui primary button" type="submit">Request DOI Now</button>
-							</form>
-						{{else}}
-							<div class="ui warning message">
-								<div><b>DOI request failed</b>
-									<p>{{.Message}}</p>
-								</div>
-							</div>
-						{{end}}
 						</div>
+						<hr>
+						<div class="doi title">
+							<h2>{{.DOIInfo.ResourceType}}</h2>
+							<h1>{{.DOIInfo.Title}}</h1>
+							{{AuthorBlock .DOIInfo.Authors}}
+							<p>
+								<a href="" class="ui grey doi label">DOI</a>
+								<a href="" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE</a>
+								<a href="" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE {{.DOIInfo.ResourceType | Upper}} REPOSITORY</a>
+							</p>
+							<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
+						</div>
+						<hr>
+
+						{{if .DOIInfo.Description}}
+							<h3>Description</h3>
+							<p>{{.DOIInfo.Description}}</p>
+						{{end}}
+
+						<h3>Source</h3>
+						<p><a href="https://gin.g-node.org/{{.Repository}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a></p>
+						<p><span class="text italic">May contain changes since publication</span></p>
+
+
+						{{if .DOIInfo.Keywords}}
+							<h3>Keywords</h3>
+							| {{range $index, $kw := .DOIInfo.Keywords}}
+							<a href="/keywords/{{$kw}}">{{$kw}}</a> |
+						{{end}}
+					{{end}}
+
+					{{if .DOIInfo.References}}
+						<h3>References</h3>
+						<ul class="doi itemlist">
+							{{range $index, $ref := .DOIInfo.References}}
+								<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}} <a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
+							{{end}}
+						</ul>
+					{{end}}
+
+					{{if .DOIInfo.Funding}}
+						<h3>Funded by</h3>
+						<ul class="doi itemlist">
+							{{range $index, $ref := .DOIInfo.Funding}}
+								<li>{{$ref}}</li>
+							{{end}}
+						</ul>
+					{{end}}
+
+
+					<h3>Citation</h3>
+					<i>This dataset can be cited as:</i><br>
+					{{.DOIInfo.GetCitation}}<br>
+					<i>Please also consider citing the material listed in the references</i>
+					<hr>
+					<div class="column center">
+						<h3>END OF PREVIEW</h3>
+					</div>
+					<div class="ui negative icon message" id="warning">
+						<i class="warning icon"></i>
+						<div class="content">
+							<div class="header">Please thoroughly check the following before proceeding</div>
+							<ul align="left">
+								<li>Did you upload all data?</li>
+								<li>Does your repository contain a LICENSE file?</li>
+								<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
+								<li>Does your repository contain a good description of the data?</li>
+							</ul>
+							<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
+							Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
+							<p><b>All files and data in the repository will be part of the public archive!</b></p>
+						</div>
+					</div>
+					<form action="/submit" method="post">
+						<input type="hidden" id="reqdata" name="reqdata" value="{{.RequestData}}">
+						<div class="column center">
+							<button class="ui primary button" type="submit">Request DOI Now</button>
+						</div>
+					</form>
+				{{else}}
+					<div class="ui warning message">
+						<div><b>DOI request failed</b>
+							<p>{{.Message}}</p>
+						</div>
+					</div>
+				{{end}}
 				</div>
 			</div>
 		</div>
 		<footer>
 			<div class="ui container">
 				<div class="ui center links item brand footertext">
-					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2019</a>
+					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2020</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/about">About</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>
@@ -230,7 +210,7 @@ const requestResultTmpl = `<!DOCTYPE html>
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
 
-		<title>GIN-DOI</title>
+		<title>G-Node DOI</title>
 
 		<meta name="theme-color" content="#ffffff">
 	</head>
@@ -253,9 +233,7 @@ const requestResultTmpl = `<!DOCTYPE html>
 			<div>
 				<div class="ui vertically padded grid head">
 					<div class="column center">
-						<h1>Welcome to the GIN DOI service
-							<i class="mega-octicon octicon octicon-squirrel"></i>
-						</h1>
+						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
 					</div>
 				</div>
 
@@ -276,7 +254,7 @@ const requestResultTmpl = `<!DOCTYPE html>
 		<footer>
 			<div class="ui container">
 				<div class="ui center links item brand footertext">
-					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2019</a>
+					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2020</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/about">About</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>
@@ -307,7 +285,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
-		<title>G-Node GIN-DOI</title>
+		<title>G-Node DOI</title>
 	</head>
 	<body>
 		<div class="full height">
@@ -338,7 +316,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
 							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE {{.DOIInfo.ResourceType | Upper}} REPOSITORY</a>
 						</p>
-						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
+						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a> {{.DOIInfo.ISODate}}</p>
 					</div>
 					<hr>
 
@@ -363,7 +341,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 						<h3>References</h3>
 						<ul class="doi itemlist">
 							{{range $index, $ref := .DOIInfo.References}}
-								<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}}<a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
+								<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}} <a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
 							{{end}}
 						</ul>
 					{{end}}
@@ -388,7 +366,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 		<footer>
 			<div class="ui container">
 				<div class="ui center links item brand footertext">
-					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2018</a>
+					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2020</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/about">About</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>

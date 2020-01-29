@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
@@ -194,7 +195,11 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
-	tmpl, err := template.New("requestpage").Parse(requestPageTmpl)
+	funcs := template.FuncMap{
+		"AuthorBlock": AuthorBlock,
+		"Upper":       strings.ToUpper,
+	}
+	tmpl, err := template.New("requestpage").Funcs(funcs).Parse(requestPageTmpl)
 	if err != nil {
 		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
