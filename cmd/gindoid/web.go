@@ -66,7 +66,7 @@ type reqResultData struct {
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
 	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
 	if err != nil {
-		log.Printf("Failed to parse template: %s", err.Error())
+		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
 		// failed to render result template; just show the message wrapped in html tags
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
@@ -196,7 +196,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 	tmpl, err := template.New("requestpage").Parse(requestPageTmpl)
 	if err != nil {
-		log.Print("Could not parse init template")
+		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email
 		return
@@ -229,7 +229,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 		}
 		return
 	}
@@ -240,7 +240,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = doiInfo
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 			return
 		}
 	} else if doiInfo != nil {
@@ -253,7 +253,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = &libgin.DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 			return
 		}
 		return
@@ -261,7 +261,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.Message = template.HTML(msgInvalidDOI)
 		tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 			return
 		}
 		return

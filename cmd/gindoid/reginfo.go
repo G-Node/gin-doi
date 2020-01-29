@@ -174,13 +174,13 @@ func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
 	}
 	tmpl, err := txttemplate.New("doixml").Funcs(tmplfuncs).Parse(doiXML)
 	if err != nil {
-		log.Print("Could not parse template")
+		log.Printf("Error parsing doi.xml template: %s", err.Error())
 		return "", err
 	}
 	buff := bytes.Buffer{}
 	err = tmpl.Execute(&buff, doiInfo)
 	if err != nil {
-		log.Print("Template execution failed")
+		log.Printf("Error rendering doi.xml: %s", err.Error())
 		return "", err
 	}
 	return buff.String(), err

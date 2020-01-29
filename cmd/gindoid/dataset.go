@@ -178,7 +178,7 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	}
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
-		log.Printf("Could not execute the landing page template: %s", err.Error())
+		log.Printf("Error rendering the landing page: %s", err.Error())
 		return err
 	}
 	return nil
