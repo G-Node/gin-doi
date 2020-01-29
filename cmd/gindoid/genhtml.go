@@ -73,7 +73,7 @@ func mkhtml(cmd *cobra.Command, args []string) {
 		// template expects DOIReq that wraps DOIRegInfo and DOIRequestData
 		uuid := makeUUID(repopath)
 		doiInfo.DOI = doibase + uuid[:6]
-		doiInfo.FileSize = getArchiveSize(storeurl, doiInfo.DOI)
+		doiInfo.FileSize = getArchiveSize(storeurl, doibase, uuid)
 		req := &DOIReq{
 			DOIInfo:        doiInfo,
 			DOIRequestData: &libgin.DOIRequestData{Repository: repopath},
@@ -140,19 +140,31 @@ func writeHTML(req *DOIReq) (string, error) {
 // getArchiveSize checks if the DOI is already registered and if it is,
 // retrieves the size of the dataset archive.
 // If it fails in any way, it returns an empty string.
-func getArchiveSize(storeurl *url.URL, doi string) string {
-	zipfname := strings.ReplaceAll(doi, "/", "_") + ".zip"
-	zipurl, _ := url.Parse(storeurl.String())
-	zipurl.Path = path.Join(doi, zipfname)
+func getArchiveSize(storeurl *url.URL, doibase string, uuid string) string {
+	// try both new (doi-based) and old (uuid-based) zip filenames since we
+	// currently have both on the server
 
-	resp, err := http.Get(zipurl.String())
-	if err != nil {
-		fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), err.Error())
-		return ""
-	} else if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), resp.Status)
-		return ""
+	doi := doibase + uuid[:6]
+	zipfnames := []string{
+		strings.ReplaceAll(doi, "/", "_") + ".zip",
+		uuid + ".zip",
 	}
-	size := resp.ContentLength
-	return humanize.IBytes(uint64(size))
+
+	var size int64
+	for _, zipfname := range zipfnames {
+		zipurl, _ := url.Parse(storeurl.String())
+		zipurl.Path = path.Join(doi, zipfname)
+
+		resp, err := http.Get(zipurl.String())
+		if err != nil {
+			fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), err.Error())
+			continue
+		} else if resp.StatusCode != http.StatusOK {
+			fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), resp.Status)
+			continue
+		}
+		size = resp.ContentLength
+		return humanize.IBytes(uint64(size))
+	}
+	return ""
 }
