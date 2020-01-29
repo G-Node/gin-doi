@@ -161,20 +161,24 @@ func zip(source, zipfilename string) (int64, error) {
 // createLandingPage renders and writes a registered dataset landing page based
 // on the landingPageTmpl template.
 func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
-	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
+	funcs := template.FuncMap{
+		"AuthorBlock": AuthorBlock,
+		"Upper":       strings.ToUpper,
+	}
+	tmpl, err := template.New("landingpage").Funcs(funcs).Parse(landingPageTmpl)
 	if err != nil {
-		log.Print("Could not parse the DOI template")
+		log.Printf("Could not parse the landing page template: %s", err.Error())
 		return err
 	}
 
 	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
 	if err != nil {
-		log.Print("Could not create the DOI index.html")
+		log.Printf("Could not create the landing page file: %s", err.Error())
 		return err
 	}
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
-		log.Print("Could not execute the DOI template")
+		log.Printf("Could not execute the landing page template: %s", err.Error())
 		return err
 	}
 	return nil
