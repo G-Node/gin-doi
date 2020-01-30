@@ -10,6 +10,7 @@ import (
 
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
+	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
 )
 
@@ -149,7 +150,7 @@ func zip(source, zipfilename string) (int64, error) {
 		return -1, err
 	}
 
-	if err := libgin.MakeZip(zipfp, "."); err != nil {
+	if err := archive.MakeZip(zipfp, "."); err != nil {
 		log.Printf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
@@ -162,8 +163,7 @@ func zip(source, zipfilename string) (int64, error) {
 // on the landingPageTmpl template.
 func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	funcs := template.FuncMap{
-		"AuthorBlock": AuthorBlock,
-		"Upper":       strings.ToUpper,
+		"Upper": strings.ToUpper,
 	}
 	tmpl, err := template.New("landingpage").Funcs(funcs).Parse(landingPageTmpl)
 	if err != nil {

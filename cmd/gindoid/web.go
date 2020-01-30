@@ -196,8 +196,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 	funcs := template.FuncMap{
-		"AuthorBlock": AuthorBlock,
-		"Upper":       strings.ToUpper,
+		"Upper": strings.ToUpper,
 	}
 	tmpl, err := template.New("requestpage").Funcs(funcs).Parse(requestPageTmpl)
 	if err != nil {

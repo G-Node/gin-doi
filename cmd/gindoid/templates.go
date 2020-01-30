@@ -74,7 +74,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 						<div class="doi title">
 							<h2>{{.DOIInfo.ResourceType}}</h2>
 							<h1>{{.DOIInfo.Title}}</h1>
-							{{AuthorBlock .DOIInfo.Authors}}
+							{{.DOIInfo.AuthorBlock}}
 							<p>
 								<a href="" class="ui grey doi label">DOI</a>
 								<a href="" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE</a>
@@ -308,7 +308,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 					<div class="doi title">
 						<h2>{{.DOIInfo.ResourceType}}</h2>
 						<h1>{{.DOIInfo.Title}}</h1>
-						{{AuthorBlock .DOIInfo.Authors}}
+						{{.DOIInfo.AuthorBlock}}
 						<p>
 							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey doi label">{{.DOIInfo.DOI}}</a>
 							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
