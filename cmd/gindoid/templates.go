@@ -310,11 +310,11 @@ const landingPageTmpl = `<!DOCTYPE html>
 						<h1>{{.DOIInfo.Title}}</h1>
 						{{.DOIInfo.AuthorBlock}}
 						<p>
-							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey doi label">{{.DOIInfo.DOI}}</a>
+							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey doi label">{{.DOIInfo.DOI}}</a> {{.DOIInfo.PrettyDate}}
 							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
 							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE {{.DOIInfo.ResourceType | Upper}} REPOSITORY</a>
 						</p>
-						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a> {{.DOIInfo.ISODate}}</p>
+						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
 					</div>
 					<hr>
 
