@@ -310,11 +310,12 @@ const landingPageTmpl = `<!DOCTYPE html>
 						<h1>{{.DOIInfo.Title}}</h1>
 						{{.DOIInfo.AuthorBlock}}
 						<p>
-							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui grey doi label">{{.DOIInfo.DOI}}</a> {{.DOIInfo.PrettyDate}}
-							<a href="{{.DOIInfo.FileName}}" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
-							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE {{.DOIInfo.ResourceType | Upper}} REPOSITORY</a>
+							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label">{{.DOIInfo.DOI}}</a>
+							<a href="https://gin.g-node.org/{{.Repository}}" class="ui ginblue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a>
+							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui ginblue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SNAPSHOT REPOSITORY</a>
+							<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
 						</p>
-						<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
+						<p><strong>Published</strong> {{.DOIInfo.PrettyDate}} | <strong>License</strong> <a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
 					</div>
 					<hr>
 
@@ -322,11 +323,6 @@ const landingPageTmpl = `<!DOCTYPE html>
 						<h3>Description</h3>
 						<p>{{.DOIInfo.Description}}</p>
 					{{end}}
-
-					<h3>Source</h3>
-					<p><a href="https://gin.g-node.org/{{.Repository}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a></p>
-					<p><span class="text italic">May contain changes since publication</span></p>
-
 
 					{{if .DOIInfo.Keywords}}
 						<h3>Keywords</h3>
@@ -345,7 +341,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 					{{end}}
 
 					{{if .DOIInfo.Funding}}
-						<h3>Funded by</h3>
+						<h3>Funding</h3>
 						<ul class="doi itemlist">
 							{{range $index, $ref := .DOIInfo.Funding}}
 								<li>{{$ref}}</li>

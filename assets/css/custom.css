@@ -3,18 +3,6 @@
   margin: 0 0 -200px 0;
   min-height: 100%;
 }
-.ui .text.red {
-  color: #2854a4 !important;
-}
-.ui .text.red a {
-  color: #2854a4 !important;
-}
-.ui .text.red a:hover {
-  color: #428bca !important;
-}
-.ui .text.blue {
-  color: #2854a4 !important;
-}
 footer {
   margin-top: 114px !important;
   background-color: white;
@@ -388,4 +376,8 @@ textarea#description {
 .doi.label {
     font-size: 1em;
     margin: 0;
+}
+.ui .ginblue {
+  color: white;
+  background-color: #2854a4 !important;
 }
