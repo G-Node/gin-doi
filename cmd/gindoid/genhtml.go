@@ -110,7 +110,12 @@ func writeHTML(req *DOIReq) (string, error) {
 	funcs := template.FuncMap{
 		"Upper": strings.ToUpper,
 	}
-	tmpl, err := template.New("landingpage").Funcs(funcs).Parse(landingPageTmpl)
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+	if err != nil {
+		log.Print("Could not parse the DOI Info template")
+		return "", err
+	}
+	tmpl, err = tmpl.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
 		log.Print("Could not parse the DOI template")
 		return "", err

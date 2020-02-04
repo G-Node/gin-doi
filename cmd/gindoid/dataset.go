@@ -165,7 +165,12 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	funcs := template.FuncMap{
 		"Upper": strings.ToUpper,
 	}
-	tmpl, err := template.New("landingpage").Funcs(funcs).Parse(landingPageTmpl)
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+	if err != nil {
+		log.Printf("Could not parse the DOI info template: %s", err.Error())
+		return err
+	}
+	tmpl, err = template.New("landingpage").Parse(landingPageTmpl)
 	if err != nil {
 		log.Printf("Could not parse the landing page template: %s", err.Error())
 		return err

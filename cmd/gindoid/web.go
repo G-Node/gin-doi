@@ -198,7 +198,13 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	funcs := template.FuncMap{
 		"Upper": strings.ToUpper,
 	}
-	tmpl, err := template.New("requestpage").Funcs(funcs).Parse(requestPageTmpl)
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+	if err != nil {
+		log.Printf("Failed to parse DOI info template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	tmpl, err = tmpl.New("requestpage").Parse(requestPageTmpl)
 	if err != nil {
 		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -210,7 +216,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	log.Printf("Got request: %s", regrequest)
 
-	dReq := DOIReq{}
+	dReq := &DOIReq{}
 	dReq.DOIInfo = &libgin.DOIRegInfo{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {

@@ -1,5 +1,59 @@
 package main
 
+// doiInfoTmpl is a partial template for the rendering of all the DOI info.
+// The template is used for the generation of the landing page as well as the
+// preparation page (before submitting a request) and the preview on the
+// repository front page on GIN.
+const doiInfoTmpl = `
+<div class="doi title">
+	<h2>{{.DOIInfo.ResourceType}}</h2>
+	<h1>{{.DOIInfo.Title}}</h1>
+	{{.DOIInfo.AuthorBlock}}
+	<p>
+	<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label">{{.DOIInfo.DOI}}</a>
+	<a href="https://gin.g-node.org/{{.Repository}}" class="ui ginblue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a>
+	<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui ginblue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SNAPSHOT REPOSITORY</a>
+	<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
+	</p>
+	<p><strong>Published</strong> {{.DOIInfo.PrettyDate}} | <strong>License</strong> <a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
+</div>
+<hr>
+
+{{if .DOIInfo.Description}}
+	<h3>Description</h3>
+	<p>{{.DOIInfo.Description}}</p>
+{{end}}
+
+{{if .DOIInfo.Keywords}}
+	<h3>Keywords</h3>
+	| {{range $index, $kw := .DOIInfo.Keywords}} <a href="/keywords/{{$kw}}">{{$kw}}</a> | {{end}}
+{{end}}
+
+{{if .DOIInfo.References}}
+	<h3>References</h3>
+	<ul class="doi itemlist">
+		{{range $index, $ref := .DOIInfo.References}}
+			<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}} <a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
+		{{end}}
+	</ul>
+{{end}}
+
+{{if .DOIInfo.Funding}}
+	<h3>Funding</h3>
+	<ul class="doi itemlist">
+		{{range $index, $ref := .DOIInfo.Funding}}
+			<li>{{$ref}}</li>
+		{{end}}
+	</ul>
+{{end}}
+
+
+<h3>Citation</h3>
+<i>This dataset can be cited as:</i><br>
+{{.DOIInfo.GetCitation}}<br>
+<i>Please also consider citing the material listed in the references</i>
+`
+
 const requestPageTmpl = `<!DOCTYPE html>
 <html lang="en">
 	<head data-suburl="">
@@ -71,91 +125,39 @@ const requestPageTmpl = `<!DOCTYPE html>
 							</div>
 						</div>
 						<hr>
-						<div class="doi title">
-							<h2>{{.DOIInfo.ResourceType}}</h2>
-							<h1>{{.DOIInfo.Title}}</h1>
-							{{.DOIInfo.AuthorBlock}}
-							<p>
-								<a href="" class="ui grey doi label">DOI</a>
-								<a href="" class="ui blue doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE</a>
-								<a href="" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE {{.DOIInfo.ResourceType | Upper}} REPOSITORY</a>
-							</p>
-							<p><a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
-						</div>
+						{{template "doiInfo" .}}
 						<hr>
-
-						{{if .DOIInfo.Description}}
-							<h3>Description</h3>
-							<p>{{.DOIInfo.Description}}</p>
-						{{end}}
-
-						<h3>Source</h3>
-						<p><a href="https://gin.g-node.org/{{.Repository}}" class="ui black doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a></p>
-						<p><span class="text italic">May contain changes since publication</span></p>
-
-
-						{{if .DOIInfo.Keywords}}
-							<h3>Keywords</h3>
-							| {{range $index, $kw := .DOIInfo.Keywords}}
-							<a href="/keywords/{{$kw}}">{{$kw}}</a> |
-						{{end}}
-					{{end}}
-
-					{{if .DOIInfo.References}}
-						<h3>References</h3>
-						<ul class="doi itemlist">
-							{{range $index, $ref := .DOIInfo.References}}
-								<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}} <a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
-							{{end}}
-						</ul>
-					{{end}}
-
-					{{if .DOIInfo.Funding}}
-						<h3>Funded by</h3>
-						<ul class="doi itemlist">
-							{{range $index, $ref := .DOIInfo.Funding}}
-								<li>{{$ref}}</li>
-							{{end}}
-						</ul>
-					{{end}}
-
-
-					<h3>Citation</h3>
-					<i>This dataset can be cited as:</i><br>
-					{{.DOIInfo.GetCitation}}<br>
-					<i>Please also consider citing the material listed in the references</i>
-					<hr>
-					<div class="column center">
-						<h3>END OF PREVIEW</h3>
-					</div>
-					<div class="ui negative icon message" id="warning">
-						<i class="warning icon"></i>
-						<div class="content">
-							<div class="header">Please thoroughly check the following before proceeding</div>
-							<ul align="left">
-								<li>Did you upload all data?</li>
-								<li>Does your repository contain a LICENSE file?</li>
-								<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
-								<li>Does your repository contain a good description of the data?</li>
-							</ul>
-							<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
-							Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
-							<p><b>All files and data in the repository will be part of the public archive!</b></p>
-						</div>
-					</div>
-					<form action="/submit" method="post">
-						<input type="hidden" id="reqdata" name="reqdata" value="{{.RequestData}}">
 						<div class="column center">
-							<button class="ui primary button" type="submit">Request DOI Now</button>
+							<h3>END OF PREVIEW</h3>
 						</div>
-					</form>
-				{{else}}
-					<div class="ui warning message">
-						<div><b>DOI request failed</b>
-							<p>{{.Message}}</p>
+						<div class="ui negative icon message" id="warning">
+							<i class="warning icon"></i>
+							<div class="content">
+								<div class="header">Please thoroughly check the following before proceeding</div>
+								<ul align="left">
+									<li>Did you upload all data?</li>
+									<li>Does your repository contain a LICENSE file?</li>
+									<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
+									<li>Does your repository contain a good description of the data?</li>
+								</ul>
+								<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
+								Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
+								<p><b>All files and data in the repository will be part of the public archive!</b></p>
+							</div>
 						</div>
-					</div>
-				{{end}}
+						<form action="/submit" method="post">
+							<input type="hidden" id="reqdata" name="reqdata" value="{{.RequestData}}">
+							<div class="column center">
+								<button class="ui primary button" type="submit">Request DOI Now</button>
+							</div>
+						</form>
+					{{else}}
+						<div class="ui warning message">
+							<div><b>DOI request failed</b>
+								<p>{{.Message}}</p>
+							</div>
+						</div>
+					{{end}}
 				</div>
 			</div>
 		</div>
@@ -305,55 +307,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 
 			<div class="home middle very relaxed page grid" id="main">
 				<div class="ui container sixteen wide centered column doi">
-					<div class="doi title">
-						<h2>{{.DOIInfo.ResourceType}}</h2>
-						<h1>{{.DOIInfo.Title}}</h1>
-						{{.DOIInfo.AuthorBlock}}
-						<p>
-							<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label">{{.DOIInfo.DOI}}</a>
-							<a href="https://gin.g-node.org/{{.Repository}}" class="ui ginblue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a>
-							<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui ginblue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SNAPSHOT REPOSITORY</a>
-							<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
-						</p>
-						<p><strong>Published</strong> {{.DOIInfo.PrettyDate}} | <strong>License</strong> <a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
-					</div>
-					<hr>
-
-					{{if .DOIInfo.Description}}
-						<h3>Description</h3>
-						<p>{{.DOIInfo.Description}}</p>
-					{{end}}
-
-					{{if .DOIInfo.Keywords}}
-						<h3>Keywords</h3>
-							| {{range $index, $kw := .DOIInfo.Keywords}}
-								<a href="/keywords/{{$kw}}">{{$kw}}</a> |
-							{{end}}
-					{{end}}
-
-					{{if .DOIInfo.References}}
-						<h3>References</h3>
-						<ul class="doi itemlist">
-							{{range $index, $ref := .DOIInfo.References}}
-								<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}} <a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
-							{{end}}
-						</ul>
-					{{end}}
-
-					{{if .DOIInfo.Funding}}
-						<h3>Funding</h3>
-						<ul class="doi itemlist">
-							{{range $index, $ref := .DOIInfo.Funding}}
-								<li>{{$ref}}</li>
-							{{end}}
-						</ul>
-					{{end}}
-
-
-					<h3>Citation</h3>
-					<i>This dataset can be cited as:</i><br>
-					{{.DOIInfo.GetCitation}}<br>
-					<i>Please also consider citing the material listed in the references</i>
+					{{template "doiInfo" .}}
 				</div>
 			</div>
 		</div>
