@@ -11,9 +11,9 @@ const doiInfoTmpl = `
 	{{.DOIInfo.AuthorBlock}}
 	<p>
 	<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label">{{.DOIInfo.DOI}}</a>
-	<a href="https://gin.g-node.org/{{.Repository}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SOURCE REPOSITORY</a>
-	<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;SNAPSHOT REPOSITORY</a>
-	<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE {{if .DOIInfo.FileSize}}({{.DOIInfo.FileSize}}){{end}}</a>
+	<a href="https://gin.g-node.org/{{.Repository}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>
+	<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
+	<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE (ZIP{{if .DOIInfo.FileSize}} {{.DOIInfo.FileSize}}{{end}})</a>
 	</p>
 	<p><strong>Published</strong> {{.DOIInfo.PrettyDate}} | <strong>License</strong> <a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
 </div>
