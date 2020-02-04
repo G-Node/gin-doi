@@ -51,7 +51,6 @@ const doiInfoTmpl = `
 <h3>Citation</h3>
 <i>This dataset can be cited as:</i><br>
 {{.DOIInfo.GetCitation}}<br>
-<i>Please also consider citing the material listed in the references</i>
 `
 
 const requestPageTmpl = `<!DOCTYPE html>
