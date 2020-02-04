@@ -377,7 +377,15 @@ textarea#description {
     font-size: 1em;
     margin: 0;
 }
-.ui .ginblue {
+.ui.black.label {
+  color: white;
+  background-color: #000000 !important;
+}
+.ui.blue.label {
   color: white;
   background-color: #2854a4 !important;
+}
+.ui.green.label {
+  color: white;
+  background-color: #1da43c !important;
 }
