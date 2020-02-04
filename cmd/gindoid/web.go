@@ -248,7 +248,6 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Printf("Received DOI information: %s", string(j))
 		dReq.DOIInfo = doiInfo
-		doiInfo.DOI = "DOI"
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
 			log.Printf("Error rendering template: %s", err.Error())
