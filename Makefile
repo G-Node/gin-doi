@@ -29,7 +29,7 @@ install: $(APP)
 	install $(BUILDLOC)/$(APP) $(INSTLOC)/$(APP)
 
 clean:
-	rm -r $(BUILDLOC)
+	rm -rf $(BUILDLOC)
 
 uninstall:
 	rm $(INSTLOC)/$(APP)
