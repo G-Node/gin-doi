@@ -173,3 +173,10 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 	affiliationLine := fmt.Sprintf("<ol class=\"doi itemlist\">%s</ol>", strings.Join(affiliations, "\n"))
 	return template.HTML(authorLine + "\n" + affiliationLine)
 }
+
+// JoinComma joins a slice of strings into a single string separated by commas
+// (and space).  Useful for generating comma-separated lists of entries for
+// templates.
+func JoinComma(lst []string) string {
+	return strings.Join(lst, ", ")
+}
