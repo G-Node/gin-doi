@@ -163,7 +163,9 @@ func zip(source, zipfilename string) (int64, error) {
 // on the landingPageTmpl template.
 func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 	funcs := template.FuncMap{
-		"Upper": strings.ToUpper,
+		"Upper":       strings.ToUpper,
+		"FunderName":  FunderName,
+		"AwardNumber": AwardNumber,
 	}
 	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
 	if err != nil {

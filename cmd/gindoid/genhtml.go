@@ -108,7 +108,11 @@ func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error)
 
 func writeHTML(req *DOIReq) (string, error) {
 	funcs := template.FuncMap{
-		"Upper": strings.ToUpper,
+		"Upper":       strings.ToUpper,
+		"FunderName":  FunderName,
+		"AwardNumber": AwardNumber,
+		"AuthorBlock": AuthorBlock,
+		"JoinComma":   JoinComma,
 	}
 	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
 	if err != nil {

@@ -7,8 +7,8 @@ package main
 const doiInfoTmpl = `
 <div class="doi title">
 	<h2>{{.DOIInfo.ResourceType}}</h2>
-	<h1>{{.DOIInfo.Title}}</h1>
-	{{.DOIInfo.AuthorBlock}}
+	<h1 itemprop="name">{{.DOIInfo.Title}}</h1>
+	{{AuthorBlock .DOIInfo.Authors}}
 	{{if .DOIInfo.DOI}}
 		<p>
 		<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label">{{.DOIInfo.DOI}}</a>
@@ -17,25 +17,27 @@ const doiInfoTmpl = `
 		<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE (ZIP{{if .DOIInfo.FileSize}} {{.DOIInfo.FileSize}}{{end}})</a>
 		</p>
 	{{end}}
-	<p><strong>Published</strong> {{.DOIInfo.PrettyDate}} | <strong>License</strong> <a href="{{.DOIInfo.License.URL}}">{{.DOIInfo.License.Name}}</a></p>
+	<p><strong>Published</strong> {{.DOIInfo.PrettyDate}} | <strong>License</strong> <a href="{{.DOIInfo.License.URL}}" itemprop="license">{{.DOIInfo.License.Name}}</a></p>
 </div>
 <hr>
 
 {{if .DOIInfo.Description}}
 	<h3>Description</h3>
-	<p>{{.DOIInfo.Description}}</p>
+	<p itemprop="description">{{.DOIInfo.Description}}</p>
 {{end}}
 
 {{if .DOIInfo.Keywords}}
 	<h3>Keywords</h3>
 	| {{range $index, $kw := .DOIInfo.Keywords}} <a href="/keywords/{{$kw}}">{{$kw}}</a> | {{end}}
+	<meta itemprop="keywords" content="{{JoinComma .DOIInfo.Keywords}}">
 {{end}}
+
 
 {{if .DOIInfo.References}}
 	<h3>References</h3>
 	<ul class="doi itemlist">
 		{{range $index, $ref := .DOIInfo.References}}
-			<li>{{$ref.Name}} {{$ref.Citation}}{{if $ref.ID}} <a href={{$ref.GetURL}}>{{$ref.ID}}</a>{{end}}</li>
+			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href={{$ref.GetURL}} itemprop="sameAs"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
 		{{end}}
 	</ul>
 {{end}}
@@ -43,8 +45,8 @@ const doiInfoTmpl = `
 {{if .DOIInfo.Funding}}
 	<h3>Funding</h3>
 	<ul class="doi itemlist">
-		{{range $index, $ref := .DOIInfo.Funding}}
-			<li>{{$ref}}</li>
+		{{range $index, $org := .DOIInfo.Funding}}
+			<li itemprop="funder" itemscope itemtype="http://schema.org/Organization"><span itemprop="name">{{FunderName $org}}</span> {{AwardNumber $org}}</li>
 		{{end}}
 	</ul>
 {{end}}
@@ -308,7 +310,9 @@ const landingPageTmpl = `<!DOCTYPE html>
 
 			<div class="home middle very relaxed page grid" id="main">
 				<div class="ui container sixteen wide centered column doi">
-					{{template "doiInfo" .}}
+					<span itemscope itemtype="http://schema.org/Dataset">
+						{{template "doiInfo" .}}
+					</span>
 				</div>
 			</div>
 		</div>
