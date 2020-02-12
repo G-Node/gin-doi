@@ -19,7 +19,7 @@ BUILDNUM = $(shell printf '%06d' $(ncommits))
 COMMITHASH = $(shell git rev-parse HEAD)
 LDFLAGS = -ldflags="-X main.appversion=$(VERNUM) -X main.build=$(BUILDNUM) -X main.commit=$(COMMITHASH)"
 
-SOURCES = $(shell find . -type f -iname "*.go") version
+SOURCES = $(shell find . -type f -iname "*.go") version go.mod go.sum
 
 .PHONY: $(APP) install clean uninstall
 
