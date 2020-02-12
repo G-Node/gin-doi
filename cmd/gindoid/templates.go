@@ -10,8 +10,9 @@ const doiInfoTmpl = `
 	<h1 itemprop="name">{{.DOIInfo.Title}}</h1>
 	{{AuthorBlock .DOIInfo.Authors}}
 	{{if .DOIInfo.DOI}}
+		<meta itemprop="identifier" content="doi:{{.DOIInfo.DOI}}">
 		<p>
-		<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label" itemprop="url"><span itemprop="identifier">{{.DOIInfo.DOI}}</span></a>
+		<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label" itemprop="url">DOI: {{.DOIInfo.DOI}}</a>
 		<a href="https://gin.g-node.org/{{.Repository}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>
 		<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
 		<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE (ZIP{{if .DOIInfo.FileSize}} {{.DOIInfo.FileSize}}{{end}})</a>
@@ -37,7 +38,7 @@ const doiInfoTmpl = `
 	<h3>References</h3>
 	<ul class="doi itemlist">
 		{{range $index, $ref := .DOIInfo.References}}
-			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href={{$ref.GetURL}} itemprop="sameAs"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
+			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href={{$ref.GetURL}} itemprop="url"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
 		{{end}}
 	</ul>
 {{end}}
