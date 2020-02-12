@@ -11,7 +11,7 @@ const doiInfoTmpl = `
 	{{AuthorBlock .DOIInfo.Authors}}
 	{{if .DOIInfo.DOI}}
 		<p>
-		<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label">{{.DOIInfo.DOI}}</a>
+		<a href="https://doi.org/{{.DOIInfo.DOI}}" class="ui black doi label" itemprop="url"><span itemprop="identifier">{{.DOIInfo.DOI}}</span></a>
 		<a href="https://gin.g-node.org/{{.Repository}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>
 		<a href="https://gin.g-node.org/{{.GetDOIURI}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
 		<a href="{{.DOIInfo.FileName}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.DOIInfo.ResourceType | Upper}} ARCHIVE (ZIP{{if .DOIInfo.FileSize}} {{.DOIInfo.FileSize}}{{end}})</a>
