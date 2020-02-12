@@ -10,7 +10,6 @@ RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-
 
 RUN go version
 COPY ./go.mod ./go.sum /gindoid/
-COPY ./vendor /gindoid/vendor/
 COPY ./cmd /gindoid/cmd/
 WORKDIR /gindoid
 
