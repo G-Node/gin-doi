@@ -166,7 +166,13 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 			}
 			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
 		}
-		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><span itemprop=\"name\">%s %s</span><meta itemprop=\"affiliation\" content=%q />%s</span>", author.FirstName, author.LastName, author.Affiliation, affiliationSup)
+		var url, id string
+		if idInfo := author.GetValidID(); idInfo != nil {
+			id = fmt.Sprintf("orcid:%s", idInfo.ID)
+			url = idInfo.URI
+		}
+
+		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s %s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, author.FirstName, author.LastName, author.Affiliation, id, affiliationSup)
 	}
 
 	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(names, ",\n"))
