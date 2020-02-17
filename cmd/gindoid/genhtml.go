@@ -51,8 +51,7 @@ func mkhtml(cmd *cobra.Command, args []string) {
 	storeurlstr := libgin.ReadConf("storeurl")
 	if storeurlstr == "" {
 		fmt.Printf("Using default store URL: %s\n", defstoreurl)
-		storeurlstr = defstoreurl
-		storeurl, _ = url.Parse(storeurlstr)
+		storeurl, _ = url.Parse(defstoreurl)
 	} else {
 		storeurl, err = url.Parse(storeurlstr)
 		if err != nil {
