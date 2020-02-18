@@ -3,21 +3,8 @@
   margin: 0 0 -200px 0;
   min-height: 100%;
 }
-.ui .text.red {
-  color: #2854a4 !important;
-}
-.ui .text.red a {
-  color: #2854a4 !important;
-}
-.ui .text.red a:hover {
-  color: #428bca !important;
-}
-.ui .text.blue {
-  color: #2854a4 !important;
-}
 footer {
   margin-top: 114px !important;
-  height: 100px;
   background-color: white;
   border-top: 1px solid #d6d6d6;
   clear: both;
@@ -194,44 +181,6 @@ footer {
 }
 .ginsubtitle {
   font-family: "Kaushan Script", "Helvetica Neue", Helvetica, Arial, cursive;
-  font-size: 16px;
-}
-.supersmall {
-  padding-left: 10px;
-  font-size: 0.8em;
-  text-align: left;
-}
-.leftspace {
-  padding-left: 20px;
-}
-figure {
-  float: right;
-  max-width: 600px;
-}
-figure img {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
-figure figcaption {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  font-style: italic;
-  text-align: justify;
-}
-#cloudberry-view {
-  margin-top: 14px;
-}
-.ui.codetab {
-  padding: 0;
-}
-#file-buttons {
-  padding-right: 5px;
-}
-.ginsubtitle {
-  font-family: "Kaushan Script", "Helvetica Neue", Helvetica, Arial, cursive;
-  font-size: 16px;
 }
 .supersmall {
   padding-left: 10px;
@@ -257,7 +206,7 @@ figure figcaption {
   font-style: italic;
   text-align: justify;
 }
-#cloudberry-view {
+#datacite-view {
   margin-top: 14px;
 }
 .ui.codetab {
@@ -412,4 +361,31 @@ textarea#description {
 .footertext {
   font-size: 1rem;
   vertical-align: middle;
+}
+.doi.author {
+    font-size: 1.4em;
+}
+.doi.itemlist {
+    font-size: 1.0em;
+    list-style: none;
+    padding: 0;
+}
+.doi.title {
+  margin-top: 1.5em;
+}
+.doi.label {
+    font-size: 1em;
+    margin: 0;
+}
+.ui.black.label {
+  color: white;
+  background-color: #000000 !important;
+}
+.ui.blue.label {
+  color: white;
+  background-color: #2854a4 !important;
+}
+.ui.green.label {
+  color: white;
+  background-color: #1da43c !important;
 }

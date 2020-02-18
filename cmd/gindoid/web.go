@@ -6,8 +6,10 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -65,7 +67,7 @@ type reqResultData struct {
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
 	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
 	if err != nil {
-		log.Printf("Failed to parse template: %s", err.Error())
+		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
 		// failed to render result template; just show the message wrapped in html tags
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
@@ -193,9 +195,18 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
-	tmpl, err := template.New("requestpage").Parse(requestPageTmpl)
+	funcs := template.FuncMap{
+		"Upper": strings.ToUpper,
+	}
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
 	if err != nil {
-		log.Print("Could not parse init template")
+		log.Printf("Failed to parse DOI info template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	tmpl, err = tmpl.New("requestpage").Parse(requestPageTmpl)
+	if err != nil {
+		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email
 		return
@@ -205,7 +216,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	log.Printf("Got request: %s", regrequest)
 
-	dReq := DOIReq{}
+	dReq := &DOIReq{}
 	dReq.DOIInfo = &libgin.DOIRegInfo{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
@@ -228,7 +239,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 		}
 		return
 	}
@@ -239,7 +250,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = doiInfo
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 			return
 		}
 	} else if doiInfo != nil {
@@ -252,7 +263,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.DOIInfo = &libgin.DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 			return
 		}
 		return
@@ -260,7 +271,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		dReq.Message = template.HTML(msgInvalidDOI)
 		tmpl.Execute(w, dReq)
 		if err != nil {
-			log.Print("Could not parse template")
+			log.Printf("Error rendering template: %s", err.Error())
 			return
 		}
 		return
@@ -289,4 +300,55 @@ func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, 
 	}
 
 	return &data, nil
+}
+
+func web(cmd *cobra.Command, args []string) {
+	log.Printf("Starting up %s", cmd.Version)
+
+	config, err := loadconfig()
+	if err != nil {
+		log.Fatalf("Startup failed: %v", err)
+	}
+
+	// Pretty print configuration for debugging, but hide sensitive stuff
+	cc := *config
+	cc.Key = "[HIDDEN]"
+	cc.GIN.Password = "[HIDDEN]"
+	j, _ := json.MarshalIndent(cc, "", "  ")
+	log.Print(string(j))
+
+	log.Printf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
+	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer config.GIN.Session.Logout()
+
+	jobQueue := make(chan DOIJob, config.MaxQueue)
+	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
+	dispatcher.run(newWorker)
+
+	// Start the HTTP handlers.
+
+	// Root redirects to storage URL (DOI listing page)
+	http.Handle("/", http.RedirectHandler(config.Storage.StoreURL, http.StatusMovedPermanently))
+
+	// register renders the info page with the registration button
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Got request: %s", r.URL.String())
+		renderRequestPage(w, r, config)
+	})
+
+	// submit starts the registration job
+	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
+		startDOIRegistration(w, r, jobQueue, config)
+	})
+
+	// assets fetches static assets using a custom FileSystem
+	assetserver := http.FileServer(newAssetFS("/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", assetserver))
+
+	fmt.Printf("Listening for connections on port %d\n", config.Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
 }

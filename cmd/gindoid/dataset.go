@@ -10,6 +10,7 @@ import (
 
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
+	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
 )
 
@@ -149,7 +150,7 @@ func zip(source, zipfilename string) (int64, error) {
 		return -1, err
 	}
 
-	if err := libgin.MakeZip(zipfp, "."); err != nil {
+	if err := archive.MakeZip(zipfp, "."); err != nil {
 		log.Printf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
@@ -161,23 +162,30 @@ func zip(source, zipfilename string) (int64, error) {
 // createLandingPage renders and writes a registered dataset landing page based
 // on the landingPageTmpl template.
 func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
-	tmpl, err := template.New("landingpage").Parse(landingPageTmpl)
+	funcs := template.FuncMap{
+		"Upper":       strings.ToUpper,
+		"FunderName":  FunderName,
+		"AwardNumber": AwardNumber,
+	}
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
 	if err != nil {
-		if err != nil {
-			log.Print("Could not parse the DOI template")
-			return err
-		}
+		log.Printf("Could not parse the DOI info template: %s", err.Error())
+		return err
+	}
+	tmpl, err = template.New("landingpage").Parse(landingPageTmpl)
+	if err != nil {
+		log.Printf("Could not parse the landing page template: %s", err.Error())
 		return err
 	}
 
 	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
 	if err != nil {
-		log.Print("Could not create the DOI index.html")
+		log.Printf("Could not create the landing page file: %s", err.Error())
 		return err
 	}
 	defer fp.Close()
 	if err := tmpl.Execute(fp, info); err != nil {
-		log.Print("Could not execute the DOI template")
+		log.Printf("Error rendering the landing page: %s", err.Error())
 		return err
 	}
 	return nil
