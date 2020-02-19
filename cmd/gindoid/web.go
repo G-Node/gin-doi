@@ -243,38 +243,23 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}
 		return
 	}
-	if doiInfo, err := readRepoYAML(infoyml); err == nil {
-		// TODO: Simplify this chain of conditions
-		j, _ := json.MarshalIndent(doiInfo, "", "  ")
-		log.Printf("Received DOI information: %s", string(j))
-		dReq.DOIInfo = doiInfo
-		err = tmpl.Execute(w, dReq)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-			return
-		}
-	} else if doiInfo != nil {
+	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
 		log.Print("DOI file invalid")
-		if doiInfo.Missing != nil {
-			dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
-		} else {
-			dReq.Message = template.HTML(msgInvalidDOI + msgBadEncoding)
-		}
+		dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + err.Error() + "</i>")
 		dReq.DOIInfo = &libgin.DOIRegInfo{}
 		err = tmpl.Execute(w, dReq)
 		if err != nil {
 			log.Printf("Error rendering template: %s", err.Error())
-			return
 		}
 		return
-	} else {
-		dReq.Message = template.HTML(msgInvalidDOI)
-		tmpl.Execute(w, dReq)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-			return
-		}
-		return
+	}
+	j, _ := json.MarshalIndent(doiInfo, "", "  ")
+	log.Printf("Received DOI information: %s", string(j))
+	dReq.DOIInfo = doiInfo
+	err = tmpl.Execute(w, dReq)
+	if err != nil {
+		log.Printf("Error rendering template: %s", err.Error())
 	}
 }
 

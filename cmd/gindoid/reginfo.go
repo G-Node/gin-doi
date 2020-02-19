@@ -104,7 +104,7 @@ func readRepoYAML(infoyml []byte) (*libgin.DOIRegInfo, error) {
 	yamlInfo := libgin.DOIRegInfo{}
 	err := yaml.Unmarshal(infoyml, &yamlInfo)
 	if err != nil {
-		return nil, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
+		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
 	}
 	yamlInfo.DateTime = time.Now()
 	if missing := checkMissingValues(&yamlInfo); len(missing) > 0 {
