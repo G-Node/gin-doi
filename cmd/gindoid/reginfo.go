@@ -145,20 +145,26 @@ func hasValues(s *libgin.DOIRegInfo) bool {
 	return len(s.Missing) == 0
 }
 
-type DOIReq struct {
-	RequestData string
+type RegistrationRequest struct {
+	// Encrypted request data from GIN.
+	EncryptedRequestData string
+	// Decrypted and unmarshalled request data.
 	*libgin.DOIRequestData
-	Message       template.HTML
-	DOIInfo       *libgin.DOIRegInfo
+	// Used to display error or warning messages to the user through the templates.
+	Message template.HTML
+	// Unmarshalled data from the datacite.yml of the repository being registered.
+	DOIInfo *libgin.DOIRegInfo
+	// Errors during the registration process that get sent in the body of the
+	// email to the administrators.
 	ErrorMessages []string
 }
 
-func (d *DOIReq) GetDOIURI() string {
+func (d *RegistrationRequest) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
 	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
 }
 
-func (d *DOIReq) AsHTML() template.HTML {
+func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
 }
 

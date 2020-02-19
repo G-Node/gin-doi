@@ -161,7 +161,7 @@ func zip(source, zipfilename string) (int64, error) {
 
 // createLandingPage renders and writes a registered dataset landing page based
 // on the landingPageTmpl template.
-func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
+func createLandingPage(target string, info *RegistrationRequest, conf *Configuration) error {
 	funcs := template.FuncMap{
 		"Upper":       strings.ToUpper,
 		"FunderName":  FunderName,

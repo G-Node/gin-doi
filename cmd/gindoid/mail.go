@@ -18,7 +18,7 @@ const (
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
 // sendMail function to send it.
-func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
+func notifyAdmin(dReq *RegistrationRequest, conf *Configuration) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)

@@ -73,7 +73,7 @@ func mkhtml(cmd *cobra.Command, args []string) {
 		uuid := makeUUID(repopath)
 		doiInfo.DOI = doibase + uuid[:6]
 		doiInfo.FileSize = getArchiveSize(storeurl, doibase, uuid)
-		req := &DOIReq{
+		req := &RegistrationRequest{
 			DOIInfo:        doiInfo,
 			DOIRequestData: &libgin.DOIRequestData{Repository: repopath},
 		}
@@ -105,7 +105,7 @@ func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error)
 	return doiInfo, nil
 }
 
-func writeHTML(req *DOIReq) (string, error) {
+func writeHTML(req *RegistrationRequest) (string, error) {
 	funcs := template.FuncMap{
 		"Upper":       strings.ToUpper,
 		"FunderName":  FunderName,

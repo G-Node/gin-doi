@@ -58,7 +58,7 @@ type reqResultData struct {
 	Success bool
 	Level   string // success, warning, error
 	Message template.HTML
-	Request *DOIReq
+	Request *RegistrationRequest
 }
 
 // renderResult renders the results of a registration request using the
@@ -86,26 +86,26 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	dReq := DOIReq{}
-	resData := reqResultData{Request: &dReq}
+	regRequest := RegistrationRequest{}
+	resData := reqResultData{Request: &regRequest}
 
-	dReq.RequestData = r.PostFormValue("reqdata")
-	reqdata, err := decryptRequestData(dReq.RequestData, conf.Key)
+	regRequest.EncryptedRequestData = r.PostFormValue("reqdata")
+	reqdata, err := decryptRequestData(regRequest.EncryptedRequestData, conf.Key)
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
-		dReq.ErrorMessages = []string{"Failed to verify request"}
+		regRequest.ErrorMessages = []string{"Failed to verify request"}
 		resData.Message = template.HTML(msgInvalidRequest)
 		// ignore the error, no email to send
 		renderResult(w, &resData)
 		return
 	}
 
-	dReq.DOIRequestData = reqdata
+	regRequest.DOIRequestData = reqdata
 
-	log.Printf("Received DOI request: %+v", dReq)
+	log.Printf("Received DOI request: %+v", regRequest)
 
 	// calculate DOI
-	uuid := makeUUID(dReq.Repository)
+	uuid := makeUUID(regRequest.Repository)
 	doi := conf.DOIBase + uuid[:6]
 
 	if isRegisteredDOI(doi) {
@@ -118,12 +118,12 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	// everything beyond this point should trigger an email notification
 	defer func() {
-		err := notifyAdmin(&dReq, conf)
+		err := notifyAdmin(&regRequest, conf)
 		if err != nil {
 			// Email send failed
 			// Log the error
 			log.Printf("Failed to send notification email: %s", err.Error())
-			log.Printf("Request data: %+v", dReq)
+			log.Printf("Request data: %+v", regRequest)
 			// Ask the user to contact us
 			resData.Success = false
 			resData.Level = "error"
@@ -133,24 +133,24 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		renderResult(w, &resData)
 	}()
 
-	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
+	user, err := conf.GIN.Session.RequestAccount(regRequest.Username)
 	if err != nil {
 		// Can happen if the DOI service isn't logged in to GIN
 		log.Printf("Failed to get user data: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
 		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
-	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
+	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
 		// made private) between preparing the request and submitting it
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
@@ -161,8 +161,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		// Can happen if the datacite.yml file is modified (and made invalid)
 		// between preparing the request and submitting it
 		log.Printf("Failed to parse datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
 		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
@@ -171,10 +171,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	doiInfo.UUID = uuid
 	doiInfo.DOI = doi
-	dReq.DOIInfo = doiInfo
+	regRequest.DOIInfo = doiInfo
 
 	// Add job to queue
-	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
+	job := DOIJob{Source: regRequest.Repository, User: user, Request: regRequest, Name: doiInfo.DOI, Config: conf}
 	jobQueue <- job
 	// Render success
 	message := fmt.Sprintf(msgServerIsArchiving, doi)
@@ -216,7 +216,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	log.Printf("Got request: %s", regrequest)
 
-	dReq := &DOIReq{}
+	dReq := &RegistrationRequest{}
 	dReq.DOIInfo = &libgin.DOIRegInfo{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
@@ -228,7 +228,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 
 	dReq.DOIRequestData = reqdata
-	dReq.RequestData = regrequest // Forward it through the hidden form in the template
+	dReq.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
 
 	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
 	if err != nil {

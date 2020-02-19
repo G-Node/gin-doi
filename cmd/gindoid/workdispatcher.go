@@ -19,7 +19,7 @@ type DOIJob struct {
 	Name    string
 	Source  string
 	User    gogs.User
-	Request DOIReq
+	Request RegistrationRequest
 	Key     rsa.PrivateKey
 	Config  *Configuration
 }
