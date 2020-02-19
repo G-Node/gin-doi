@@ -137,7 +137,7 @@ func hasValues(s *libgin.DOIRegInfo) bool {
 	}
 	if s.References != nil {
 		for _, ref := range s.References {
-			if (ref.Citation == "" && ref.Name == "") || ref.Reftype == "" {
+			if (ref.Citation == "" && ref.Name == "") || ref.RefType == "" {
 				s.Missing = append(s.Missing, msgInvalidReference)
 			}
 		}

@@ -97,7 +97,7 @@ func ReferenceDescription(ref libgin.Reference) string {
 	if !strings.HasSuffix(namecitation, ".") {
 		namecitation += "."
 	}
-	refDesc := fmt.Sprintf("%s: %s (%s)", ref.Reftype, namecitation, ref.ID)
+	refDesc := fmt.Sprintf("%s: %s (%s)", ref.RefType, namecitation, ref.ID)
 	return EscXML(refDesc)
 }
 
@@ -169,7 +169,7 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 		var url, id string
 		if idInfo := author.GetValidID(); idInfo != nil {
 			id = fmt.Sprintf("orcid:%s", idInfo.ID)
-			url = idInfo.URI
+			url = idInfo.SchemeURI
 		}
 
 		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s %s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, author.FirstName, author.LastName, author.Affiliation, id, affiliationSup)
