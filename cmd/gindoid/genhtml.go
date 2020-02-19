@@ -98,7 +98,7 @@ func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read metadata for repository %q\n", repopath)
 	}
-	doiInfo, err := parseDOIInfo(infoyml)
+	doiInfo, err := readRepoYAML(infoyml)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse metadata for repository %q\n", repopath)
 	}

@@ -156,7 +156,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
-	doiInfo, err := parseDOIInfo(infoyml)
+	doiInfo, err := readRepoYAML(infoyml)
 	if err != nil {
 		// Can happen if the datacite.yml file is modified (and made invalid)
 		// between preparing the request and submitting it
@@ -243,7 +243,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}
 		return
 	}
-	if doiInfo, err := parseDOIInfo(infoyml); err == nil {
+	if doiInfo, err := readRepoYAML(infoyml); err == nil {
 		// TODO: Simplify this chain of conditions
 		j, _ := json.MarshalIndent(doiInfo, "", "  ")
 		log.Printf("Received DOI information: %s", string(j))

@@ -98,8 +98,8 @@ func readFileAtURL(url string) ([]byte, error) {
 	return body, nil
 }
 
-// parseDOIInfo parses the DOI registration info and returns a filled DOIRegInfo struct.
-func parseDOIInfo(infoyml []byte) (*libgin.DOIRegInfo, error) {
+// readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.
+func readRepoYAML(infoyml []byte) (*libgin.DOIRegInfo, error) {
 	doiInfo := libgin.DOIRegInfo{}
 	err := yaml.Unmarshal(infoyml, &doiInfo)
 	if err != nil {
@@ -109,14 +109,14 @@ func parseDOIInfo(infoyml []byte) (*libgin.DOIRegInfo, error) {
 		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
 	}
 	doiInfo.DateTime = time.Now()
-	if !hasValues(&doiInfo) {
+	if !checkMissingValues(&doiInfo) {
 		log.Print("DOI file is missing entries")
 		return &doiInfo, fmt.Errorf("DOI info is missing entries")
 	}
 	return &doiInfo, nil
 }
 
-func hasValues(s *libgin.DOIRegInfo) bool {
+func checkMissingValues(s *libgin.DOIRegInfo) bool {
 	if s.Title == "" {
 		s.Missing = append(s.Missing, msgNoTitle)
 	}
