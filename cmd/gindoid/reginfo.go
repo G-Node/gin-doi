@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	txttemplate "text/template"
 	"time"
 
@@ -100,49 +101,48 @@ func readFileAtURL(url string) ([]byte, error) {
 
 // readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.
 func readRepoYAML(infoyml []byte) (*libgin.DOIRegInfo, error) {
-	doiInfo := libgin.DOIRegInfo{}
-	err := yaml.Unmarshal(infoyml, &doiInfo)
+	yamlInfo := libgin.DOIRegInfo{}
+	err := yaml.Unmarshal(infoyml, &yamlInfo)
 	if err != nil {
-		log.Print("Could not unmarshal DOI file")
-		res := libgin.DOIRegInfo{}
-		res.Missing = []string{fmt.Sprintf("%s", err)}
-		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
+		return nil, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
 	}
-	doiInfo.DateTime = time.Now()
-	if !checkMissingValues(&doiInfo) {
+	yamlInfo.DateTime = time.Now()
+	if missing := checkMissingValues(&yamlInfo); len(missing) > 0 {
 		log.Print("DOI file is missing entries")
-		return &doiInfo, fmt.Errorf("DOI info is missing entries")
+		return nil, fmt.Errorf("The following required entries are not set: %s", strings.Join(missing, ", "))
 	}
-	return &doiInfo, nil
+	return &yamlInfo, nil
 }
 
-func checkMissingValues(s *libgin.DOIRegInfo) bool {
-	if s.Title == "" {
-		s.Missing = append(s.Missing, msgNoTitle)
+// checkMissingValues returns the list of required fields that have no values set.
+func checkMissingValues(info *libgin.DOIRegInfo) []string {
+	missing := []string{}
+	if info.Title == "" {
+		missing = append(missing, msgNoTitle)
 	}
-	if len(s.Authors) == 0 {
-		s.Missing = append(s.Missing, msgNoAuthors)
+	if len(info.Authors) == 0 {
+		missing = append(missing, msgNoAuthors)
 	} else {
-		for _, auth := range s.Authors {
+		for _, auth := range info.Authors {
 			if auth.LastName == "" || auth.FirstName == "" {
-				s.Missing = append(s.Missing, msgInvalidAuthors)
+				missing = append(missing, msgInvalidAuthors)
 			}
 		}
 	}
-	if s.Description == "" {
-		s.Missing = append(s.Missing, msgNoDescription)
+	if info.Description == "" {
+		missing = append(missing, msgNoDescription)
 	}
-	if s.License == nil || s.License.Name == "" || s.License.URL == "" {
-		s.Missing = append(s.Missing, msgNoLicense)
+	if info.License == nil || info.License.Name == "" || info.License.URL == "" {
+		missing = append(missing, msgNoLicense)
 	}
-	if s.References != nil {
-		for _, ref := range s.References {
+	if info.References != nil {
+		for _, ref := range info.References {
 			if (ref.Citation == "" && ref.Name == "") || ref.RefType == "" {
-				s.Missing = append(s.Missing, msgInvalidReference)
+				missing = append(missing, msgInvalidReference)
 			}
 		}
 	}
-	return len(s.Missing) == 0
+	return missing
 }
 
 type RegistrationRequest struct {
