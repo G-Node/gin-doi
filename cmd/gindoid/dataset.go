@@ -22,7 +22,7 @@ const (
 // createRegisteredDataset starts the process of registering a dataset. It's
 // the top level function for the dataset registration and calls all other
 // individual functions.
-func createRegisteredDataset(job DOIJob) error {
+func createRegisteredDataset(job RegistrationJob) error {
 	conf := job.Config
 	repopath := job.Source
 	jobname := job.Name

@@ -78,7 +78,7 @@ func renderResult(w http.ResponseWriter, resData *reqResultData) {
 
 // startDOIRegistration starts the DOI registration process by authenticating
 // with the GIN server and adding a new DOIJob to the jobQueue.
-func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
+func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan RegistrationJob, conf *Configuration) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -174,7 +174,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	regRequest.DOIInfo = doiInfo
 
 	// Add job to queue
-	job := DOIJob{Source: regRequest.Repository, User: user, Request: regRequest, Name: doiInfo.DOI, Config: conf}
+	job := RegistrationJob{Source: regRequest.Repository, User: user, Request: regRequest, Name: doiInfo.DOI, Config: conf}
 	jobQueue <- job
 	// Render success
 	message := fmt.Sprintf(msgServerIsArchiving, doi)
@@ -310,7 +310,7 @@ func web(cmd *cobra.Command, args []string) {
 
 	defer config.GIN.Session.Logout()
 
-	jobQueue := make(chan DOIJob, config.MaxQueue)
+	jobQueue := make(chan RegistrationJob, config.MaxQueue)
 	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
 	dispatcher.run(newWorker)
 
