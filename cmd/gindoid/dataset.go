@@ -57,7 +57,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	defer fp.Close()
 
 	// No registering. But the XML is provided with everything
-	data, err := renderXML(job.Metadata.DataCite)
+	data, err := job.Metadata.DataCite.Marshal()
 	if err != nil {
 		log.Print("Could not render the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
