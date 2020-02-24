@@ -328,7 +328,7 @@ const landingPageTmpl = `<!DOCTYPE html>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/Datenschutz">Datenschutz</a>
 				</div>
 				<div class="ui center links item brand footertext">
-					<span>Powered by:      <a href="https://github.com/gogits/gogs"><img class="ui mini footericon" src="/assets/img/gogs.svg"/></a>         </span>
+					<span>Powered by:      <a href="https://github.com/gogs/gogs"><img class="ui mini footericon" src="/assets/img/gogs.svg"/></a>         </span>
 					<span>Hosted by:       <a href="http://neuro.bio.lmu.de"><img class="ui mini footericon" src="/assets/img/lmu.png"/></a>          </span>
 					<span>Funded by:       <a href="http://www.bmbf.de"><img class="ui mini footericon" src="/assets/img/bmbf.png"/></a>         </span>
 					<span>Registered with: <a href="http://doi.org/10.17616/R3SX9N"><img class="ui mini footericon" src="/assets/img/re3.png"/></a>          </span>
