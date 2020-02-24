@@ -16,60 +16,6 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// DOIMData holds all the metadata for a dataset that's in the process of being registered.
-type DOIMData struct {
-	Data struct {
-		ID         string `json:"id"`
-		Type       string `json:"type"`
-		Attributes struct {
-			DOI        string      `json:"doi"`
-			Identifier string      `json:"identifier"`
-			URL        interface{} `json:"url"`
-			Author     []struct {
-				Literal string `json:"literal"`
-			} `json:"author"`
-			Title               string      `json:"title"`
-			ContainerTitle      string      `json:"container-title"`
-			Description         string      `json:"description"`
-			ResourceTypeSubtype string      `json:"resource-type-subtype"`
-			DataCenterID        string      `json:"data-center-id"`
-			MemberID            string      `json:"member-id"`
-			ResourceTypeID      string      `json:"resource-type-id"`
-			Version             string      `json:"version"`
-			License             interface{} `json:"license"`
-			SchemaVersion       string      `json:"schema-version"`
-			Results             []struct {
-				ID    string `json:"id"`
-				Title string `json:"title"`
-				Count int    `json:"count"`
-			} `json:"results"`
-			RelatedIdentifiers []struct {
-				RelationTypeID    string `json:"relation-type-id"`
-				RelatedIdentifier string `json:"related-identifier"`
-			} `json:"related-identifiers"`
-			Published  string      `json:"published"`
-			Registered time.Time   `json:"registered"`
-			Updated    time.Time   `json:"updated"`
-			Media      interface{} `json:"media"`
-			XML        string      `json:"xml"`
-		} `json:"attributes"`
-		Relationships struct {
-			DataCenter struct {
-				Meta struct {
-				} `json:"meta"`
-			} `json:"data-center"`
-			Member struct {
-				Meta struct {
-				} `json:"meta"`
-			} `json:"member"`
-			ResourceType struct {
-				Meta struct {
-				} `json:"meta"`
-			} `json:"resource-type"`
-		} `json:"relationships"`
-	} `json:"data"`
-}
-
 // dataciteURL returns the full URL to a repository's datacite.yml file.
 func dataciteURL(repopath string, conf *Configuration) string {
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", repopath)
