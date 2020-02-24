@@ -230,28 +230,28 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	log.Printf("Got request: %s", regrequest)
 
-	reqRequest := &RegistrationRequest{}
-	reqRequest.DOIInfo = &libgin.RepositoryYAML{}
+	regRequest := &RegistrationRequest{}
+	regRequest.DOIInfo = &libgin.RepositoryYAML{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
-		reqRequest.Message = template.HTML(msgInvalidRequest)
-		tmpl.Execute(w, reqRequest)
+		regRequest.Message = template.HTML(msgInvalidRequest)
+		tmpl.Execute(w, regRequest)
 		return
 	}
 
-	reqRequest.DOIRequestData = reqdata
-	reqRequest.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
+	regRequest.DOIRequestData = reqdata
+	regRequest.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
 
-	infoyml, err := readFileAtURL(dataciteURL(reqRequest.Repository, conf))
+	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
 	if err != nil {
 		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", reqRequest)
-		reqRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
-		reqRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
-		err = tmpl.Execute(w, reqRequest)
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
+		err = tmpl.Execute(w, regRequest)
 		if err != nil {
 			log.Printf("Error rendering template: %s", err.Error())
 		}
@@ -260,9 +260,9 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	doiInfo, err := readRepoYAML(infoyml)
 	if err != nil {
 		log.Print("DOI file invalid")
-		reqRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + err.Error() + "</i>")
-		reqRequest.DOIInfo = &libgin.RepositoryYAML{}
-		err = tmpl.Execute(w, reqRequest)
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + err.Error() + "</i>")
+		regRequest.DOIInfo = &libgin.RepositoryYAML{}
+		err = tmpl.Execute(w, regRequest)
 		if err != nil {
 			log.Printf("Error rendering template: %s", err.Error())
 		}
@@ -270,8 +270,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 	j, _ := json.MarshalIndent(doiInfo, "", "  ")
 	log.Printf("Received DOI information: %s", string(j))
-	reqRequest.DOIInfo = doiInfo
-	err = tmpl.Execute(w, reqRequest)
+	regRequest.DOIInfo = doiInfo
+	err = tmpl.Execute(w, regRequest)
 	if err != nil {
 		log.Printf("Error rendering template: %s", err.Error())
 	}
