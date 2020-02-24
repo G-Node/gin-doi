@@ -6,12 +6,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/G-Node/gin-cli/git"
-	"github.com/G-Node/libgin/libgin"
 	"github.com/G-Node/libgin/libgin/archive"
-	humanize "github.com/dustin/go-humanize"
 )
 
 const (
@@ -22,43 +21,47 @@ const (
 // createRegisteredDataset starts the process of registering a dataset. It's
 // the top level function for the dataset registration and calls all other
 // individual functions.
-func createRegisteredDataset(job RegistrationJob) error {
+func createRegisteredDataset(job *RegistrationJob) error {
 	conf := job.Config
-	repopath := job.Source
-	jobname := job.Name
-	dReq := &job.Request
+	repopath := job.Metadata.SourceRepository
+	jobname := job.Metadata.DOI
 
-	prepDir(jobname, dReq.DOIInfo, conf)
+	prepDir(job)
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
 	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
-	dReq.DOIInfo.FileName = zipfname
-	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
+
+	archiveURL := conf.Storage.StoreURL + job.Metadata.DOI + zipfname
+	repoURL := conf.GIN.Session.WebAddress() + job.Metadata.SourceRepository
+	forkURL := conf.GIN.Session.WebAddress() + job.Metadata.ForkRepository
+
+	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
+
+	job.Metadata.Size = strconv.FormatInt(zipsize, 10)
 	if err != nil {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
-		dReq.DOIInfo.FileSize = ""
 	}
-	createLandingPage(jobname, dReq, conf)
+	createLandingPage(job)
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
 		log.Print("Could not create the metadata template")
 		// XML Creation failed; return with error
-		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		notifyAdmin(dReq, conf)
+		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
+		notifyAdmin(job, preperrors)
 		return err
 	}
 	defer fp.Close()
 
 	// No registering. But the XML is provided with everything
-	data, err := renderXML(dReq.DOIInfo)
+	data, err := renderXML(job.Metadata.DataCite)
 	if err != nil {
 		log.Print("Could not render the metadata file")
-		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
-		notifyAdmin(dReq, conf)
+		preperrors = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
+		notifyAdmin(job, preperrors)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -69,8 +72,7 @@ func createRegisteredDataset(job RegistrationJob) error {
 
 	if len(preperrors) > 0 {
 		// Resend email with errors if any occurred
-		dReq.ErrorMessages = preperrors
-		notifyAdmin(dReq, conf)
+		notifyAdmin(job, preperrors)
 	}
 	return err
 }
@@ -161,7 +163,9 @@ func zip(source, zipfilename string) (int64, error) {
 
 // createLandingPage renders and writes a registered dataset landing page based
 // on the landingPageTmpl template.
-func createLandingPage(target string, info *RegistrationRequest, conf *Configuration) error {
+func createLandingPage(job *RegistrationJob) error {
+	conf := job.Config
+	target := job.Metadata.DOI
 	funcs := template.FuncMap{
 		"Upper":       strings.ToUpper,
 		"FunderName":  FunderName,
@@ -184,7 +188,7 @@ func createLandingPage(target string, info *RegistrationRequest, conf *Configura
 		return err
 	}
 	defer fp.Close()
-	if err := tmpl.Execute(fp, info); err != nil {
+	if err := tmpl.Execute(fp, job.Metadata); err != nil {
 		log.Printf("Error rendering the landing page: %s", err.Error())
 		return err
 	}
@@ -192,15 +196,18 @@ func createLandingPage(target string, info *RegistrationRequest, conf *Configura
 }
 
 // prepDir creates the directory where the dataset will be cloned and archived.
-func prepDir(jobname string, info *libgin.DOIRegInfo, conf *Configuration) error {
+func prepDir(job *RegistrationJob) error {
+	conf := job.Config
+	metadata := job.Metadata
 	storagedir := conf.Storage.TargetDirectory
-	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
+	doi := metadata.DOI
+	err := os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
 	if err != nil {
 		log.Print("Could not create the target directory")
 		return err
 	}
 	// Deny access per default
-	file, err := os.Create(filepath.Join(storagedir, jobname, ".htaccess"))
+	file, err := os.Create(filepath.Join(storagedir, doi, ".htaccess"))
 	if err != nil {
 		log.Print("Could not create .htaccess")
 		return err

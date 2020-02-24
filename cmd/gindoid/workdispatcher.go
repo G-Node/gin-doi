@@ -6,30 +6,26 @@
 package main
 
 import (
-	"crypto/rsa"
 	_ "expvar"
 	"log"
 	_ "net/http/pprof"
 
-	gogs "github.com/gogits/go-gogs-client"
+	"github.com/G-Node/libgin/libgin"
 )
 
-// DOIJob holds the attributes needed to perform unit of work.
+// RegistrationJob holds a reference to the Metadata associated with a job and
+// the service Configuration.
 type RegistrationJob struct {
-	Name    string
-	Source  string
-	User    gogs.User
-	Request RegistrationRequest
-	Key     rsa.PrivateKey
-	Config  *Configuration
+	Metadata *libgin.RepositoryMetadata
+	Config   *Configuration
 }
 
 // newWorker creates a worker that waits for new jobs on its JobQueue starts a
 // registration process when a job is received.
-func newWorker(id int, workerPool chan chan RegistrationJob) Worker {
+func newWorker(id int, workerPool chan chan *RegistrationJob) Worker {
 	return Worker{
 		ID:         id,
-		JobQueue:   make(chan RegistrationJob),
+		JobQueue:   make(chan *RegistrationJob),
 		WorkerPool: workerPool,
 		QuitChan:   make(chan bool),
 	}
@@ -37,8 +33,8 @@ func newWorker(id int, workerPool chan chan RegistrationJob) Worker {
 
 type Worker struct {
 	ID         int
-	JobQueue   chan RegistrationJob
-	WorkerPool chan chan RegistrationJob
+	JobQueue   chan *RegistrationJob
+	WorkerPool chan chan *RegistrationJob
 	QuitChan   chan bool
 }
 
@@ -52,7 +48,7 @@ func (w *Worker) start() {
 			case job := <-w.JobQueue:
 				// Dispatcher has added a job to my jobQueue.
 				createRegisteredDataset(job)
-				log.Printf("Worker %d Completed %s!", w.ID, job.Name)
+				log.Printf("Worker %d Completed %q!", w.ID, job.Metadata.SourceRepository)
 			case <-w.QuitChan:
 				// We have been asked to stop.
 				return
@@ -71,8 +67,8 @@ func (w *Worker) stop() {
 // newDispatcher creates and returns a new Dispatcher object that holds all
 // waiting jobs and sends the next job in the queue to the first available
 // worker.
-func newDispatcher(jobQueue chan RegistrationJob, maxWorkers int) *Dispatcher {
-	workerPool := make(chan chan RegistrationJob, maxWorkers)
+func newDispatcher(jobQueue chan *RegistrationJob, maxWorkers int) *Dispatcher {
+	workerPool := make(chan chan *RegistrationJob, maxWorkers)
 
 	return &Dispatcher{
 		jobQueue:   jobQueue,
@@ -82,14 +78,14 @@ func newDispatcher(jobQueue chan RegistrationJob, maxWorkers int) *Dispatcher {
 }
 
 type Dispatcher struct {
-	workerPool chan chan RegistrationJob
+	workerPool chan chan *RegistrationJob
 	maxWorkers int
-	jobQueue   chan RegistrationJob
+	jobQueue   chan *RegistrationJob
 }
 
 // run starts the dispatcher after creating and starting a new set of workers
 // (given the provided function and the predefined max workers).
-func (d *Dispatcher) run(makeWorker func(int, chan chan RegistrationJob) Worker) {
+func (d *Dispatcher) run(makeWorker func(int, chan chan *RegistrationJob) Worker) {
 	for i := 0; i < d.maxWorkers; i++ {
 		worker := makeWorker(i+1, d.workerPool)
 		worker.start()
@@ -103,9 +99,9 @@ func (d *Dispatcher) dispatch() {
 		select {
 		case job := <-d.jobQueue:
 			go func() {
-				log.Printf("Fetching workerJobQueue for: %s", job.Name)
+				log.Printf("Fetching workerJobQueue for %q", job.Metadata.SourceRepository)
 				workerJobQueue := <-d.workerPool
-				log.Printf("Adding %s to workerJobQueue", job.Name)
+				log.Printf("Adding %q to workerJobQueue", job.Metadata.SourceRepository)
 				workerJobQueue <- job
 			}()
 		}

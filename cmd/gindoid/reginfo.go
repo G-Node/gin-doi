@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 	txttemplate "text/template"
-	"time"
 
 	"github.com/G-Node/libgin/libgin"
 	yaml "gopkg.in/yaml.v2"
@@ -46,22 +45,21 @@ func readFileAtURL(url string) ([]byte, error) {
 }
 
 // readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.
-func readRepoYAML(infoyml []byte) (*libgin.DOIRegInfo, error) {
-	yamlInfo := libgin.DOIRegInfo{}
-	err := yaml.Unmarshal(infoyml, &yamlInfo)
+func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
+	yamlInfo := &libgin.RepositoryYAML{}
+	err := yaml.Unmarshal(infoyml, yamlInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
 	}
-	yamlInfo.DateTime = time.Now()
-	if missing := checkMissingValues(&yamlInfo); len(missing) > 0 {
+	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
 		log.Print("DOI file is missing entries")
 		return nil, fmt.Errorf("The following required entries are not set: %s", strings.Join(missing, ", "))
 	}
-	return &yamlInfo, nil
+	return yamlInfo, nil
 }
 
 // checkMissingValues returns the list of required fields that have no values set.
-func checkMissingValues(info *libgin.DOIRegInfo) []string {
+func checkMissingValues(info *libgin.RepositoryYAML) []string {
 	missing := []string{}
 	if info.Title == "" {
 		missing = append(missing, msgNoTitle)
@@ -91,6 +89,10 @@ func checkMissingValues(info *libgin.DOIRegInfo) []string {
 	return missing
 }
 
+// RegistrationRequest holds the encrypted and decrypted data of a registration
+// request, as well as the unmarshalled data of the target repository's
+// datacite.yml metadata.  It's used to render the preparation page (request
+// page) for the user to review the metadata before finalising the request.
 type RegistrationRequest struct {
 	// Encrypted request data from GIN.
 	EncryptedRequestData string
@@ -99,7 +101,7 @@ type RegistrationRequest struct {
 	// Used to display error or warning messages to the user through the templates.
 	Message template.HTML
 	// Unmarshalled data from the datacite.yml of the repository being registered.
-	DOIInfo *libgin.DOIRegInfo
+	DOIInfo *libgin.RepositoryYAML
 	// Errors during the registration process that get sent in the body of the
 	// email to the administrators.
 	ErrorMessages []string
@@ -115,7 +117,7 @@ func (d *RegistrationRequest) AsHTML() template.HTML {
 }
 
 // renderXML creates the DataCite XML file contents given the registration data and XML template.
-func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
+func renderXML(metadata *libgin.DataCite) (string, error) {
 	tmplfuncs := txttemplate.FuncMap{
 		"EscXML":               EscXML,
 		"ReferenceDescription": ReferenceDescription,
@@ -132,7 +134,7 @@ func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
 		return "", err
 	}
 	buff := bytes.Buffer{}
-	err = tmpl.Execute(&buff, doiInfo)
+	err = tmpl.Execute(&buff, metadata)
 	if err != nil {
 		log.Printf("Error rendering doi.xml: %s", err.Error())
 		return "", err

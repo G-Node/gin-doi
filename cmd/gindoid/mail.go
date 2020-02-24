@@ -18,7 +18,7 @@ const (
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
 // sendMail function to send it.
-func notifyAdmin(dReq *RegistrationRequest, conf *Configuration) error {
+func notifyAdmin(job *RegistrationJob, errors []string) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -32,23 +32,22 @@ func notifyAdmin(dReq *RegistrationRequest, conf *Configuration) error {
 		return base.ResolveReference(suffix).String()
 	}
 
-	doi := ""
-	if dReq.DOIInfo != nil {
-		doi = dReq.DOIInfo.DOI
-	}
+	doi := job.Metadata.DOI
 
-	repopath := dReq.Repository
-	username := dReq.Username
-	realname := dReq.Realname
-	useremail := dReq.Email
+	conf := job.Config
+	repopath := job.Metadata.SourceRepository
+	user := job.Metadata.RequestingUser
+	username := user.Username
+	realname := user.RealName
+	useremail := user.Email
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
 	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
 
 	errorlist := ""
-	if len(dReq.ErrorMessages) > 0 {
+	if len(errors) > 0 {
 		errorlist = "The following errors occurred during the dataset preparation\n"
-		for idx, msg := range dReq.ErrorMessages {
+		for idx, msg := range errors {
 			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
 		}
 	}

@@ -69,15 +69,16 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			fmt.Println(err.Error())
 			continue
 		}
-		// template expects DOIReq that wraps DOIRegInfo and DOIRequestData
+
 		uuid := makeUUID(repopath)
-		doiInfo.DOI = doibase + uuid[:6]
-		doiInfo.FileSize = getArchiveSize(storeurl, doibase, uuid)
-		req := &RegistrationRequest{
-			DOIInfo:        doiInfo,
-			DOIRequestData: &libgin.DOIRequestData{Repository: repopath},
+		metadata := &libgin.RepositoryMetadata{
+			YAMLData:         doiInfo,
+			SourceRepository: repopath,
+			UUID:             uuid,
 		}
-		_, err = writeHTML(req)
+		metadata.Size = getArchiveSize(storeurl, doibase, uuid)
+
+		_, err = writeHTML(metadata)
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
@@ -89,7 +90,7 @@ func mkhtml(cmd *cobra.Command, args []string) {
 	fmt.Printf("%d/%d jobs completed successfully\n", success, len(args))
 }
 
-func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error) {
+func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.RepositoryYAML, error) {
 	repourl, _ := url.Parse(ginurl.String()) // make a copy of the base GIN URL
 	repoDatacitePath := path.Join(repopath, "raw", "master", "datacite.yml")
 	repourl.Path = repoDatacitePath
@@ -105,7 +106,7 @@ func fetchAndParse(ginurl *url.URL, repopath string) (*libgin.DOIRegInfo, error)
 	return doiInfo, nil
 }
 
-func writeHTML(req *RegistrationRequest) (string, error) {
+func writeHTML(metadata *libgin.RepositoryMetadata) (string, error) {
 	funcs := template.FuncMap{
 		"Upper":       strings.ToUpper,
 		"FunderName":  FunderName,
@@ -124,9 +125,7 @@ func writeHTML(req *RegistrationRequest) (string, error) {
 		return "", err
 	}
 
-	info := req.DOIInfo
-
-	target := info.DOI
+	target := metadata.DOI
 	os.MkdirAll(target, 0777)
 	filepath := filepath.Join(target, "index.html")
 	fp, err := os.Create(filepath)
@@ -135,7 +134,7 @@ func writeHTML(req *RegistrationRequest) (string, error) {
 		return "", err
 	}
 	defer fp.Close()
-	if err := tmpl.Execute(fp, req); err != nil {
+	if err := tmpl.Execute(fp, metadata); err != nil {
 		log.Print("Could not execute the DOI template")
 		return "", err
 	}
