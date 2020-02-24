@@ -88,7 +88,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	errors := make([]string, 0, 5)
 
-	regJob := &RegistrationJob{}
+	regJob := &RegistrationJob{
+		Metadata: &libgin.RepositoryMetadata{},
+		Config:   conf,
+	}
 	resData := reqResultData{}
 
 	encryptedRequestData := r.PostFormValue("reqdata")
@@ -183,12 +186,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 
 	regJob.Metadata.YAMLData = yamlInfo
-
-	// populate Metadata struct
-	metadata := &libgin.RepositoryMetadata{}
+	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(yamlInfo)
 
 	// Add job to queue
-	jobQueue <- &RegistrationJob{Metadata: metadata, Config: conf}
+	jobQueue <- regJob
 
 	// Render success (deferred)
 	message := fmt.Sprintf(msgServerIsArchiving, doi)
