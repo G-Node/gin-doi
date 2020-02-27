@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
@@ -62,10 +63,10 @@ type reqResultData struct {
 }
 
 // renderResult renders the results of a registration request using the
-// 'requestResultTmpl' template. If it fails to parse the template, it renders
+// 'RequestResult' template. If it fails to parse the template, it renders
 // the Message from the result data in plain HTML.
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
-	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
+	tmpl, err := template.New("requestresult").Parse(gdtmpl.RequestResult)
 	if err != nil {
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
@@ -217,13 +218,13 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		"AuthorBlock": AuthorBlock,
 		"JoinComma":   JoinComma,
 	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Failed to parse DOI info template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	tmpl, err = tmpl.New("requestpage").Parse(requestPageTmpl)
+	tmpl, err = tmpl.New("requestpage").Parse(gdtmpl.RequestPage)
 	if err != nil {
 		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

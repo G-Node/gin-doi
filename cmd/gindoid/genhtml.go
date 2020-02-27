@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
@@ -114,12 +115,12 @@ func writeHTML(metadata *libgin.RepositoryMetadata) (string, error) {
 		"AuthorBlock": AuthorBlock,
 		"JoinComma":   JoinComma,
 	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Print("Could not parse the DOI Info template")
 		return "", err
 	}
-	tmpl, err = tmpl.New("landingpage").Parse(landingPageTmpl)
+	tmpl, err = tmpl.New("landingpage").Parse(gdtmpl.LandingPage)
 	if err != nil {
 		log.Print("Could not parse the DOI template")
 		return "", err

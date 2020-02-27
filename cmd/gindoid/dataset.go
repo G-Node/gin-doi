@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/G-Node/gin-cli/git"
+	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin/archive"
 )
 
@@ -162,7 +163,7 @@ func zip(source, zipfilename string) (int64, error) {
 }
 
 // createLandingPage renders and writes a registered dataset landing page based
-// on the landingPageTmpl template.
+// on the LandingPage template.
 func createLandingPage(job *RegistrationJob) error {
 	conf := job.Config
 	target := job.Metadata.DOI
@@ -171,12 +172,12 @@ func createLandingPage(job *RegistrationJob) error {
 		"FunderName":  FunderName,
 		"AwardNumber": AwardNumber,
 	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Could not parse the DOI info template: %s", err.Error())
 		return err
 	}
-	tmpl, err = template.New("landingpage").Parse(landingPageTmpl)
+	tmpl, err = template.New("landingpage").Parse(gdtmpl.LandingPage)
 	if err != nil {
 		log.Printf("Could not parse the landing page template: %s", err.Error())
 		return err
