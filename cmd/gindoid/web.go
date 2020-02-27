@@ -232,12 +232,12 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	log.Printf("Got request: %s", regrequest)
 
 	regRequest := &RegistrationRequest{}
-	regRequest.DOIInfo = &libgin.RepositoryYAML{}
 	reqdata, err := decryptRequestData(regrequest, conf.Key)
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		regRequest.Message = template.HTML(msgInvalidRequest)
+		regRequest.DOIInfo = &libgin.RepositoryYAML{}
 		tmpl.Execute(w, regRequest)
 		return
 	}
@@ -252,6 +252,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
+		regRequest.DOIInfo = &libgin.RepositoryYAML{}
 		err = tmpl.Execute(w, regRequest)
 		if err != nil {
 			log.Printf("Error rendering template: %s", err.Error())
