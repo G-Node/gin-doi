@@ -1,5 +1,3 @@
-[![Docker Automated build](https://img.shields.io/docker/automated/gnode/gin-doi.svg)](https://hub.docker.com/r/gnode/gin-doi/builds/)
-
 # GIN DOI
 GIN-DOI is the G-Node Infrastructure DOI service.
 The service can, at the request of a repository owner, copy a public repository, pack everything into an archive file, store it in a safe location, and provide a DOI (digital object identifier) with which the archive can be cited.
