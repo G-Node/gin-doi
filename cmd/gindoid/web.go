@@ -211,6 +211,63 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
+	regrequest := r.Form.Get("regrequest")
+
+	log.Printf("Got request: %s", regrequest)
+
+	regRequest := &RegistrationRequest{}
+	reqdata, err := decryptRequestData(regrequest, conf.Key)
+	if err != nil {
+		log.Printf("Invalid request: %s", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		regRequest.Message = template.HTML(msgInvalidRequest)
+		regRequest.DOIInfo = &libgin.RepositoryYAML{}
+		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	regRequest.DOIRequestData = reqdata
+	regRequest.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
+
+	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
+	if err != nil {
+		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
+		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
+		regRequest.DOIInfo = &libgin.RepositoryYAML{}
+		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
+		log.Print("DOI file invalid")
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
+		regRequest.DOIInfo = &libgin.RepositoryYAML{}
+		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	// All good: Render request page
 	funcs := template.FuncMap{
 		"Upper":       strings.ToUpper,
 		"FunderName":  FunderName,
@@ -232,49 +289,6 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	regrequest := r.Form.Get("regrequest")
-
-	log.Printf("Got request: %s", regrequest)
-
-	regRequest := &RegistrationRequest{}
-	reqdata, err := decryptRequestData(regrequest, conf.Key)
-	if err != nil {
-		log.Printf("Invalid request: %s", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		regRequest.Message = template.HTML(msgInvalidRequest)
-		regRequest.DOIInfo = &libgin.RepositoryYAML{}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	regRequest.DOIRequestData = reqdata
-	regRequest.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
-
-	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
-	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
-		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", regRequest)
-		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
-		regRequest.DOIInfo = &libgin.RepositoryYAML{}
-		err = tmpl.Execute(w, regRequest)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-		}
-		return
-	}
-	doiInfo, err := readRepoYAML(infoyml)
-	if err != nil {
-		log.Print("DOI file invalid")
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
-		regRequest.DOIInfo = &libgin.RepositoryYAML{}
-		err = tmpl.Execute(w, regRequest)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-		}
-		return
-	}
 	j, _ := json.MarshalIndent(doiInfo, "", "  ")
 	log.Printf("Received DOI information: %s", string(j))
 	regRequest.DOIInfo = doiInfo

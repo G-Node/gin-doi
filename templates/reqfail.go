@@ -1,9 +1,8 @@
 package gdtmpl
 
-// RequestPage is the template for rendering the request page where the
-// user can see the metadata they are providing and finalise their registration
-// request.
-const RequestPage = `<!DOCTYPE html>
+// RequestFailurePage is the template for rendering the request page when there
+// is a problem with the request, such as missing data.
+const RequestFailurePage = `<!DOCTYPE html>
 <html lang="en">
 	<head data-suburl="">
 
@@ -58,47 +57,11 @@ const RequestPage = `<!DOCTYPE html>
 				</div>
 
 				<div class="ui container wide centered column doi">
-					<div class="ui positive message" id="info">
-						<div>
-							Your repository "{{.DOIInfo.Title}}" fulfills all necessary requirements!
-							Click the button below to start the DOI request.
+					<div class="ui warning message">
+						<div><b>DOI request failed</b>
+							<p>{{.Message}}</p>
 						</div>
 					</div>
-					<div class="ui info message" id="infotable">
-						<div id="infobox">
-							The following is a preview of the information page for your published repository.
-							Please carefully review all the information for accuracy and correctness.
-							You may use your browser's back button or the <a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a> link to return to your repository and edit the datacite.yml file.
-							When you are ready to submit, scroll to the bottom of this page and click the "Register DOI Now" button.
-						</div>
-					</div>
-					<hr>
-					{{template "doiInfo" .}}
-					<hr>
-					<div class="column center">
-						<h3>END OF PREVIEW</h3>
-					</div>
-					<div class="ui negative icon message" id="warning">
-						<i class="warning icon"></i>
-						<div class="content">
-							<div class="header">Please thoroughly check the following before proceeding</div>
-							<ul align="left">
-								<li>Did you upload all data?</li>
-								<li>Does your repository contain a LICENSE file?</li>
-								<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
-								<li>Does your repository contain a good description of the data?</li>
-							</ul>
-							<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
-							Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
-							<p><b>All files and data in the repository will be part of the public archive!</b></p>
-						</div>
-					</div>
-					<form action="/submit" method="post">
-						<input type="hidden" id="reqdata" name="reqdata" value="{{.EncryptedRequestData}}">
-						<div class="column center">
-							<button class="ui primary button" type="submit">Request DOI Now</button>
-						</div>
-					</form>
 				</div>
 			</div>
 		</div>
