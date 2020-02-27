@@ -53,7 +53,7 @@ func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 	}
 	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
 		log.Print("DOI file is missing entries")
-		return nil, fmt.Errorf("The following required entries are not set: %s", strings.Join(missing, ", "))
+		return nil, fmt.Errorf(strings.Join(missing, " "))
 	}
 	return yamlInfo, nil
 }

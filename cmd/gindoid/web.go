@@ -14,7 +14,7 @@ import (
 
 const (
 	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
-	msgInvalidDOI        = `The DOI file is missing or not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
+	msgInvalidDOI        = `The DOI file is missing or not valid. See the messages below for specific issues with the provided data.<br>Also, please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions.`
 	msgInvalidURI        = "Please provide a valid repository URI"
 	msgAlreadyRegistered = `<div class="content">
 								<div class="header"> A DOI is already registered for your dataset.</div>
@@ -41,7 +41,7 @@ const (
 	msgNoAuthors        = "No authors provided."
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = "No description provided."
-	msgNoLicense        = "No valid license provided. Please specify URL and name."
+	msgNoLicense        = "No valid license provided. Please specify a license URL and name and make sure it matches the license file in the repository."
 	msgInvalidReference = "One of the Reference entries is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
@@ -255,7 +255,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
 		regRequest.DOIInfo = &libgin.RepositoryYAML{}
 		err = tmpl.Execute(w, regRequest)
 		if err != nil {
@@ -266,7 +266,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	doiInfo, err := readRepoYAML(infoyml)
 	if err != nil {
 		log.Print("DOI file invalid")
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + err.Error() + "</i>")
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
 		regRequest.DOIInfo = &libgin.RepositoryYAML{}
 		err = tmpl.Execute(w, regRequest)
 		if err != nil {
