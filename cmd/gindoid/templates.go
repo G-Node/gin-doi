@@ -150,7 +150,7 @@ const requestPageTmpl = `<!DOCTYPE html>
 							</div>
 						</div>
 						<form action="/submit" method="post">
-							<input type="hidden" id="reqdata" name="reqdata" value="{{.RequestData}}">
+							<input type="hidden" id="reqdata" name="reqdata" value="{{.EncryptedRequestData}}">
 							<div class="column center">
 								<button class="ui primary button" type="submit">Request DOI Now</button>
 							</div>
