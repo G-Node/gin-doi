@@ -186,3 +186,29 @@ func AuthorBlock(authors []libgin.Creator) template.HTML {
 func JoinComma(lst []string) string {
 	return strings.Join(lst, ", ")
 }
+
+// GetGINURL returns the full URL to the configured GIN server. If it's
+// configured with a non-standard port, the port number is included.
+func GetGINURL(conf *Configuration) string {
+	address := conf.GIN.Session.WebAddress()
+	// get scheme
+	schemeSepIdx := strings.Index(address, "://")
+	if schemeSepIdx == -1 {
+		// no scheme; return as is
+		return address
+	}
+	// get port
+	portSepIdx := strings.LastIndex(address, ":")
+	if portSepIdx == -1 {
+		// no port; return as is
+		return address
+	}
+	scheme := address[:schemeSepIdx]
+	port := address[portSepIdx:len(address)]
+	if (scheme == "http" && port == ":80") ||
+		(scheme == "https" && port == ":443") {
+		// port is standard for scheme: slice it off
+		address = address[0:portSepIdx]
+	}
+	return address
+}

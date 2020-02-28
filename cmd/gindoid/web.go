@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
@@ -290,8 +291,13 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	j, _ := json.MarshalIndent(doiInfo, "", "  ")
 	log.Printf("Received DOI information: %s", string(j))
+
 	regRequest.Metadata.YAMLData = doiInfo
 	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
+	regRequest.Metadata.DateTime = time.Now()
+	regRequest.Metadata.SourceRepository = GetGINURL(conf) + "/" + regRequest.DOIRequestData.Repository
+	regRequest.Metadata.ForkRepository = ""
+
 	err = tmpl.Execute(w, regRequest)
 	if err != nil {
 		log.Printf("Error rendering template: %s", err.Error())
