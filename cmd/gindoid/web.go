@@ -212,12 +212,12 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
-	regrequest := r.Form.Get("regrequest")
+	encReqData := r.Form.Get("regrequest")
 
-	log.Printf("Got request: %s", regrequest)
+	log.Printf("Got request: %s", encReqData)
 
 	regRequest := &RegistrationRequest{}
-	reqdata, err := decryptRequestData(regrequest, conf.Key)
+	reqdata, err := decryptRequestData(encReqData, conf.Key)
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -234,7 +234,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 
 	regRequest.DOIRequestData = reqdata
-	regRequest.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
+	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
 	regRequest.Metadata = &libgin.RepositoryMetadata{}
 
 	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
