@@ -66,10 +66,10 @@ const RequestPage = `<!DOCTYPE html>
 					</div>
 					<div class="ui info message" id="infotable">
 						<div id="infobox">
-							The following is a preview of the information page for your published repository.
+							The following is a <strong>preview</strong> of the information page for your published repository.
 							Please carefully review all the information for accuracy and correctness.
-							You may use your browser's back button or the <a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a> link to return to your repository and edit the datacite.yml file.
-							When you are ready to submit, scroll to the bottom of this page and click the "Register DOI Now" button.
+							You may use your browser's back button or the <a class="item active" href="https://gin.g-node.org/{{.Repository}}"><strong>Back to GIN</strong></a> link to return to your repository and edit the datacite.yml file.
+							When you are ready to submit, scroll to the bottom of this page and click the <strong>Register DOI Now</strong> button.
 						</div>
 					</div>
 					<hr>
