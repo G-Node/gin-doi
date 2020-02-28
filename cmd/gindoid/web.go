@@ -274,6 +274,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		"AwardNumber": AwardNumber,
 		"AuthorBlock": AuthorBlock,
 		"JoinComma":   JoinComma,
+		"Replace":     strings.ReplaceAll,
 	}
 	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
@@ -296,7 +297,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
 	regRequest.Metadata.DateTime = time.Now()
 	regRequest.Metadata.SourceRepository = GetGINURL(conf) + "/" + regRequest.DOIRequestData.Repository
-	regRequest.Metadata.ForkRepository = ""
+	regRequest.Metadata.ForkRepository = "" // not forked yet
 
 	err = tmpl.Execute(w, regRequest)
 	if err != nil {
