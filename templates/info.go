@@ -48,8 +48,4 @@ const DOIInfo = `
 		{{end}}
 	</ul>
 {{end}}
-
-<h3>Citation</h3>
-<i>This dataset can be cited as:</i><br>
-{.Metadata.GetCitation}<br>
 `

@@ -35,6 +35,9 @@ const LandingPage = `<!DOCTYPE html>
 				<div class="ui container sixteen wide centered column doi">
 					<span itemscope itemtype="http://schema.org/Dataset">
 						{{template "doiInfo" .}}
+						<h3>Citation</h3>
+						<i>This dataset can be cited as:</i><br>
+						{.Metadata.GetCitation}<br>
 					</span>
 				</div>
 			</div>
