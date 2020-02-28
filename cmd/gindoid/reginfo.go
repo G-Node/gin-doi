@@ -100,8 +100,8 @@ type RegistrationRequest struct {
 	*libgin.DOIRequestData
 	// Used to display error or warning messages to the user through the templates.
 	Message template.HTML
-	// Unmarshalled data from the datacite.yml of the repository being registered.
-	DOIInfo *libgin.RepositoryYAML
+	// Metadata for the repository being registered
+	Metadata *libgin.RepositoryMetadata
 	// Errors during the registration process that get sent in the body of the
 	// email to the administrators.
 	ErrorMessages []string

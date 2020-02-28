@@ -221,7 +221,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		regRequest.Message = template.HTML(msgInvalidRequest)
-		regRequest.DOIInfo = &libgin.RepositoryYAML{}
+		regRequest.Metadata = &libgin.RepositoryMetadata{}
 		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
@@ -234,6 +234,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	regRequest.DOIRequestData = reqdata
 	regRequest.EncryptedRequestData = regrequest // Forward it through the hidden form in the template
+	regRequest.Metadata = &libgin.RepositoryMetadata{}
 
 	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
 	if err != nil {
@@ -242,7 +243,6 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
-		regRequest.DOIInfo = &libgin.RepositoryYAML{}
 		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
@@ -256,7 +256,6 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	if err != nil {
 		log.Print("DOI file invalid")
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
-		regRequest.DOIInfo = &libgin.RepositoryYAML{}
 		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
@@ -291,7 +290,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	j, _ := json.MarshalIndent(doiInfo, "", "  ")
 	log.Printf("Received DOI information: %s", string(j))
-	regRequest.DOIInfo = doiInfo
+	regRequest.Metadata.YAMLData = doiInfo
+	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
 	err = tmpl.Execute(w, regRequest)
 	if err != nil {
 		log.Printf("Error rendering template: %s", err.Error())

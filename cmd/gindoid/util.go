@@ -150,7 +150,7 @@ func AwardNumber(fundref string) string {
 // AuthorBlock builds the author section for the landing page template.
 // It includes a list of authors, their affiliations, and superscripts to associate authors with affiliations.
 // This is a utility function for the landing page HTML template.
-func AuthorBlock(authors []libgin.Author) template.HTML {
+func AuthorBlock(authors []libgin.Creator) template.HTML {
 	names := make([]string, len(authors))
 	affiliations := make([]string, 0)
 	affiliationMap := make(map[string]int)
@@ -167,12 +167,12 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
 		}
 		var url, id string
-		if idInfo := author.GetValidID(); idInfo != nil {
-			id = fmt.Sprintf("orcid:%s", idInfo.ID)
-			url = idInfo.SchemeURI
+		if author.Identifier != nil {
+			url = author.Identifier.SchemeURI
+			id = author.Identifier.ID
 		}
-
-		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s %s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, author.FirstName, author.LastName, author.Affiliation, id, affiliationSup)
+		// TODO: Fix URLs
+		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, author.Name, author.Affiliation, id, affiliationSup)
 	}
 
 	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(names, ",\n"))
