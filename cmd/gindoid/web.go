@@ -269,12 +269,13 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	// All good: Render request page
 	funcs := template.FuncMap{
-		"Upper":       strings.ToUpper,
-		"FunderName":  FunderName,
-		"AwardNumber": AwardNumber,
-		"AuthorBlock": AuthorBlock,
-		"JoinComma":   JoinComma,
-		"Replace":     strings.ReplaceAll,
+		"Upper":         strings.ToUpper,
+		"FunderName":    FunderName,
+		"AwardNumber":   AwardNumber,
+		"AuthorBlock":   AuthorBlock,
+		"JoinComma":     JoinComma,
+		"Replace":       strings.ReplaceAll,
+		"GetReferences": GetReferences,
 	}
 	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
 	if err != nil {

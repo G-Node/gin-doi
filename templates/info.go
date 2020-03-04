@@ -34,8 +34,8 @@ const DOIInfo = `
 {{if .Metadata.RelatedIdentifiers}}
 	<h3>References</h3>
 	<ul class="doi itemlist">
-		{{range $index, $ref := .Metadata.RelatedIdentifiers}}
-			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{$ref.Name} {$ref.Citation}</span>{if $ref.ID} <a href={$ref.GetURL} itemprop="url"><span itemprop="identifier">{$ref.ID}</span></a>{end}</li>
+		{{range $index, $ref := GetReferences .Metadata}}
+			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href={{$ref.GetURL}} itemprop="url"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
 		{{end}}
 	</ul>
 {{end}}

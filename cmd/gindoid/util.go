@@ -212,3 +212,61 @@ func GetGINURL(conf *Configuration) string {
 	}
 	return address
 }
+
+// GetReferences returns the references cited by a dataset.  If the references
+// are already populated in the YAMLData field they are returned as is.  If
+// they are not, they are reconstructed to the YAML format from the DataCite
+// metadata.  The latter can occur when loading a previously generated DataCite
+// XML file instead of reading the original YAML from the repository.  If no
+// references are found in either location, an empty slice is returned.
+func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
+	if md.YAMLData != nil && len(md.YAMLData.References) != 0 {
+		return md.YAMLData.References
+	}
+
+	// No references in YAML data; reconstruct from DataCite metadata if any
+	// are found.
+
+	refs := make([]libgin.Reference, 0)
+	// map IDs to new references for easier construction from the two sources
+	// but also use the slice to maintain order
+	refMap := make(map[string]*libgin.Reference)
+	for _, relid := range md.RelatedIdentifiers {
+		if relid.RelationType == "IsVariantFormOf" {
+			// IsVariantFormOf is used for the URLs.
+			// Here we assume that any other type is a citation (DOI, PMID, or arXiv)
+			continue
+		}
+		ref := &libgin.Reference{
+			ID:      relid.Identifier,
+			RefType: relid.RelationType,
+		}
+		refMap[relid.Identifier] = ref
+		refs = append(refs, *ref)
+	}
+
+	for _, desc := range md.Descriptions {
+		if desc.Type != "Other" {
+			// References are added with type "Other"
+			continue
+		}
+		// slice off the relation type prefix
+		parts := strings.SplitN(desc.Content, ": ", 2)
+		citationID := parts[1]
+		// slice off the ID suffix
+		idIdx := strings.LastIndex(citationID, "(")
+		if idIdx == -1 {
+			// No ID found; discard citation
+			continue
+		}
+		citation := strings.TrimSpace(citationID[0:idIdx])
+		id := strings.TrimSpace(citationID[idIdx+1 : len(citationID)-1])
+		ref, ok := refMap[id]
+		if !ok {
+			// ID only in descriptions for some reason?
+			continue
+		}
+		ref.Citation = citation
+	}
+	return refs
+}
