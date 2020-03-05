@@ -42,7 +42,7 @@ const RequestResult = `<!DOCTYPE html>
 							<a class="item brand" href="https://gin.g-node.org/">
 								<img class="ui mini image" src="/assets/img/favicon.png">
 							</a>
-							<a class="item active" href="https://gin.g-node.org/{{.Request.Repository}}">Back to GIN</a>
+							<a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a>
 						</div>
 					</div>
 				</div>

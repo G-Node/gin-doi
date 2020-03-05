@@ -57,10 +57,10 @@ const (
 )
 
 type reqResultData struct {
-	Success  bool
-	Level    string // success, warning, error
-	Message  template.HTML
-	Metadata *libgin.RepositoryMetadata
+	Success    bool
+	Level      string // success, warning, error
+	Message    template.HTML
+	Repository string
 }
 
 // renderResult renders the results of a registration request using the
@@ -75,7 +75,10 @@ func renderResult(w http.ResponseWriter, resData *reqResultData) {
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
 		return
 	}
-	tmpl.Execute(w, &resData)
+	err = tmpl.Execute(w, &resData)
+	if err != nil {
+		log.Printf("Error rendering RequestResult template: %v", err.Error())
+	}
 }
 
 // startDOIRegistration starts the DOI registration process by authenticating
@@ -98,6 +101,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	encryptedRequestData := r.PostFormValue("reqdata")
 	reqdata, err := decryptRequestData(encryptedRequestData, conf.Key)
+	resData.Repository = reqdata.Repository
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
 		resData.Message = template.HTML(msgInvalidRequest)
