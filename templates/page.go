@@ -37,7 +37,7 @@ const LandingPage = `<!DOCTYPE html>
 						{{template "doiInfo" .}}
 						<h3>Citation</h3>
 						<i>This dataset can be cited as:</i><br>
-						{.Metadata.GetCitation}<br>
+						{{GetCitation .}}<br>
 					</span>
 				</div>
 			</div>

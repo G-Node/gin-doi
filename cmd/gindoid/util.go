@@ -28,6 +28,7 @@ var tmplfuncs = template.FuncMap{
 	"JoinComma":     JoinComma,
 	"Replace":       strings.ReplaceAll,
 	"GetReferences": GetReferences,
+	"GetCitation":   GetCitation,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -163,7 +164,7 @@ func AwardNumber(fundref string) string {
 // It includes a list of authors, their affiliations, and superscripts to associate authors with affiliations.
 // This is a utility function for the landing page HTML template.
 func AuthorBlock(authors []libgin.Creator) template.HTML {
-	names := make([]string, len(authors))
+	nameElements := make([]string, len(authors))
 	affiliations := make([]string, 0)
 	affiliationMap := make(map[string]int)
 	// Collect names and figure out affiliation numbering
@@ -180,14 +181,16 @@ func AuthorBlock(authors []libgin.Creator) template.HTML {
 		}
 		var url, id string
 		if author.Identifier != nil {
-			url = author.Identifier.SchemeURI
 			id = author.Identifier.ID
+			url = author.Identifier.SchemeURI + id
 		}
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		name := fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
 		// TODO: Fix URLs
-		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, author.Name, author.Affiliation, id, affiliationSup)
+		nameElements[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, name, author.Affiliation, id, affiliationSup)
 	}
 
-	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(names, ",\n"))
+	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(nameElements, ",\n"))
 	affiliationLine := fmt.Sprintf("<ol class=\"doi itemlist\">%s</ol>", strings.Join(affiliations, "\n"))
 	return template.HTML(authorLine + "\n" + affiliationLine)
 }
@@ -223,6 +226,15 @@ func GetGINURL(conf *Configuration) string {
 		address = address[0:portSepIdx]
 	}
 	return address
+}
+
+func GetCitation(md *libgin.RepositoryMetadata) string {
+	authors := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		authors[idx] = fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
+	}
+	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.DOI)
 }
 
 // GetReferences returns the references cited by a dataset.  If the references
