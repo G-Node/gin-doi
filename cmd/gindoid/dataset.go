@@ -6,12 +6,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/G-Node/gin-cli/git"
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin/archive"
+	humanize "github.com/dustin/go-humanize"
 )
 
 const (
@@ -31,20 +31,22 @@ func createRegisteredDataset(job *RegistrationJob) error {
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
-	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
 
-	archiveURL := conf.Storage.StoreURL + job.Metadata.DOI + zipfname
 	repoURL := conf.GIN.Session.WebAddress() + job.Metadata.SourceRepository
 	forkURL := conf.GIN.Session.WebAddress() + job.Metadata.ForkRepository
 
-	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
-
-	job.Metadata.Size = strconv.FormatInt(zipsize, 10)
+	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
+	var archiveURL string
 	if err != nil {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
+	} else {
+		archiveURL = conf.Storage.StoreURL + job.Metadata.DOI + zipfname
+		job.Metadata.Size = humanize.IBytes(uint64(zipsize))
 	}
+	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
+
 	createLandingPage(job)
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
