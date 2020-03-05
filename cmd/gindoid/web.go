@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	gdtmpl "github.com/G-Node/gin-doi/templates"
@@ -272,16 +271,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 
 	// All good: Render request page
-	funcs := template.FuncMap{
-		"Upper":         strings.ToUpper,
-		"FunderName":    FunderName,
-		"AwardNumber":   AwardNumber,
-		"AuthorBlock":   AuthorBlock,
-		"JoinComma":     JoinComma,
-		"Replace":       strings.ReplaceAll,
-		"GetReferences": GetReferences,
-	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
+	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Failed to parse DOI info template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

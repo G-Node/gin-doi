@@ -57,7 +57,6 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	}
 	defer fp.Close()
 
-	// No registering. But the XML is provided with everything
 	data, err := job.Metadata.DataCite.Marshal()
 	if err != nil {
 		log.Print("Could not render the metadata file")
@@ -167,17 +166,12 @@ func zip(source, zipfilename string) (int64, error) {
 func createLandingPage(job *RegistrationJob) error {
 	conf := job.Config
 	target := job.Metadata.DOI
-	funcs := template.FuncMap{
-		"Upper":       strings.ToUpper,
-		"FunderName":  FunderName,
-		"AwardNumber": AwardNumber,
-	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
+	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Could not parse the DOI info template: %s", err.Error())
 		return err
 	}
-	tmpl, err = template.New("landingpage").Parse(gdtmpl.LandingPage)
+	tmpl, err = tmpl.New("landingpage").Parse(gdtmpl.LandingPage)
 	if err != nil {
 		log.Printf("Could not parse the landing page template: %s", err.Error())
 		return err

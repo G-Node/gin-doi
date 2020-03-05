@@ -18,6 +18,18 @@ import (
 	"github.com/G-Node/libgin/libgin"
 )
 
+// Global function map for the templates that render the DOI information
+// (request page and landing page).
+var tmplfuncs = template.FuncMap{
+	"Upper":         strings.ToUpper,
+	"FunderName":    FunderName,
+	"AwardNumber":   AwardNumber,
+	"AuthorBlock":   AuthorBlock,
+	"JoinComma":     JoinComma,
+	"Replace":       strings.ReplaceAll,
+	"GetReferences": GetReferences,
+}
+
 func readBody(r *http.Request) (*string, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	x := string(body)
