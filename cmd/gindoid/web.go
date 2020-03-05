@@ -124,7 +124,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	uuid := makeUUID(regJob.Metadata.SourceRepository)
 	doi := conf.DOIBase + uuid[:6]
 
-	if isRegisteredDOI(doi) {
+	if libgin.IsRegisteredDOI(doi) {
 		resData.Success = false
 		resData.Level = "warning"
 		resData.Message = template.HTML(fmt.Sprintf(msgAlreadyRegistered, doi, doi))
@@ -305,7 +305,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 // object, or if any of the expected keys (username, realname, repository,
 // email) are not present.
 func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, error) {
-	plaintext, err := decrypt([]byte(key), regrequest)
+	plaintext, err := libgin.DecryptURLString([]byte(key), regrequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt verification string: %s", err.Error())
 	}

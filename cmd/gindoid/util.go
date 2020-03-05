@@ -2,10 +2,7 @@ package main
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -35,47 +32,6 @@ func readBody(r *http.Request) (*string, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	x := string(body)
 	return &x, err
-}
-
-// decrypt from base64 to decrypted string
-func decrypt(key []byte, cryptoText string) (string, error) {
-	// TODO: Move to libgin
-	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	if len(ciphertext) < aes.BlockSize {
-		return "", err
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
-	stream := cipher.NewCFBDecrypter(block, iv)
-
-	// XORKeyStream can work in-place if the two arguments are the same.
-	stream.XORKeyStream(ciphertext, ciphertext)
-
-	return fmt.Sprintf("%s", ciphertext), nil
-}
-
-// isRegisteredDOI returns True if a given DOI is registered publicly.
-// It simply checks if https://doi.org/<doi> returns a status code other than NotFound.
-func isRegisteredDOI(doi string) bool {
-	url := fmt.Sprintf("https://doi.org/%s", doi)
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Printf("Could not query for doi: %s at %s", doi, url)
-		return false
-	}
-	if resp.StatusCode != http.StatusNotFound {
-		return true
-	}
-	return false
 }
 
 func makeUUID(URI string) string {
@@ -186,7 +142,6 @@ func AuthorBlock(authors []libgin.Creator) template.HTML {
 		}
 		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
 		name := fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
-		// TODO: Fix URLs
 		nameElements[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, name, author.Affiliation, id, affiliationSup)
 	}
 
