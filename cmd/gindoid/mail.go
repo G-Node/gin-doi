@@ -42,7 +42,7 @@ func notifyAdmin(job *RegistrationJob, errors []string) error {
 	useremail := user.Email
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
-	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
+	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
 
 	errorlist := ""
 	if len(errors) > 0 {

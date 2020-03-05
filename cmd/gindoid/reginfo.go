@@ -18,7 +18,7 @@ import (
 // dataciteURL returns the full URL to a repository's datacite.yml file.
 func dataciteURL(repopath string, conf *Configuration) string {
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", repopath)
-	url := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), fetchRepoPath)
+	url := fmt.Sprintf("%s/%s", GetGINURL(conf), fetchRepoPath)
 	return url
 }
 

@@ -291,7 +291,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.Metadata.YAMLData = doiInfo
 	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
 	regRequest.Metadata.DateTime = time.Now()
-	regRequest.Metadata.SourceRepository = GetGINURL(conf) + "/" + regRequest.DOIRequestData.Repository
+	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
 	regRequest.Metadata.ForkRepository = "" // not forked yet
 
 	err = tmpl.Execute(w, regRequest)

@@ -32,8 +32,8 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
 
-	repoURL := conf.GIN.Session.WebAddress() + job.Metadata.SourceRepository
-	forkURL := conf.GIN.Session.WebAddress() + job.Metadata.ForkRepository
+	repoURL := GetGINURL(conf) + job.Metadata.SourceRepository
+	forkURL := GetGINURL(conf) + job.Metadata.ForkRepository
 
 	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
 	var archiveURL string
