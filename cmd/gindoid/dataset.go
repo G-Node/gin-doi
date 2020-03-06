@@ -10,6 +10,7 @@ import (
 
 	"github.com/G-Node/gin-cli/git"
 	gdtmpl "github.com/G-Node/gin-doi/templates"
+	"github.com/G-Node/libgin/libgin"
 	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
 )
@@ -47,7 +48,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	}
 	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
 
-	createLandingPage(job)
+	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.DOI, "index.html"))
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
@@ -165,9 +166,7 @@ func zip(source, zipfilename string) (int64, error) {
 
 // createLandingPage renders and writes a registered dataset landing page based
 // on the LandingPage template.
-func createLandingPage(job *RegistrationJob) error {
-	conf := job.Config
-	target := job.Metadata.DOI
+func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string) error {
 	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Could not parse the DOI info template: %s", err.Error())
@@ -179,13 +178,13 @@ func createLandingPage(job *RegistrationJob) error {
 		return err
 	}
 
-	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
+	fp, err := os.Create(targetfile)
 	if err != nil {
 		log.Printf("Could not create the landing page file: %s", err.Error())
 		return err
 	}
 	defer fp.Close()
-	if err := tmpl.Execute(fp, job.Metadata); err != nil {
+	if err := tmpl.Execute(fp, metadata); err != nil {
 		log.Printf("Error rendering the landing page: %s", err.Error())
 		return err
 	}
