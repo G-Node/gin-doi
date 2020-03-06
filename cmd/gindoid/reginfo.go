@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -9,7 +8,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	txttemplate "text/template"
 
 	"github.com/G-Node/libgin/libgin"
 	yaml "gopkg.in/yaml.v2"
@@ -114,30 +112,4 @@ func (d *RegistrationRequest) GetDOIURI() string {
 
 func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
-}
-
-// renderXML creates the DataCite XML file contents given the registration data and XML template.
-func renderXML(metadata *libgin.DataCite) (string, error) {
-	tmplfuncs := txttemplate.FuncMap{
-		"EscXML":               EscXML,
-		"ReferenceDescription": ReferenceDescription,
-		"ReferenceID":          ReferenceID,
-		"ReferenceSource":      ReferenceSource,
-		"FunderName":           FunderName,
-		"AwardNumber":          AwardNumber,
-		"AuthorBlock":          AuthorBlock,
-		"JoinComma":            JoinComma,
-	}
-	tmpl, err := txttemplate.New("doixml").Funcs(tmplfuncs).Parse(doiXML)
-	if err != nil {
-		log.Printf("Error parsing doi.xml template: %s", err.Error())
-		return "", err
-	}
-	buff := bytes.Buffer{}
-	err = tmpl.Execute(&buff, metadata)
-	if err != nil {
-		log.Printf("Error rendering doi.xml: %s", err.Error())
-		return "", err
-	}
-	return buff.String(), err
 }
