@@ -126,7 +126,7 @@ func writeHTML(metadata *libgin.RepositoryMetadata) (string, error) {
 		return "", err
 	}
 
-	target := metadata.DOI
+	target := metadata.Identifier.ID
 	os.MkdirAll(target, 0777)
 	filepath := filepath.Join(target, "index.html")
 	fp, err := os.Create(filepath)

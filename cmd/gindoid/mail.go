@@ -32,7 +32,7 @@ func notifyAdmin(job *RegistrationJob, errors []string) error {
 		return base.ResolveReference(suffix).String()
 	}
 
-	doi := job.Metadata.DOI
+	doi := job.Metadata.Identifier.ID
 
 	conf := job.Config
 	repopath := job.Metadata.SourceRepository

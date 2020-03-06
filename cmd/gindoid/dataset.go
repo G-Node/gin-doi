@@ -26,7 +26,7 @@ const (
 func createRegisteredDataset(job *RegistrationJob) error {
 	conf := job.Config
 	repopath := job.Metadata.SourceRepository
-	jobname := job.Metadata.DOI
+	jobname := job.Metadata.Identifier.ID
 
 	prepDir(job)
 
@@ -43,12 +43,12 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
 	} else {
-		archiveURL = conf.Storage.StoreURL + job.Metadata.DOI + zipfname
+		archiveURL = conf.Storage.StoreURL + job.Metadata.Identifier.ID + zipfname
 		job.Metadata.Size = humanize.IBytes(uint64(zipsize))
 	}
 	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
 
-	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.DOI, "index.html"))
+	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"))
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
@@ -196,7 +196,7 @@ func prepDir(job *RegistrationJob) error {
 	conf := job.Config
 	metadata := job.Metadata
 	storagedir := conf.Storage.TargetDirectory
-	doi := metadata.DOI
+	doi := metadata.Identifier.ID
 	err := os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
 	if err != nil {
 		log.Print("Could not create the target directory")

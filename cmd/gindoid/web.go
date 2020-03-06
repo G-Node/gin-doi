@@ -93,7 +93,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	errors := make([]string, 0, 5)
 
 	regJob := &RegistrationJob{
-		Metadata: &libgin.RepositoryMetadata{},
+		Metadata: new(libgin.RepositoryMetadata),
 		Config:   conf,
 	}
 	resData := reqResultData{}
@@ -133,7 +133,6 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	}
 
 	regJob.Metadata.UUID = uuid
-	regJob.Metadata.DOI = doi
 
 	// exiting beyond this point should trigger an email notification
 	defer func() {
@@ -192,6 +191,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	regJob.Metadata.YAMLData = yamlInfo
 	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(yamlInfo)
+	regJob.Metadata.Identifier.ID = doi
+	regJob.Metadata.Identifier.Type = "DOI"
 
 	// Add job to queue
 	jobQueue <- regJob

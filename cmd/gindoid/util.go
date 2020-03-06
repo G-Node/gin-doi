@@ -189,7 +189,7 @@ func GetCitation(md *libgin.RepositoryMetadata) string {
 		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
 		authors[idx] = fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
 	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.DOI)
+	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
 }
 
 // GetReferences returns the references cited by a dataset.  If the references
