@@ -16,7 +16,7 @@ const DOIInfo = `
 	<a href="https://gin.g-node.org/{{.ForkRepository}}" class="ui blue doi label"><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
 	<a href="{{Replace .Identifier.ID "/" "_"}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD {{.ResourceType.Value | Upper}} ARCHIVE (ZIP{{if .Size}} {{.Size}}{{end}})</a>
 	</p>
-	<p><strong>Published</strong> {{.DateTime.Format "02 Jan. 2006"}} | <strong>License</strong> {{with index .RightsList 0}} <a href="{{.URL}}" itemprop="license">{{.Name}}</a>{{end}}</p>
+	<p><strong>Published</strong> {{GetIssuedDate .}} | <strong>License</strong> {{with index .RightsList 0}} <a href="{{.URL}}" itemprop="license">{{.Name}}</a>{{end}}</p>
 </div>
 <hr>
 

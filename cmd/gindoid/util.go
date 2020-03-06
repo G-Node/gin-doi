@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/G-Node/libgin/libgin"
 )
@@ -26,6 +27,7 @@ var tmplfuncs = template.FuncMap{
 	"Replace":       strings.ReplaceAll,
 	"GetReferences": GetReferences,
 	"GetCitation":   GetCitation,
+	"GetIssuedDate": GetIssuedDate,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -254,4 +256,27 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 		ref.Citation = citation
 	}
 	return refs
+}
+
+// GetIssuedDate returns the issued date of the dataset in the format DD Mon.
+// YYYY for adding to the preparation and landing pages.
+func GetIssuedDate(md *libgin.RepositoryMetadata) string {
+	var datestr string
+	for _, mddate := range md.Dates {
+		// There should be only one, but we might add some other types of date
+		// at some point, so best be safe.
+		if mddate.Type == "Issued" {
+			datestr = mddate.Value
+			break
+		}
+	}
+
+	date, err := time.Parse("2006-01-02", datestr)
+	if err != nil {
+		// This will also occur if the date isn't found in 'md' and the string
+		// remains empty
+		log.Printf("Failed to parse issued date: %s", datestr)
+		return ""
+	}
+	return date.Format("02 Jan. 2006")
 }

@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"time"
 
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
@@ -291,7 +290,6 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	regRequest.Metadata.YAMLData = doiInfo
 	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
-	regRequest.Metadata.DateTime = time.Now()
 	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
 	regRequest.Metadata.ForkRepository = "" // not forked yet
 
