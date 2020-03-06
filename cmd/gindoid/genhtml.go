@@ -3,16 +3,11 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"html/template"
-	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
-	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
@@ -113,43 +108,6 @@ func fetchAndParse(ginurl string, repopath string) (*libgin.RepositoryYAML, erro
 	return doiInfo, nil
 }
 
-func writeHTML(metadata *libgin.RepositoryMetadata) (string, error) {
-	funcs := template.FuncMap{
-		"Upper":       strings.ToUpper,
-		"FunderName":  FunderName,
-		"AwardNumber": AwardNumber,
-		"AuthorBlock": AuthorBlock,
-		"JoinComma":   JoinComma,
-	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(gdtmpl.DOIInfo)
-	if err != nil {
-		log.Print("Could not parse the DOI Info template")
-		return "", err
-	}
-	tmpl, err = tmpl.New("landingpage").Parse(gdtmpl.LandingPage)
-	if err != nil {
-		log.Print("Could not parse the DOI template")
-		return "", err
-	}
-
-	target := metadata.Identifier.ID
-	os.MkdirAll(target, 0777)
-	filepath := filepath.Join(target, "index.html")
-	fp, err := os.Create(filepath)
-	if err != nil {
-		log.Print("Could not create the DOI index.html")
-		return "", err
-	}
-	defer fp.Close()
-	if err := tmpl.Execute(fp, metadata); err != nil {
-		log.Print("Could not execute the DOI template")
-		return "", err
-	}
-
-	fmt.Printf("HTML page saved  %q\n", filepath)
-	return filepath, nil
-}
-
 // getArchiveSize checks if the DOI is already registered and if it is,
 // retrieves the size of the dataset archive.
 // If it fails in any way, it returns an empty string.
@@ -163,20 +121,15 @@ func getArchiveSize(storeurl string, doibase string, uuid string) string {
 		uuid + ".zip",
 	}
 
-	var size int64
 	for _, zipfname := range zipfnames {
 		zipurl, _ := url.Parse(storeurl)
 		zipurl.Path = path.Join(doi, zipfname)
 
-		resp, err := http.Get(zipurl.String())
+		size, err := libgin.GetArchiveSize(zipurl.String())
 		if err != nil {
 			fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), err.Error())
 			continue
-		} else if resp.StatusCode != http.StatusOK {
-			fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), resp.Status)
-			continue
 		}
-		size = resp.ContentLength
 		return humanize.IBytes(uint64(size))
 	}
 	return ""
