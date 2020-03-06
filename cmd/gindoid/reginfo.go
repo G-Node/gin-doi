@@ -29,16 +29,16 @@ func readFileAtURL(url string) ([]byte, error) {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("Error during request to GIN: %s", err.Error())
+		log.Printf("Request failed: %s", err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Could not get DOI file: %s", resp.Status)
+		return nil, fmt.Errorf("Request returned non-OK status: %s", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Print("Could not read from received datacite.yml file")
+		log.Print("Could not read file contents: %s", err.Error())
 		return nil, err
 	}
 	return body, nil
