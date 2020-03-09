@@ -36,7 +36,7 @@ func readFileAtURL(url string) ([]byte, error) {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Print("Could not read file contents: %s", err.Error())
+		log.Printf("Could not read file contents: %s", err.Error())
 		return nil, err
 	}
 	return body, nil
