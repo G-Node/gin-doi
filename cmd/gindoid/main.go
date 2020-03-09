@@ -43,8 +43,11 @@ func setUpCommands(verstr string) *cobra.Command {
 		DisableFlagsInUseLine: true,
 	}
 	cmds[2] = &cobra.Command{
-		Use:                   "make-html <repopath>...",
-		Short:                 "Generate the HTML landing page for one or more repositories from the metadata",
+		Use:   "make-html <xml file>...",
+		Short: "Generate the HTML landing page from one or more DataCite XML files",
+		Long: `Generate the HTML landing page from one or more DataCite XML files.
+
+The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each XML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata data by querying the online resources. If that fails, a warning is printed and the page is still generated with the available information.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkhtml,
 		Version:               verstr,
@@ -59,7 +62,7 @@ func main() {
 	verstr := fmt.Sprintf("GIN DOI %s Build %s (%s)", appversion, build, commit)
 
 	rootCmd := setUpCommands(verstr)
-	rootCmd.SetVersionTemplate("{{ .Version }}")
+	rootCmd.SetVersionTemplate("{{.Version}}")
 
 	// Engage
 	rootCmd.Execute()

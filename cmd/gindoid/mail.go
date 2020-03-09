@@ -18,7 +18,7 @@ const (
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
 // sendMail function to send it.
-func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
+func notifyAdmin(job *RegistrationJob, errors []string) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -32,23 +32,22 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 		return base.ResolveReference(suffix).String()
 	}
 
-	doi := ""
-	if dReq.DOIInfo != nil {
-		doi = dReq.DOIInfo.DOI
-	}
+	doi := job.Metadata.Identifier.ID
 
-	repopath := dReq.Repository
-	username := dReq.Username
-	realname := dReq.Realname
-	useremail := dReq.Email
+	conf := job.Config
+	repopath := job.Metadata.SourceRepository
+	user := job.Metadata.RequestingUser
+	username := user.Username
+	realname := user.RealName
+	useremail := user.Email
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
-	repourl := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), repopath)
+	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
 
 	errorlist := ""
-	if len(dReq.ErrorMessages) > 0 {
+	if len(errors) > 0 {
 		errorlist = "The following errors occurred during the dataset preparation\n"
-		for idx, msg := range dReq.ErrorMessages {
+		for idx, msg := range errors {
 			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
 		}
 	}
@@ -78,55 +77,55 @@ func notifyAdmin(dReq *DOIReq, conf *Configuration) error {
 // configuration specifies the server to use, the from address, and a file that
 // lists the addresses of the recipients.
 func sendMail(subject, body string, conf *Configuration) error {
-	if conf.Email.Server != "" {
-		log.Print("Preparing mail")
-		c, err := smtp.Dial(conf.Email.Server)
-		if err != nil {
-			log.Print("Could not reach server")
-			return err
-		}
-		defer c.Close()
-		// Set the sender and recipient.
-		c.Mail(conf.Email.From)
-		message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
-
-		// Recipient list is read every time a sendMail() is called.
-		// This way, the recipient list can be changed without restarting the service.
-		emailfile, err := os.Open(conf.Email.RecipientsFile)
-		if err == nil {
-			defer emailfile.Close()
-			filereader := bufio.NewReader(emailfile)
-			for address, lerr := filereader.ReadString('\n'); lerr == nil; address, lerr = filereader.ReadString('\n') {
-				address = strings.TrimSpace(address)
-				log.Printf("To: %s", address)
-				c.Rcpt(address)
-				message = fmt.Sprintf("%s\nTo: %s", message, address)
-			}
-		} else {
-			log.Printf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
-			log.Printf("Notifying %s", DEFAULTTO)
-			log.Printf("To: %s", DEFAULTTO)
-			c.Rcpt(DEFAULTTO)
-			message = fmt.Sprintf("%s\nTo: %s", message, DEFAULTTO)
-		}
-
-		message = fmt.Sprintf("%s\n\n%s", message, body)
-		// Send the email body.
-		log.Print("Sending mail")
-
-		wc, err := c.Data()
-		if err != nil {
-			log.Print("Could not write mail")
-			return err
-		}
-		defer wc.Close()
-		buf := bytes.NewBufferString(message)
-		if _, err = buf.WriteTo(wc); err != nil {
-			log.Print("Could not write mail")
-		}
-		log.Print("sendMail Done")
-	} else {
+	if conf.Email.Server == "" {
 		log.Printf("Fake mail body: %s", body)
+		return nil
 	}
+	log.Print("Preparing mail")
+	c, err := smtp.Dial(conf.Email.Server)
+	if err != nil {
+		log.Print("Could not reach server")
+		return err
+	}
+	defer c.Close()
+	// Set the sender and recipient.
+	c.Mail(conf.Email.From)
+	message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
+
+	// Recipient list is read every time a sendMail() is called.
+	// This way, the recipient list can be changed without restarting the service.
+	emailfile, err := os.Open(conf.Email.RecipientsFile)
+	if err == nil {
+		defer emailfile.Close()
+		filereader := bufio.NewReader(emailfile)
+		for address, lerr := filereader.ReadString('\n'); lerr == nil; address, lerr = filereader.ReadString('\n') {
+			address = strings.TrimSpace(address)
+			log.Printf("To: %s", address)
+			c.Rcpt(address)
+			message = fmt.Sprintf("%s\nTo: %s", message, address)
+		}
+	} else {
+		log.Printf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
+		log.Printf("Notifying %s", DEFAULTTO)
+		log.Printf("To: %s", DEFAULTTO)
+		c.Rcpt(DEFAULTTO)
+		message = fmt.Sprintf("%s\nTo: %s", message, DEFAULTTO)
+	}
+
+	message = fmt.Sprintf("%s\n\n%s", message, body)
+	// Send the email body.
+	log.Print("Sending mail")
+
+	wc, err := c.Data()
+	if err != nil {
+		log.Print("Could not write mail")
+		return err
+	}
+	defer wc.Close()
+	buf := bytes.NewBufferString(message)
+	if _, err = buf.WriteTo(wc); err != nil {
+		log.Print("Could not write mail")
+	}
+	log.Print("sendMail Done")
 	return nil
 }

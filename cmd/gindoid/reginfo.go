@@ -1,78 +1,22 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
-	txttemplate "text/template"
-	"time"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// DOIMData holds all the metadata for a dataset that's in the process of being registered.
-type DOIMData struct {
-	Data struct {
-		ID         string `json:"id"`
-		Type       string `json:"type"`
-		Attributes struct {
-			DOI        string      `json:"doi"`
-			Identifier string      `json:"identifier"`
-			URL        interface{} `json:"url"`
-			Author     []struct {
-				Literal string `json:"literal"`
-			} `json:"author"`
-			Title               string      `json:"title"`
-			ContainerTitle      string      `json:"container-title"`
-			Description         string      `json:"description"`
-			ResourceTypeSubtype string      `json:"resource-type-subtype"`
-			DataCenterID        string      `json:"data-center-id"`
-			MemberID            string      `json:"member-id"`
-			ResourceTypeID      string      `json:"resource-type-id"`
-			Version             string      `json:"version"`
-			License             interface{} `json:"license"`
-			SchemaVersion       string      `json:"schema-version"`
-			Results             []struct {
-				ID    string `json:"id"`
-				Title string `json:"title"`
-				Count int    `json:"count"`
-			} `json:"results"`
-			RelatedIdentifiers []struct {
-				RelationTypeID    string `json:"relation-type-id"`
-				RelatedIdentifier string `json:"related-identifier"`
-			} `json:"related-identifiers"`
-			Published  string      `json:"published"`
-			Registered time.Time   `json:"registered"`
-			Updated    time.Time   `json:"updated"`
-			Media      interface{} `json:"media"`
-			XML        string      `json:"xml"`
-		} `json:"attributes"`
-		Relationships struct {
-			DataCenter struct {
-				Meta struct {
-				} `json:"meta"`
-			} `json:"data-center"`
-			Member struct {
-				Meta struct {
-				} `json:"meta"`
-			} `json:"member"`
-			ResourceType struct {
-				Meta struct {
-				} `json:"meta"`
-			} `json:"resource-type"`
-		} `json:"relationships"`
-	} `json:"data"`
-}
-
 // dataciteURL returns the full URL to a repository's datacite.yml file.
 func dataciteURL(repopath string, conf *Configuration) string {
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", repopath)
-	url := fmt.Sprintf("%s/%s", conf.GIN.Session.WebAddress(), fetchRepoPath)
+	url := fmt.Sprintf("%s/%s", GetGINURL(conf), fetchRepoPath)
 	return url
 }
 
@@ -83,107 +27,89 @@ func readFileAtURL(url string) ([]byte, error) {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("Error during request to GIN: %s", err.Error())
+		log.Printf("Request failed: %s", err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Could not get DOI file: %s", resp.Status)
+		return nil, fmt.Errorf("Request returned non-OK status: %s", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Print("Could not read from received datacite.yml file")
+		log.Printf("Could not read file contents: %s", err.Error())
 		return nil, err
 	}
 	return body, nil
 }
 
-// parseDOIInfo parses the DOI registration info and returns a filled DOIRegInfo struct.
-func parseDOIInfo(infoyml []byte) (*libgin.DOIRegInfo, error) {
-	doiInfo := libgin.DOIRegInfo{}
-	err := yaml.Unmarshal(infoyml, &doiInfo)
+// readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.
+func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
+	yamlInfo := &libgin.RepositoryYAML{}
+	err := yaml.Unmarshal(infoyml, yamlInfo)
 	if err != nil {
-		log.Print("Could not unmarshal DOI file")
-		res := libgin.DOIRegInfo{}
-		res.Missing = []string{fmt.Sprintf("%s", err)}
-		return &res, fmt.Errorf("error while unmarshalling DOI info: %s", err.Error())
+		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
 	}
-	doiInfo.DateTime = time.Now()
-	if !hasValues(&doiInfo) {
+	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
 		log.Print("DOI file is missing entries")
-		return &doiInfo, fmt.Errorf("DOI info is missing entries")
+		return nil, fmt.Errorf(strings.Join(missing, " "))
 	}
-	return &doiInfo, nil
+	return yamlInfo, nil
 }
 
-func hasValues(s *libgin.DOIRegInfo) bool {
-	if s.Title == "" {
-		s.Missing = append(s.Missing, msgNoTitle)
+// checkMissingValues returns the list of required fields that have no values set.
+func checkMissingValues(info *libgin.RepositoryYAML) []string {
+	missing := []string{}
+	if info.Title == "" {
+		missing = append(missing, msgNoTitle)
 	}
-	if len(s.Authors) == 0 {
-		s.Missing = append(s.Missing, msgNoAuthors)
+	if len(info.Authors) == 0 {
+		missing = append(missing, msgNoAuthors)
 	} else {
-		for _, auth := range s.Authors {
+		for _, auth := range info.Authors {
 			if auth.LastName == "" || auth.FirstName == "" {
-				s.Missing = append(s.Missing, msgInvalidAuthors)
+				missing = append(missing, msgInvalidAuthors)
 			}
 		}
 	}
-	if s.Description == "" {
-		s.Missing = append(s.Missing, msgNoDescription)
+	if info.Description == "" {
+		missing = append(missing, msgNoDescription)
 	}
-	if s.License == nil || s.License.Name == "" || s.License.URL == "" {
-		s.Missing = append(s.Missing, msgNoLicense)
+	if info.License == nil || info.License.Name == "" || info.License.URL == "" {
+		missing = append(missing, msgNoLicense)
 	}
-	if s.References != nil {
-		for _, ref := range s.References {
-			if (ref.Citation == "" && ref.Name == "") || ref.Reftype == "" {
-				s.Missing = append(s.Missing, msgInvalidReference)
+	if info.References != nil {
+		for _, ref := range info.References {
+			if (ref.Citation == "" && ref.Name == "") || ref.RefType == "" {
+				missing = append(missing, msgInvalidReference)
 			}
 		}
 	}
-	return len(s.Missing) == 0
+	return missing
 }
 
-type DOIReq struct {
-	RequestData string
+// RegistrationRequest holds the encrypted and decrypted data of a registration
+// request, as well as the unmarshalled data of the target repository's
+// datacite.yml metadata.  It's used to render the preparation page (request
+// page) for the user to review the metadata before finalising the request.
+type RegistrationRequest struct {
+	// Encrypted request data from GIN.
+	EncryptedRequestData string
+	// Decrypted and unmarshalled request data.
 	*libgin.DOIRequestData
-	Message       template.HTML
-	DOIInfo       *libgin.DOIRegInfo
+	// Used to display error or warning messages to the user through the templates.
+	Message template.HTML
+	// Metadata for the repository being registered
+	Metadata *libgin.RepositoryMetadata
+	// Errors during the registration process that get sent in the body of the
+	// email to the administrators.
 	ErrorMessages []string
 }
 
-func (d *DOIReq) GetDOIURI() string {
+func (d *RegistrationRequest) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
 	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
 }
 
-func (d *DOIReq) AsHTML() template.HTML {
+func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
-}
-
-// renderXML creates the DataCite XML file contents given the registration data and XML template.
-func renderXML(doiInfo *libgin.DOIRegInfo) (string, error) {
-	tmplfuncs := txttemplate.FuncMap{
-		"EscXML":               EscXML,
-		"ReferenceDescription": ReferenceDescription,
-		"ReferenceID":          ReferenceID,
-		"ReferenceSource":      ReferenceSource,
-		"FunderName":           FunderName,
-		"AwardNumber":          AwardNumber,
-		"AuthorBlock":          AuthorBlock,
-		"JoinComma":            JoinComma,
-	}
-	tmpl, err := txttemplate.New("doixml").Funcs(tmplfuncs).Parse(doiXML)
-	if err != nil {
-		log.Printf("Error parsing doi.xml template: %s", err.Error())
-		return "", err
-	}
-	buff := bytes.Buffer{}
-	err = tmpl.Execute(&buff, doiInfo)
-	if err != nil {
-		log.Printf("Error rendering doi.xml: %s", err.Error())
-		return "", err
-	}
-	return buff.String(), err
 }

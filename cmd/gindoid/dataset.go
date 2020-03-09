@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/G-Node/gin-cli/git"
+	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
@@ -22,43 +23,48 @@ const (
 // createRegisteredDataset starts the process of registering a dataset. It's
 // the top level function for the dataset registration and calls all other
 // individual functions.
-func createRegisteredDataset(job DOIJob) error {
+func createRegisteredDataset(job *RegistrationJob) error {
 	conf := job.Config
-	repopath := job.Source
-	jobname := job.Name
-	dReq := &job.Request
+	repopath := job.Metadata.SourceRepository
+	jobname := job.Metadata.Identifier.ID
 
-	prepDir(jobname, dReq.DOIInfo, conf)
+	prepDir(job)
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
+
+	repoURL := GetGINURL(conf) + job.Metadata.SourceRepository
+	forkURL := GetGINURL(conf) + job.Metadata.ForkRepository
+
 	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
-	dReq.DOIInfo.FileName = zipfname
-	dReq.DOIInfo.FileSize = humanize.IBytes(uint64(zipsize))
+	var archiveURL string
 	if err != nil {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
-		dReq.DOIInfo.FileSize = ""
+	} else {
+		archiveURL = conf.Storage.StoreURL + job.Metadata.Identifier.ID + zipfname
+		job.Metadata.Size = humanize.IBytes(uint64(zipsize))
 	}
-	createLandingPage(jobname, dReq, conf)
+	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
+
+	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"))
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
 		log.Print("Could not create the metadata template")
 		// XML Creation failed; return with error
-		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		notifyAdmin(dReq, conf)
+		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
+		notifyAdmin(job, preperrors)
 		return err
 	}
 	defer fp.Close()
 
-	// No registering. But the XML is provided with everything
-	data, err := renderXML(dReq.DOIInfo)
+	data, err := job.Metadata.DataCite.Marshal()
 	if err != nil {
 		log.Print("Could not render the metadata file")
-		dReq.ErrorMessages = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
-		notifyAdmin(dReq, conf)
+		preperrors = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
+		notifyAdmin(job, preperrors)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -69,8 +75,7 @@ func createRegisteredDataset(job DOIJob) error {
 
 	if len(preperrors) > 0 {
 		// Resend email with errors if any occurred
-		dReq.ErrorMessages = preperrors
-		notifyAdmin(dReq, conf)
+		notifyAdmin(job, preperrors)
 	}
 	return err
 }
@@ -160,31 +165,26 @@ func zip(source, zipfilename string) (int64, error) {
 }
 
 // createLandingPage renders and writes a registered dataset landing page based
-// on the landingPageTmpl template.
-func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
-	funcs := template.FuncMap{
-		"Upper":       strings.ToUpper,
-		"FunderName":  FunderName,
-		"AwardNumber": AwardNumber,
-	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+// on the LandingPage template.
+func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string) error {
+	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Could not parse the DOI info template: %s", err.Error())
 		return err
 	}
-	tmpl, err = template.New("landingpage").Parse(landingPageTmpl)
+	tmpl, err = tmpl.New("landingpage").Parse(gdtmpl.LandingPage)
 	if err != nil {
 		log.Printf("Could not parse the landing page template: %s", err.Error())
 		return err
 	}
 
-	fp, err := os.Create(filepath.Join(conf.Storage.TargetDirectory, target, "index.html"))
+	fp, err := os.Create(targetfile)
 	if err != nil {
 		log.Printf("Could not create the landing page file: %s", err.Error())
 		return err
 	}
 	defer fp.Close()
-	if err := tmpl.Execute(fp, info); err != nil {
+	if err := tmpl.Execute(fp, metadata); err != nil {
 		log.Printf("Error rendering the landing page: %s", err.Error())
 		return err
 	}
@@ -192,15 +192,18 @@ func createLandingPage(target string, info *DOIReq, conf *Configuration) error {
 }
 
 // prepDir creates the directory where the dataset will be cloned and archived.
-func prepDir(jobname string, info *libgin.DOIRegInfo, conf *Configuration) error {
+func prepDir(job *RegistrationJob) error {
+	conf := job.Config
+	metadata := job.Metadata
 	storagedir := conf.Storage.TargetDirectory
-	err := os.MkdirAll(filepath.Join(storagedir, jobname), os.ModePerm)
+	doi := metadata.Identifier.ID
+	err := os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
 	if err != nil {
 		log.Print("Could not create the target directory")
 		return err
 	}
 	// Deny access per default
-	file, err := os.Create(filepath.Join(storagedir, jobname, ".htaccess"))
+	file, err := os.Create(filepath.Join(storagedir, doi, ".htaccess"))
 	if err != nil {
 		log.Print("Could not create .htaccess")
 		return err

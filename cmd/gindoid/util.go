@@ -2,10 +2,7 @@ package main
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/md5"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -14,55 +11,29 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/G-Node/libgin/libgin"
 )
+
+// Global function map for the templates that render the DOI information
+// (request page and landing page).
+var tmplfuncs = template.FuncMap{
+	"Upper":         strings.ToUpper,
+	"FunderName":    FunderName,
+	"AwardNumber":   AwardNumber,
+	"AuthorBlock":   AuthorBlock,
+	"JoinComma":     JoinComma,
+	"Replace":       strings.ReplaceAll,
+	"GetReferences": GetReferences,
+	"GetCitation":   GetCitation,
+	"GetIssuedDate": GetIssuedDate,
+}
 
 func readBody(r *http.Request) (*string, error) {
 	body, err := ioutil.ReadAll(r.Body)
 	x := string(body)
 	return &x, err
-}
-
-// decrypt from base64 to decrypted string
-func decrypt(key []byte, cryptoText string) (string, error) {
-	// TODO: Move to libgin
-	ciphertext, _ := base64.URLEncoding.DecodeString(cryptoText)
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	if len(ciphertext) < aes.BlockSize {
-		return "", err
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
-	stream := cipher.NewCFBDecrypter(block, iv)
-
-	// XORKeyStream can work in-place if the two arguments are the same.
-	stream.XORKeyStream(ciphertext, ciphertext)
-
-	return fmt.Sprintf("%s", ciphertext), nil
-}
-
-// isRegisteredDOI returns True if a given DOI is registered publicly.
-// It simply checks if https://doi.org/<doi> returns a status code other than NotFound.
-func isRegisteredDOI(doi string) bool {
-	url := fmt.Sprintf("https://doi.org/%s", doi)
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Printf("Could not query for doi: %s at %s", doi, url)
-		return false
-	}
-	if resp.StatusCode != http.StatusNotFound {
-		return true
-	}
-	return false
 }
 
 func makeUUID(URI string) string {
@@ -97,7 +68,7 @@ func ReferenceDescription(ref libgin.Reference) string {
 	if !strings.HasSuffix(namecitation, ".") {
 		namecitation += "."
 	}
-	refDesc := fmt.Sprintf("%s: %s (%s)", ref.Reftype, namecitation, ref.ID)
+	refDesc := fmt.Sprintf("%s: %s (%s)", ref.RefType, namecitation, ref.ID)
 	return EscXML(refDesc)
 }
 
@@ -150,8 +121,8 @@ func AwardNumber(fundref string) string {
 // AuthorBlock builds the author section for the landing page template.
 // It includes a list of authors, their affiliations, and superscripts to associate authors with affiliations.
 // This is a utility function for the landing page HTML template.
-func AuthorBlock(authors []libgin.Author) template.HTML {
-	names := make([]string, len(authors))
+func AuthorBlock(authors []libgin.Creator) template.HTML {
+	nameElements := make([]string, len(authors))
 	affiliations := make([]string, 0)
 	affiliationMap := make(map[string]int)
 	// Collect names and figure out affiliation numbering
@@ -167,15 +138,16 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
 		}
 		var url, id string
-		if idInfo := author.GetValidID(); idInfo != nil {
-			id = fmt.Sprintf("orcid:%s", idInfo.ID)
-			url = idInfo.URI
+		if author.Identifier != nil {
+			id = author.Identifier.ID
+			url = author.Identifier.SchemeURI + id
 		}
-
-		names[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s %s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, author.FirstName, author.LastName, author.Affiliation, id, affiliationSup)
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		name := fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
+		nameElements[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, name, author.Affiliation, id, affiliationSup)
 	}
 
-	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(names, ",\n"))
+	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(nameElements, ",\n"))
 	affiliationLine := fmt.Sprintf("<ol class=\"doi itemlist\">%s</ol>", strings.Join(affiliations, "\n"))
 	return template.HTML(authorLine + "\n" + affiliationLine)
 }
@@ -185,4 +157,126 @@ func AuthorBlock(authors []libgin.Author) template.HTML {
 // templates.
 func JoinComma(lst []string) string {
 	return strings.Join(lst, ", ")
+}
+
+// GetGINURL returns the full URL to the configured GIN server. If it's
+// configured with a non-standard port, the port number is included.
+func GetGINURL(conf *Configuration) string {
+	address := conf.GIN.Session.WebAddress()
+	// get scheme
+	schemeSepIdx := strings.Index(address, "://")
+	if schemeSepIdx == -1 {
+		// no scheme; return as is
+		return address
+	}
+	// get port
+	portSepIdx := strings.LastIndex(address, ":")
+	if portSepIdx == -1 {
+		// no port; return as is
+		return address
+	}
+	scheme := address[:schemeSepIdx]
+	port := address[portSepIdx:len(address)]
+	if (scheme == "http" && port == ":80") ||
+		(scheme == "https" && port == ":443") {
+		// port is standard for scheme: slice it off
+		address = address[0:portSepIdx]
+	}
+	return address
+}
+
+func GetCitation(md *libgin.RepositoryMetadata) string {
+	authors := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		namesplit := strings.SplitN(author.Name, ", ", 2) // Author names are LastName, FirstName
+		// render as LastName Initials, ...
+		firstnames := strings.Split(namesplit[1], " ")
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", namesplit[0], initials)
+	}
+	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
+}
+
+// GetReferences returns the references cited by a dataset.  If the references
+// are already populated in the YAMLData field they are returned as is.  If
+// they are not, they are reconstructed to the YAML format from the DataCite
+// metadata.  The latter can occur when loading a previously generated DataCite
+// XML file instead of reading the original YAML from the repository.  If no
+// references are found in either location, an empty slice is returned.
+func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
+	if md.YAMLData != nil && len(md.YAMLData.References) != 0 {
+		return md.YAMLData.References
+	}
+
+	// No references in YAML data; reconstruct from DataCite metadata if any
+	// are found.
+
+	refs := make([]libgin.Reference, 0)
+	// map IDs to new references for easier construction from the two sources
+	// but also use the slice to maintain order
+	refMap := make(map[string]*libgin.Reference)
+	for _, relid := range md.RelatedIdentifiers {
+		if relid.RelationType == "IsVariantFormOf" {
+			// IsVariantFormOf is used for the URLs.
+			// Here we assume that any other type is a citation (DOI, PMID, or arXiv)
+			continue
+		}
+		ref := &libgin.Reference{
+			ID:      relid.Identifier,
+			RefType: relid.RelationType,
+		}
+		refMap[relid.Identifier] = ref
+		refs = append(refs, *ref)
+	}
+
+	for _, desc := range md.Descriptions {
+		if desc.Type != "Other" {
+			// References are added with type "Other"
+			continue
+		}
+		// slice off the relation type prefix
+		parts := strings.SplitN(desc.Content, ": ", 2)
+		citationID := parts[1]
+		// slice off the ID suffix
+		idIdx := strings.LastIndex(citationID, "(")
+		if idIdx == -1 {
+			// No ID found; discard citation
+			continue
+		}
+		citation := strings.TrimSpace(citationID[0:idIdx])
+		id := strings.TrimSpace(citationID[idIdx+1 : len(citationID)-1])
+		ref, ok := refMap[id]
+		if !ok {
+			// ID only in descriptions for some reason?
+			continue
+		}
+		ref.Citation = citation
+	}
+	return refs
+}
+
+// GetIssuedDate returns the issued date of the dataset in the format DD Mon.
+// YYYY for adding to the preparation and landing pages.
+func GetIssuedDate(md *libgin.RepositoryMetadata) string {
+	var datestr string
+	for _, mddate := range md.Dates {
+		// There should be only one, but we might add some other types of date
+		// at some point, so best be safe.
+		if mddate.Type == "Issued" {
+			datestr = mddate.Value
+			break
+		}
+	}
+
+	date, err := time.Parse("2006-01-02", datestr)
+	if err != nil {
+		// This will also occur if the date isn't found in 'md' and the string
+		// remains empty
+		log.Printf("Failed to parse issued date: %s", datestr)
+		return ""
+	}
+	return date.Format("02 Jan. 2006")
 }

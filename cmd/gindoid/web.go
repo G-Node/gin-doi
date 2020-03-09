@@ -6,15 +6,15 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"strings"
 
+	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
 
 const (
 	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
-	msgInvalidDOI        = `The DOI file is missing or not valid. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions. `
+	msgInvalidDOI        = `The DOI file is missing or not valid. See the messages below for specific issues with the provided data.<br>Also, please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions.`
 	msgInvalidURI        = "Please provide a valid repository URI"
 	msgAlreadyRegistered = `<div class="content">
 								<div class="header"> A DOI is already registered for your dataset.</div>
@@ -41,7 +41,7 @@ const (
 	msgNoAuthors        = "No authors provided."
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = "No description provided."
-	msgNoLicense        = "No valid license provided. Please specify URL and name."
+	msgNoLicense        = "No valid license provided. Please specify a license URL and name and make sure it matches the license file in the repository."
 	msgInvalidReference = "One of the Reference entries is not valid. Please provide the name and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
@@ -55,17 +55,17 @@ const (
 )
 
 type reqResultData struct {
-	Success bool
-	Level   string // success, warning, error
-	Message template.HTML
-	Request *DOIReq
+	Success    bool
+	Level      string // success, warning, error
+	Message    template.HTML
+	Repository string
 }
 
 // renderResult renders the results of a registration request using the
-// 'requestResultTmpl' template. If it fails to parse the template, it renders
+// 'RequestResult' template. If it fails to parse the template, it renders
 // the Message from the result data in plain HTML.
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
-	tmpl, err := template.New("requestresult").Parse(requestResultTmpl)
+	tmpl, err := template.New("requestresult").Parse(gdtmpl.RequestResult)
 	if err != nil {
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
@@ -73,12 +73,15 @@ func renderResult(w http.ResponseWriter, resData *reqResultData) {
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
 		return
 	}
-	tmpl.Execute(w, &resData)
+	err = tmpl.Execute(w, &resData)
+	if err != nil {
+		log.Printf("Error rendering RequestResult template: %v", err.Error())
+	}
 }
 
 // startDOIRegistration starts the DOI registration process by authenticating
 // with the GIN server and adding a new DOIJob to the jobQueue.
-func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan DOIJob, conf *Configuration) {
+func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan *RegistrationJob, conf *Configuration) {
 	// Make sure we can only be called with an HTTP POST request.
 	if r.Method != "POST" {
 		w.Header().Set("Allow", "POST")
@@ -86,29 +89,41 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	dReq := DOIReq{}
-	resData := reqResultData{Request: &dReq}
+	errors := make([]string, 0, 5)
 
-	dReq.RequestData = r.PostFormValue("reqdata")
-	reqdata, err := decryptRequestData(dReq.RequestData, conf.Key)
+	regJob := &RegistrationJob{
+		Metadata: new(libgin.RepositoryMetadata),
+		Config:   conf,
+	}
+	resData := reqResultData{}
+
+	encryptedRequestData := r.PostFormValue("reqdata")
+	reqdata, err := decryptRequestData(encryptedRequestData, conf.Key)
+	resData.Repository = reqdata.Repository
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
-		dReq.ErrorMessages = []string{"Failed to verify request"}
 		resData.Message = template.HTML(msgInvalidRequest)
 		// ignore the error, no email to send
 		renderResult(w, &resData)
 		return
 	}
 
-	dReq.DOIRequestData = reqdata
+	log.Printf("Received DOI request: %+v", reqdata)
 
-	log.Printf("Received DOI request: %+v", dReq)
+	requser := &libgin.GINUser{
+		Username: reqdata.Username,
+		RealName: reqdata.Realname,
+		Email:    reqdata.Email,
+	}
+	regJob.Metadata.RequestingUser = requser
+	regJob.Metadata.SourceRepository = reqdata.Repository
 
 	// calculate DOI
-	uuid := makeUUID(dReq.Repository)
+
+	uuid := makeUUID(regJob.Metadata.SourceRepository)
 	doi := conf.DOIBase + uuid[:6]
 
-	if isRegisteredDOI(doi) {
+	if libgin.IsRegisteredDOI(doi) {
 		resData.Success = false
 		resData.Level = "warning"
 		resData.Message = template.HTML(fmt.Sprintf(msgAlreadyRegistered, doi, doi))
@@ -116,14 +131,16 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	// everything beyond this point should trigger an email notification
+	regJob.Metadata.UUID = uuid
+
+	// exiting beyond this point should trigger an email notification
 	defer func() {
-		err := notifyAdmin(&dReq, conf)
+		err := notifyAdmin(regJob, errors)
 		if err != nil {
 			// Email send failed
 			// Log the error
 			log.Printf("Failed to send notification email: %s", err.Error())
-			log.Printf("Request data: %+v", dReq)
+			log.Printf("Request data: %+v", reqdata)
 			// Ask the user to contact us
 			resData.Success = false
 			resData.Level = "error"
@@ -133,50 +150,53 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		renderResult(w, &resData)
 	}()
 
-	user, err := conf.GIN.Session.RequestAccount(dReq.Username)
+	// NOTE: Delete?
+	_, err = conf.GIN.Session.RequestAccount(requser.Username)
 	if err != nil {
 		// Can happen if the DOI service isn't logged in to GIN
 		log.Printf("Failed to get user data: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to get user data: %s", err.Error())}
+		log.Printf("Request data: %+v", reqdata)
+		errors = append(errors, fmt.Sprintf("Failed to get user data: %s", err.Error()))
 		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
-	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
+
+	infoyml, err := readFileAtURL(dataciteURL(regJob.Metadata.SourceRepository, conf))
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
 		// made private) between preparing the request and submitting it
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		log.Printf("Request data: %+v", reqdata)
+		errors = append(errors, fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error()))
 		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
-	doiInfo, err := parseDOIInfo(infoyml)
+	yamlInfo, err := readRepoYAML(infoyml)
 	if err != nil {
 		// Can happen if the datacite.yml file is modified (and made invalid)
 		// between preparing the request and submitting it
 		log.Printf("Failed to parse datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error())}
+		log.Printf("Request data: %+v", reqdata)
+		errors = append(errors, fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error()))
 		resData.Success = true
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
 
-	doiInfo.UUID = uuid
-	doiInfo.DOI = doi
-	dReq.DOIInfo = doiInfo
+	regJob.Metadata.YAMLData = yamlInfo
+	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(yamlInfo)
+	regJob.Metadata.Identifier.ID = doi
+	regJob.Metadata.Identifier.Type = "DOI"
 
 	// Add job to queue
-	job := DOIJob{Source: dReq.Repository, User: user, Request: dReq, Name: doiInfo.DOI, Config: conf}
-	jobQueue <- job
-	// Render success
+	jobQueue <- regJob
+
+	// Render success (deferred)
 	message := fmt.Sprintf(msgServerIsArchiving, doi)
 	resData.Success = true
 	resData.Level = "success"
@@ -195,16 +215,69 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		// TODO: Notify via email (maybe)
 		return
 	}
-	funcs := template.FuncMap{
-		"Upper": strings.ToUpper,
+	encReqData := r.Form.Get("regrequest")
+
+	log.Printf("Got request: %s", encReqData)
+
+	regRequest := &RegistrationRequest{}
+	reqdata, err := decryptRequestData(encReqData, conf.Key)
+	if err != nil {
+		log.Printf("Invalid request: %s", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		regRequest.Message = template.HTML(msgInvalidRequest)
+		regRequest.Metadata = &libgin.RepositoryMetadata{}
+		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
 	}
-	tmpl, err := template.New("doiInfo").Funcs(funcs).Parse(doiInfoTmpl)
+
+	regRequest.DOIRequestData = reqdata
+	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
+	regRequest.Metadata = &libgin.RepositoryMetadata{}
+
+	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
+	if err != nil {
+		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
+		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
+		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
+		log.Print("DOI file invalid")
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
+		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	// All good: Render request page
+	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
 	if err != nil {
 		log.Printf("Failed to parse DOI info template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	tmpl, err = tmpl.New("requestpage").Parse(requestPageTmpl)
+	tmpl, err = tmpl.New("requestpage").Parse(gdtmpl.RequestPage)
 	if err != nil {
 		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -212,69 +285,17 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	regrequest := r.Form.Get("regrequest")
+	j, _ := json.MarshalIndent(doiInfo, "", "  ")
+	log.Printf("Received DOI information: %s", string(j))
 
-	log.Printf("Got request: %s", regrequest)
+	regRequest.Metadata.YAMLData = doiInfo
+	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
+	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
+	regRequest.Metadata.ForkRepository = "" // not forked yet
 
-	dReq := &DOIReq{}
-	dReq.DOIInfo = &libgin.DOIRegInfo{}
-	reqdata, err := decryptRequestData(regrequest, conf.Key)
+	err = tmpl.Execute(w, regRequest)
 	if err != nil {
-		log.Printf("Invalid request: %s", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		dReq.Message = template.HTML(msgInvalidRequest)
-		tmpl.Execute(w, dReq)
-		return
-	}
-
-	dReq.DOIRequestData = reqdata
-	dReq.RequestData = regrequest // Forward it through the hidden form in the template
-
-	infoyml, err := readFileAtURL(dataciteURL(dReq.Repository, conf))
-	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
-		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", dReq)
-		dReq.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
-		dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue: <i>No datacite.yml file found in repository</i>")
-		err = tmpl.Execute(w, dReq)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-		}
-		return
-	}
-	if doiInfo, err := parseDOIInfo(infoyml); err == nil {
-		// TODO: Simplify this chain of conditions
-		j, _ := json.MarshalIndent(doiInfo, "", "  ")
-		log.Printf("Received DOI information: %s", string(j))
-		dReq.DOIInfo = doiInfo
-		err = tmpl.Execute(w, dReq)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-			return
-		}
-	} else if doiInfo != nil {
-		log.Print("DOI file invalid")
-		if doiInfo.Missing != nil {
-			dReq.Message = template.HTML(msgInvalidDOI + " <p>Issue:<i> " + doiInfo.Missing[0] + "</i>")
-		} else {
-			dReq.Message = template.HTML(msgInvalidDOI + msgBadEncoding)
-		}
-		dReq.DOIInfo = &libgin.DOIRegInfo{}
-		err = tmpl.Execute(w, dReq)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-			return
-		}
-		return
-	} else {
-		dReq.Message = template.HTML(msgInvalidDOI)
-		tmpl.Execute(w, dReq)
-		if err != nil {
-			log.Printf("Error rendering template: %s", err.Error())
-			return
-		}
-		return
+		log.Printf("Error rendering template: %s", err.Error())
 	}
 }
 
@@ -283,7 +304,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 // object, or if any of the expected keys (username, realname, repository,
 // email) are not present.
 func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, error) {
-	plaintext, err := decrypt([]byte(key), regrequest)
+	plaintext, err := libgin.DecryptURLString([]byte(key), regrequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt verification string: %s", err.Error())
 	}
@@ -325,7 +346,7 @@ func web(cmd *cobra.Command, args []string) {
 
 	defer config.GIN.Session.Logout()
 
-	jobQueue := make(chan DOIJob, config.MaxQueue)
+	jobQueue := make(chan *RegistrationJob, config.MaxQueue)
 	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
 	dispatcher.run(newWorker)
 
