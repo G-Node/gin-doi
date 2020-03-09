@@ -35,6 +35,8 @@ func readFileAtPath(path string) ([]byte, error) {
 		return nil, err
 	}
 
+	defer fp.Close()
+
 	stat, err := fp.Stat()
 	if err != nil {
 		return nil, err
