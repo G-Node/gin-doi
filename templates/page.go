@@ -11,7 +11,7 @@ const LandingPage = `<!DOCTYPE html>
 		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
-		<title>G-Node DOI</title>
+		<title>G-Node Open Data: {{index .Titles 0}}</title>
 	</head>
 	<body>
 		<div class="full height">
