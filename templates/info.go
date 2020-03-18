@@ -31,13 +31,15 @@ const DOIInfo = `
 	<meta itemprop="keywords" content="{{JoinComma .Subjects}}">
 {{end}}
 
-{{if .RelatedIdentifiers}}
+{{with $refs := GetReferences .}}
+{{if $refs}}
 	<h3>References</h3>
 	<ul class="doi itemlist">
-		{{range $index, $ref := GetReferences .}}
+		{{range $index, $ref := $refs}}
 			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href={{$ref.GetURL}} itemprop="url"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
 		{{end}}
 	</ul>
+{{end}}
 {{end}}
 
 {{if .FundingReferences}}
