@@ -214,46 +214,69 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	// No references in YAML data; reconstruct from DataCite metadata if any
 	// are found.
 
+	// collect reference descriptions (descriptionType="Other")
+	referenceDescriptions := make([]string, 0)
+	for _, desc := range md.Descriptions {
+		if desc.Type == "Other" {
+			referenceDescriptions = append(referenceDescriptions, desc.Content)
+		}
+	}
+
+	findDescriptionIdx := func(id string) int {
+		for idx, desc := range referenceDescriptions {
+			if strings.Contains(desc, id) {
+				return idx
+			}
+		}
+		return -1
+	}
+
+	splitDescriptionType := func(desc string) (string, string) {
+		descParts := strings.SplitN(desc, ":", 2)
+		if len(descParts) != 2 {
+			return "", desc
+		}
+
+		return strings.TrimSpace(descParts[0]), strings.TrimSpace(descParts[1])
+	}
+
 	refs := make([]libgin.Reference, 0)
 	// map IDs to new references for easier construction from the two sources
 	// but also use the slice to maintain order
-	refMap := make(map[string]*libgin.Reference)
 	for _, relid := range md.RelatedIdentifiers {
 		if relid.RelationType == "IsVariantFormOf" {
 			// IsVariantFormOf is used for the URLs.
-			// Here we assume that any other type is a citation (DOI, PMID, or arXiv)
+			// Here we assume that any other type is a citation
 			continue
 		}
 		ref := &libgin.Reference{
-			ID:      relid.Identifier,
+			ID:      fmt.Sprintf("%s:%s", relid.Type, relid.Identifier),
 			RefType: relid.RelationType,
 		}
-		refMap[relid.Identifier] = ref
+		if idx := findDescriptionIdx(relid.Identifier); idx >= 0 {
+			citation := referenceDescriptions[idx]
+			referenceDescriptions = append(referenceDescriptions[:idx], referenceDescriptions[idx+1:]...) // remove found element
+			_, citation = splitDescriptionType(citation)
+			// filter out the ID from the citation
+			idstr := fmt.Sprintf("(%s)", ref.ID)
+			citation = strings.Replace(citation, idstr, "", -1)
+			ref.Citation = citation
+		}
 		refs = append(refs, *ref)
 	}
 
-	for _, desc := range md.Descriptions {
-		if desc.Type != "Other" {
-			// References are added with type "Other"
-			continue
+	// Add the rest of the descriptions that didn't have an ID to match (if any)
+	for _, refDesc := range referenceDescriptions {
+		refType, citation := splitDescriptionType(refDesc)
+		ref := libgin.Reference{
+			ID:       "",
+			RefType:  refType,
+			Citation: citation,
 		}
-		// slice off the relation type prefix
-		parts := strings.SplitN(desc.Content, ": ", 2)
-		citationID := parts[1]
-		// slice off the ID suffix
-		idIdx := strings.LastIndex(citationID, "(")
-		if idIdx == -1 {
-			// No ID found; discard citation
-			continue
-		}
-		citation := strings.TrimSpace(citationID[0:idIdx])
-		id := strings.TrimSpace(citationID[idIdx+1 : len(citationID)-1])
-		ref, ok := refMap[id]
-		if !ok {
-			// ID only in descriptions for some reason?
-			continue
-		}
-		ref.Citation = citation
+		refs = append(refs, ref)
+	}
+	if len(refs) == 0 {
+		return nil
 	}
 	return refs
 }
