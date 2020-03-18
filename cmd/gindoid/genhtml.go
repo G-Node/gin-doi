@@ -75,6 +75,24 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			DataCite: datacite,
 		}
 
+		// find URLs in RelatedIdentifiers
+		for _, relid := range metadata.RelatedIdentifiers {
+			switch u := strings.ToLower(relid.Identifier); {
+			case strings.HasPrefix(u, "https://gin.g-node.org/doi/"):
+				// fork URL
+				metadata.ForkRepository = strings.TrimPrefix(relid.Identifier, "https://gin.g-node.org/")
+			case strings.HasPrefix(u, "https://web.gin.g-node.org/doi"):
+				// fork URL (old)
+				metadata.ForkRepository = strings.TrimPrefix(relid.Identifier, "https://web.gin.g-node.org/")
+			case strings.HasPrefix(u, "https://gin.g-node.org/"):
+				// repo URL
+				metadata.SourceRepository = strings.TrimPrefix(relid.Identifier, "https://gin.g-node.org/")
+			case strings.HasPrefix(u, "https://web.gin.g-node.org/"):
+				// repo URL (old)
+				metadata.SourceRepository = strings.TrimPrefix(relid.Identifier, "https://web.gin.g-node.org/")
+			}
+		}
+
 		// if no DOI found in file, just fall back to the argument number
 		fname := fmt.Sprintf("%s.html", strings.ReplaceAll(metadata.Identifier.ID, "/", "_"))
 		if metadata.Identifier.ID == "" {
