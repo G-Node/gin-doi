@@ -12,6 +12,7 @@ footer {
   color: #888888;
 }
 .home {
+  padding-top: 50px;
   padding-bottom: 200px;
 }
 .home .hero .octicon {

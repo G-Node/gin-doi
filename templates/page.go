@@ -23,8 +23,12 @@ const LandingPage = `<!DOCTYPE html>
 								<a class="item brand" href="https://gin.g-node.org/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item" href="https://doi.gin.g-node.org/">Home</a>
-								<a class="item active" href="">Data</a>
+								<a class="item" href="/">G-Node Open Data Index</a>
+								<a class="item" href="https://gin.g-node.org/G-Node/Info/wiki/DOI">How to publish</a>
+
+								<div class="right menu">
+									<a class="item" href="https://gin.g-node.org/">GIN</a>
+								</div>
 							</div>
 						</div>
 					</div>
