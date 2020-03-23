@@ -188,14 +188,20 @@ func GetGINURL(conf *Configuration) string {
 func GetCitation(md *libgin.RepositoryMetadata) string {
 	authors := make([]string, len(md.Creators))
 	for idx, author := range md.Creators {
-		namesplit := strings.SplitN(author.Name, ", ", 2) // Author names are LastName, FirstName
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		if len(namesplit) != 2 {
+			// No comma: Bad input, mononym, or empty field.
+			// Trim, add continue.
+			authors[idx] = strings.TrimSpace(author.Name)
+			continue
+		}
 		// render as LastName Initials, ...
-		firstnames := strings.Split(namesplit[1], " ")
+		firstnames := strings.Fields(namesplit[1])
 		var initials string
 		for _, name := range firstnames {
 			initials += string(name[0])
 		}
-		authors[idx] = fmt.Sprintf("%s %s", namesplit[0], initials)
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
 	}
 	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
 }
