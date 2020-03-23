@@ -122,34 +122,64 @@ func AwardNumber(fundref string) string {
 // It includes a list of authors, their affiliations, and superscripts to associate authors with affiliations.
 // This is a utility function for the landing page HTML template.
 func AuthorBlock(authors []libgin.Creator) template.HTML {
-	nameElements := make([]string, len(authors))
-	affiliations := make([]string, 0)
-	affiliationMap := make(map[string]int)
-	// Collect names and figure out affiliation numbering
-	for idx, author := range authors {
-		var affiliationSup string // if there's no affiliation, don't add a superscript
-		if author.Affiliation != "" {
-			if _, ok := affiliationMap[author.Affiliation]; !ok {
-				// new affiliation; give it a new number, otherwise the existing one will be used below
-				num := len(affiliationMap) + 1
-				affiliationMap[author.Affiliation] = num
-				affiliations = append(affiliations, fmt.Sprintf("<li><sup>%d</sup>%s</li>", num, author.Affiliation))
-			}
-			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
+	authorMap := make(map[*libgin.Creator]int) // maps Author -> Affiliation Number
+	affiliationMap := make(map[string]int)     // maps Affiliation Name -> Affiliation Number
+	affilNumberMap := make(map[int]string)     // maps Affiliation Number -> Affiliation Name (inverse of above)
+	for _, author := range authors {
+		if _, ok := affiliationMap[author.Affiliation]; !ok {
+			// new affiliation; give it a new number
+			number := 0
+			// NOTE: adding the empty affiliation helps us figure out if a
+			// single unique affiliation should be numbered, since we should
+			// differentiate between authors that share the affiliation and the
+			// ones that have none.
+			if author.Affiliation != "" {
+				number = len(affiliationMap) + 1
+			} // otherwise it gets the "special" value 0
+			affiliationMap[author.Affiliation] = number
+			affilNumberMap[number] = author.Affiliation
 		}
-		var url, id string
+		authorMap[&author] = affiliationMap[author.Affiliation]
+	}
+
+	nameElements := make([]string, len(authors))
+	// Format authors
+	for idx, author := range authors {
+		var url, id, affiliationSup string
 		if author.Identifier != nil {
 			id = author.Identifier.ID
 			url = author.Identifier.SchemeURI + id
 		}
-		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+
+		// Author names are LastName, FirstName
+		namesplit := strings.SplitN(author.Name, ",", 2)
 		name := fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[1]), strings.TrimSpace(namesplit[0]))
+
+		// Add superscript to name if it has an affiliation and there are more than one (including empty)
+		if author.Affiliation != "" && len(affiliationMap) > 1 {
+			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
+		}
+
 		nameElements[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, name, author.Affiliation, id, affiliationSup)
 	}
 
-	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(nameElements, ",\n"))
-	affiliationLine := fmt.Sprintf("<ol class=\"doi itemlist\">%s</ol>", strings.Join(affiliations, "\n"))
-	return template.HTML(authorLine + "\n" + affiliationLine)
+	// Format affiliations in number order (excluding empty)
+	affiliationLines := "<ol class=\"doi itemlist\">\n"
+	for idx := 1; ; idx++ {
+		affiliation, ok := affilNumberMap[idx]
+		if !ok {
+			break
+		}
+		var supstr string
+		if len(affiliationMap) > 1 {
+			supstr = fmt.Sprintf("<sup>%d</sup>", idx)
+		}
+		affiliationLines = fmt.Sprintf("%s\t<li>%s%s</li>\n", affiliationLines, supstr, affiliation)
+	}
+	affiliationLines = fmt.Sprintf("%s</ol>", affiliationLines)
+
+	authorLines := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(nameElements, ",\n"))
+	return template.HTML(authorLines + "\n" + affiliationLines)
 }
 
 // JoinComma joins a slice of strings into a single string separated by commas
