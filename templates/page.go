@@ -23,7 +23,7 @@ const LandingPage = `<!DOCTYPE html>
 								<a class="item brand" href="https://gin.g-node.org/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item" href="https://doid.gin.g-node.org/">Home</a>
+								<a class="item" href="https://doi.gin.g-node.org/">Home</a>
 								<a class="item active" href="">Data</a>
 							</div>
 						</div>

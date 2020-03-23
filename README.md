@@ -2,7 +2,7 @@
 GIN-DOI is the G-Node Infrastructure DOI service.
 The service can, at the request of a repository owner, copy a public repository, pack everything into an archive file, store it in a safe location, and provide a DOI (digital object identifier) with which the archive can be cited.
 
-Registered datasets can be found on the [Registered Datasets](https://doid.gin.g-node.org) on GIN.
+Registered datasets can be found on the [Registered Datasets](https://doi.gin.g-node.org) on GIN.
 
 For instructions on how to register a repository, see the [relevant help pages](https://gin.g-node.org/G-Node/Info/wiki/DOIfile).
 
