@@ -143,7 +143,7 @@ func AuthorBlock(authors []libgin.Creator) template.HTML {
 			url = author.Identifier.SchemeURI + id
 		}
 		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
-		name := fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
+		name := fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[1]), strings.TrimSpace(namesplit[0]))
 		nameElements[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, name, author.Affiliation, id, affiliationSup)
 	}
 
