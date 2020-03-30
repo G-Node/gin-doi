@@ -153,7 +153,11 @@ func AuthorBlock(authors []libgin.Creator) template.HTML {
 
 		// Author names are LastName, FirstName
 		namesplit := strings.SplitN(author.Name, ",", 2)
-		name := fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[1]), strings.TrimSpace(namesplit[0]))
+		name := author.Name
+		// If there's no comma, just display as is
+		if len(namesplit) == 2 {
+			name = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[1]), strings.TrimSpace(namesplit[0]))
+		}
 
 		// Add superscript to name if it has an affiliation and there are more than one (including empty)
 		if author.Affiliation != "" && len(affiliationMap) > 1 {
