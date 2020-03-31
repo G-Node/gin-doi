@@ -122,34 +122,68 @@ func AwardNumber(fundref string) string {
 // It includes a list of authors, their affiliations, and superscripts to associate authors with affiliations.
 // This is a utility function for the landing page HTML template.
 func AuthorBlock(authors []libgin.Creator) template.HTML {
-	nameElements := make([]string, len(authors))
-	affiliations := make([]string, 0)
-	affiliationMap := make(map[string]int)
-	// Collect names and figure out affiliation numbering
-	for idx, author := range authors {
-		var affiliationSup string // if there's no affiliation, don't add a superscript
-		if author.Affiliation != "" {
-			if _, ok := affiliationMap[author.Affiliation]; !ok {
-				// new affiliation; give it a new number, otherwise the existing one will be used below
-				num := len(affiliationMap) + 1
-				affiliationMap[author.Affiliation] = num
-				affiliations = append(affiliations, fmt.Sprintf("<li><sup>%d</sup>%s</li>", num, author.Affiliation))
-			}
-			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
+	authorMap := make(map[*libgin.Creator]int) // maps Author -> Affiliation Number
+	affiliationMap := make(map[string]int)     // maps Affiliation Name -> Affiliation Number
+	affilNumberMap := make(map[int]string)     // maps Affiliation Number -> Affiliation Name (inverse of above)
+	for _, author := range authors {
+		if _, ok := affiliationMap[author.Affiliation]; !ok {
+			// new affiliation; give it a new number
+			number := 0
+			// NOTE: adding the empty affiliation helps us figure out if a
+			// single unique affiliation should be numbered, since we should
+			// differentiate between authors that share the affiliation and the
+			// ones that have none.
+			if author.Affiliation != "" {
+				number = len(affiliationMap) + 1
+			} // otherwise it gets the "special" value 0
+			affiliationMap[author.Affiliation] = number
+			affilNumberMap[number] = author.Affiliation
 		}
-		var url, id string
+		authorMap[&author] = affiliationMap[author.Affiliation]
+	}
+
+	nameElements := make([]string, len(authors))
+	// Format authors
+	for idx, author := range authors {
+		var url, id, affiliationSup string
 		if author.Identifier != nil {
 			id = author.Identifier.ID
 			url = author.Identifier.SchemeURI + id
 		}
-		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
-		name := fmt.Sprintf("%s %s", namesplit[1], namesplit[0])
+
+		// Author names are LastName, FirstName
+		namesplit := strings.SplitN(author.Name, ",", 2)
+		name := author.Name
+		// If there's no comma, just display as is
+		if len(namesplit) == 2 {
+			name = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[1]), strings.TrimSpace(namesplit[0]))
+		}
+
+		// Add superscript to name if it has an affiliation and there are more than one (including empty)
+		if author.Affiliation != "" && len(affiliationMap) > 1 {
+			affiliationSup = fmt.Sprintf("<sup>%d</sup>", affiliationMap[author.Affiliation])
+		}
+
 		nameElements[idx] = fmt.Sprintf("<span itemprop=\"author\" itemscope itemtype=\"http://schema.org/Person\"><a href=%q itemprop=\"url\"><span itemprop=\"name\">%s</span></a><meta itemprop=\"affiliation\" content=%q /><meta itemprop=\"identifier\" content=%q>%s</span>", url, name, author.Affiliation, id, affiliationSup)
 	}
 
-	authorLine := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(nameElements, ",\n"))
-	affiliationLine := fmt.Sprintf("<ol class=\"doi itemlist\">%s</ol>", strings.Join(affiliations, "\n"))
-	return template.HTML(authorLine + "\n" + affiliationLine)
+	// Format affiliations in number order (excluding empty)
+	affiliationLines := "<ol class=\"doi itemlist\">\n"
+	for idx := 1; ; idx++ {
+		affiliation, ok := affilNumberMap[idx]
+		if !ok {
+			break
+		}
+		var supstr string
+		if len(affiliationMap) > 1 {
+			supstr = fmt.Sprintf("<sup>%d</sup>", idx)
+		}
+		affiliationLines = fmt.Sprintf("%s\t<li>%s%s</li>\n", affiliationLines, supstr, affiliation)
+	}
+	affiliationLines = fmt.Sprintf("%s</ol>", affiliationLines)
+
+	authorLines := fmt.Sprintf("<span class=\"doi author\" >\n%s\n</span>", strings.Join(nameElements, ",\n"))
+	return template.HTML(authorLines + "\n" + affiliationLines)
 }
 
 // JoinComma joins a slice of strings into a single string separated by commas
@@ -188,14 +222,20 @@ func GetGINURL(conf *Configuration) string {
 func GetCitation(md *libgin.RepositoryMetadata) string {
 	authors := make([]string, len(md.Creators))
 	for idx, author := range md.Creators {
-		namesplit := strings.SplitN(author.Name, ", ", 2) // Author names are LastName, FirstName
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		if len(namesplit) != 2 {
+			// No comma: Bad input, mononym, or empty field.
+			// Trim, add continue.
+			authors[idx] = strings.TrimSpace(author.Name)
+			continue
+		}
 		// render as LastName Initials, ...
-		firstnames := strings.Split(namesplit[1], " ")
+		firstnames := strings.Fields(namesplit[1])
 		var initials string
 		for _, name := range firstnames {
 			initials += string(name[0])
 		}
-		authors[idx] = fmt.Sprintf("%s %s", namesplit[0], initials)
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
 	}
 	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
 }
@@ -214,46 +254,69 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	// No references in YAML data; reconstruct from DataCite metadata if any
 	// are found.
 
+	// collect reference descriptions (descriptionType="Other")
+	referenceDescriptions := make([]string, 0)
+	for _, desc := range md.Descriptions {
+		if desc.Type == "Other" {
+			referenceDescriptions = append(referenceDescriptions, desc.Content)
+		}
+	}
+
+	findDescriptionIdx := func(id string) int {
+		for idx, desc := range referenceDescriptions {
+			if strings.Contains(desc, id) {
+				return idx
+			}
+		}
+		return -1
+	}
+
+	splitDescriptionType := func(desc string) (string, string) {
+		descParts := strings.SplitN(desc, ":", 2)
+		if len(descParts) != 2 {
+			return "", desc
+		}
+
+		return strings.TrimSpace(descParts[0]), strings.TrimSpace(descParts[1])
+	}
+
 	refs := make([]libgin.Reference, 0)
 	// map IDs to new references for easier construction from the two sources
 	// but also use the slice to maintain order
-	refMap := make(map[string]*libgin.Reference)
 	for _, relid := range md.RelatedIdentifiers {
 		if relid.RelationType == "IsVariantFormOf" {
 			// IsVariantFormOf is used for the URLs.
-			// Here we assume that any other type is a citation (DOI, PMID, or arXiv)
+			// Here we assume that any other type is a citation
 			continue
 		}
 		ref := &libgin.Reference{
-			ID:      relid.Identifier,
+			ID:      fmt.Sprintf("%s:%s", relid.Type, relid.Identifier),
 			RefType: relid.RelationType,
 		}
-		refMap[relid.Identifier] = ref
+		if idx := findDescriptionIdx(relid.Identifier); idx >= 0 {
+			citation := referenceDescriptions[idx]
+			referenceDescriptions = append(referenceDescriptions[:idx], referenceDescriptions[idx+1:]...) // remove found element
+			_, citation = splitDescriptionType(citation)
+			// filter out the ID from the citation
+			idstr := fmt.Sprintf("(%s)", ref.ID)
+			citation = strings.Replace(citation, idstr, "", -1)
+			ref.Citation = citation
+		}
 		refs = append(refs, *ref)
 	}
 
-	for _, desc := range md.Descriptions {
-		if desc.Type != "Other" {
-			// References are added with type "Other"
-			continue
+	// Add the rest of the descriptions that didn't have an ID to match (if any)
+	for _, refDesc := range referenceDescriptions {
+		refType, citation := splitDescriptionType(refDesc)
+		ref := libgin.Reference{
+			ID:       "",
+			RefType:  refType,
+			Citation: citation,
 		}
-		// slice off the relation type prefix
-		parts := strings.SplitN(desc.Content, ": ", 2)
-		citationID := parts[1]
-		// slice off the ID suffix
-		idIdx := strings.LastIndex(citationID, "(")
-		if idIdx == -1 {
-			// No ID found; discard citation
-			continue
-		}
-		citation := strings.TrimSpace(citationID[0:idIdx])
-		id := strings.TrimSpace(citationID[idIdx+1 : len(citationID)-1])
-		ref, ok := refMap[id]
-		if !ok {
-			// ID only in descriptions for some reason?
-			continue
-		}
-		ref.Citation = citation
+		refs = append(refs, ref)
+	}
+	if len(refs) == 0 {
+		return nil
 	}
 	return refs
 }

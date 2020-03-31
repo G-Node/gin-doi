@@ -11,7 +11,7 @@ const LandingPage = `<!DOCTYPE html>
 		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
 		<link rel="stylesheet" href="/assets/css/gogs.css">
 		<link rel="stylesheet" href="/assets/css/custom.css">
-		<title>G-Node DOI</title>
+		<title>G-Node Open Data: {{index .Titles 0}}</title>
 	</head>
 	<body>
 		<div class="full height">
@@ -23,8 +23,8 @@ const LandingPage = `<!DOCTYPE html>
 								<a class="item brand" href="https://gin.g-node.org/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item" href="https://doid.gin.g-node.org/">Home</a>
-								<a class="item active" href="">Data</a>
+								<a class="item" href="/">Published Data</a>
+								<a class="item" href="https://gin.g-node.org/explore/repos">Public datasets on GIN</a>
 							</div>
 						</div>
 					</div>
