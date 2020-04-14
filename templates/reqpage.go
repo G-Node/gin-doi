@@ -58,12 +58,6 @@ const RequestPage = `<!DOCTYPE html>
 				</div>
 
 				<div class="ui container wide centered column doi">
-					<div class="ui positive message" id="info">
-						<div>
-							Your repository "{{.Metadata.YAMLData.Title}}" fulfills all necessary requirements!
-							Click the button below to start the DOI request.
-						</div>
-					</div>
 					<div class="ui info message" id="infotable">
 						<div id="infobox">
 							The following is a <strong>preview</strong> of the information page for your published repository.
