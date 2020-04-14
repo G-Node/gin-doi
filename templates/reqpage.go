@@ -74,13 +74,12 @@ const RequestPage = `<!DOCTYPE html>
 							<div class="header">Please thoroughly check the following before proceeding</div>
 							<ul align="left">
 								<li>Did you upload all data?</li>
-								<li>Does your repository contain a LICENSE file?</li>
-								<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
-								<li>Does your repository contain a good description of the data?</li>
+								<li>Does your repository contain a comprehensive description of the data (preferably in the README.md file)?</li>
+								<li>Does your repository contain a LICENSE file with a license matching the one indicated in datacite.yml?</li>
 							</ul>
-							<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
-							Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
-							<p><b>All files and data in the repository will be part of the public archive!</b></p>
+							<p><b>Please be aware that the entire repository will be published.</b></p>
+							<p><b>Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.</b></p>
+							<p><b>All contents of the repository will be part of the public archive!</b></p>
 						</div>
 					</div>
 					<form action="/submit" method="post">
