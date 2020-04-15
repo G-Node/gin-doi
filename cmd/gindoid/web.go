@@ -201,10 +201,13 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	regJob.Metadata.Identifier.ID = doi
 	regJob.Metadata.Identifier.Type = "DOI"
 
+	log.Printf("Submitting job")
+
 	// Add job to queue
 	jobQueue <- regJob
 
 	// Render success (deferred)
+	log.Printf("Render success")
 	message := fmt.Sprintf(msgServerIsArchiving, doi)
 	resData.Success = true
 	resData.Level = "success"
