@@ -51,25 +51,15 @@ const RequestPage = `<!DOCTYPE html>
 				</div>
 			</div>
 			<div class="home middle very relaxed page grid" id="main">
-				<div class="ui vertically padded head">
+				<div class="ui container wide centered column doi">
 					<div class="column center">
 						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
 					</div>
-				</div>
-
-				<div class="ui container wide centered column doi">
-					<div class="ui positive message" id="info">
-						<div>
-							Your repository "{{.Metadata.YAMLData.Title}}" fulfills all necessary requirements!
-							Click the button below to start the DOI request.
-						</div>
-					</div>
 					<div class="ui info message" id="infotable">
 						<div id="infobox">
-							The following is a <strong>preview</strong> of the information page for your published repository.
-							Please carefully review all the information for accuracy and correctness.
-							You may use your browser's back button or the <a class="item active" href="https://gin.g-node.org/{{.Repository}}"><strong>Back to GIN</strong></a> link to return to your repository and edit the datacite.yml file.
-							When you are ready to submit, scroll to the bottom of this page and click the <strong>Register DOI Now</strong> button.
+							The following <strong>preview</strong> shows the information that will be published in the DOI registry and will be presented permanently alongside the data in your repository.
+							Please review it carefully before clicking the Request DOI button.
+							If anything needs to be changed use the Cancel button to return to your repository and edit the datacite.yml file.
 						</div>
 					</div>
 					<hr>
@@ -84,18 +74,18 @@ const RequestPage = `<!DOCTYPE html>
 							<div class="header">Please thoroughly check the following before proceeding</div>
 							<ul align="left">
 								<li>Did you upload all data?</li>
-								<li>Does your repository contain a LICENSE file?</li>
-								<li>Does the license in the LICENSE file match the license you provided in datacite.yml?</li>
-								<li>Does your repository contain a good description of the data?</li>
+								<li>Does your repository contain a comprehensive description of the data (preferably in the README.md file)?</li>
+								<li>Does your repository contain a LICENSE file with a license matching the one indicated in datacite.yml?</li>
 							</ul>
-							<p><b>Please be aware that all data in your repository will be part of the archived file that will be used for the DOI registration.</b></p>
-							Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.
-							<p><b>All files and data in the repository will be part of the public archive!</b></p>
+							<p><b>Please be aware that the entire repository will be published.</b></p>
+							<p><b>Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.</b></p>
+							<p><b>All contents of the repository will be part of the public archive!</b></p>
 						</div>
 					</div>
 					<form action="/submit" method="post">
 						<input type="hidden" id="reqdata" name="reqdata" value="{{.EncryptedRequestData}}">
 						<div class="column center">
+							<a class="ui black button" href=https://gin.g-node.org/{{.Repository}}>Cancel</a>
 							<button class="ui primary button" type="submit">Request DOI Now</button>
 						</div>
 					</form>
