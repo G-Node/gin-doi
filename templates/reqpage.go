@@ -85,8 +85,8 @@ const RequestPage = `<!DOCTYPE html>
 					<form action="/submit" method="post">
 						<input type="hidden" id="reqdata" name="reqdata" value="{{.EncryptedRequestData}}">
 						<div class="column center">
-							<a class="ui black button" href=https://gin.g-node.org/{{.Repository}}>Cancel</a>
-							<button class="ui primary button" type="submit">Request DOI Now</button>
+							<a class="ui button" href=https://gin.g-node.org/{{.Repository}}>Cancel</a>
+							<button class="ui green button" type="submit">Request DOI Now</button>
 						</div>
 					</form>
 				</div>
