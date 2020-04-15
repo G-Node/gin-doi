@@ -48,12 +48,6 @@ const RequestResult = `<!DOCTYPE html>
 				</div>
 			</div>
 			<div class="home middle very relaxed page" id="main">
-				<div class="ui vertically padded head">
-					<div class="column center">
-						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
-					</div>
-				</div>
-
 				<div class="ui container">
 					<div class="ui {{.Level}} message">
 				{{if .Success}}

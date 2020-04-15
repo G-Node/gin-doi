@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
@@ -118,8 +119,15 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	regJob.Metadata.RequestingUser = requser
 	regJob.Metadata.SourceRepository = reqdata.Repository
 
-	// calculate DOI
+	// add fork repository to job data to render landing page
+	repoParts := strings.SplitN(regJob.Metadata.SourceRepository, "/", 2)
+	if len(repoParts) == 2 {
+		regJob.Metadata.ForkRepository = strings.Join([]string{"doi", repoParts[1]}, "/")
+	}
+	// otherwise, unexpected repository name, so don't set ForkRepository and
+	// the cloner will notify
 
+	// calculate DOI
 	uuid := makeUUID(regJob.Metadata.SourceRepository)
 	doi := conf.DOIBase + uuid[:6]
 
@@ -193,10 +201,13 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	regJob.Metadata.Identifier.ID = doi
 	regJob.Metadata.Identifier.Type = "DOI"
 
+	log.Printf("Submitting job")
+
 	// Add job to queue
 	jobQueue <- regJob
 
 	// Render success (deferred)
+	log.Printf("Render success")
 	message := fmt.Sprintf(msgServerIsArchiving, doi)
 	resData.Success = true
 	resData.Level = "success"

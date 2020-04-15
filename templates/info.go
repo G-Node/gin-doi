@@ -11,10 +11,10 @@ const DOIInfo = `
 	{{AuthorBlock .Creators}}
 	<meta itemprop="identifier" content="doi:{{.Identifier.ID}}">
 	<p>
-	<a href="https://doi.org/{{.Identifier.ID}}" class="ui black doi label" itemprop="url">DOI: {{if .Identifier.ID}}{{.Identifier.ID}}{{else}}UNPUBLISHED{{end}}</a>
-	<a href="https://gin.g-node.org/{{.SourceRepository}}" class="ui blue doi label" data-tooltip="Browse the live dataset's contents on GIN. The repository may contain updates."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>
-	<a href="https://gin.g-node.org/{{.ForkRepository}}" class="ui blue doi label" data-tooltip="Browse the archived dataset's contents on GIN. This is a snapshot of the published version."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
-	<a href="{{Replace .Identifier.ID "/" "_"}}.zip" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD ARCHIVE (ZIP{{if .Size}} {{.Size}}{{end}})</a>
+	<a href="{{if .Identifier.ID}}https://doi.org/{{.Identifier.ID}}{{end}}" class="ui black doi label" itemprop="url">DOI: {{if .Identifier.ID}}{{.Identifier.ID}}{{else}}UNPUBLISHED{{end}}</a>
+	<a href="{{if .SourceRepository}}https://gin.g-node.org/{{.SourceRepository}}{{end}}" class="ui blue doi label" data-tooltip="Browse the live dataset's contents on GIN. The repository may contain updates."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>
+	<a href="{{if .ForkRepository}}https://gin.g-node.org/{{.ForkRepository}}{{end}}" class="ui blue doi label" data-tooltip="Browse the archived dataset's contents on GIN. This is a snapshot of the published version."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
+	<a href="{{if .Identifier.ID}}{{Replace .Identifier.ID "/" "_"}}.zip{{end}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD ARCHIVE (ZIP{{if .Size}} {{.Size}}{{end}})</a>
 	</p>
 	<p><strong>Published</strong> {{GetIssuedDate .}} | <strong>License</strong> {{with index .RightsList 0}} <a href="{{.URL}}" itemprop="license">{{.Name}}</a>{{end}}</p>
 </div>
