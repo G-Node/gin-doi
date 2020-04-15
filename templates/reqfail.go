@@ -50,13 +50,12 @@ const RequestFailurePage = `<!DOCTYPE html>
 				</div>
 			</div>
 			<div class="home middle very relaxed page grid" id="main">
-				<div class="ui vertically padded head">
-					<div class="column center">
-						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
-					</div>
-				</div>
-
 				<div class="ui container wide centered column doi">
+					<div class="ui vertically padded head">
+						<div class="column center">
+							<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
+						</div>
+					</div>
 					<div class="ui warning message">
 						<div><b>DOI request failed</b>
 							<p>{{.Message}}</p>
