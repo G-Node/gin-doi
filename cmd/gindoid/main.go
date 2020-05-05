@@ -47,7 +47,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Short: "Generate the HTML landing page from one or more DataCite XML files",
 		Long: `Generate the HTML landing page from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each XML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata data by querying the online resources. If that fails, a warning is printed and the page is still generated with the available information.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each XML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the page is still generated with the available information.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkhtml,
 		Version:               verstr,
