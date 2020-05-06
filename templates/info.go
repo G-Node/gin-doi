@@ -36,7 +36,7 @@ const DOIInfo = `
 	<h3>References</h3>
 	<ul class="doi itemlist">
 		{{range $index, $ref := $refs}}
-			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href={{$ref.GetURL}} itemprop="url"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
+			<li itemprop="citation" itemscope itemtype="http://schema.org/CreativeWork"><span itemprop="name">{{$ref.Name}} {{$ref.Citation}}</span>{{if $ref.ID}} <a href="{{$ref.GetURL}}" itemprop="url"><span itemprop="identifier">{{$ref.ID}}</span></a>{{end}}</li>
 		{{end}}
 	</ul>
 {{end}}
