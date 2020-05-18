@@ -109,10 +109,13 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	errors := make([]string, 0, 5)
 
+	// Fully initialise nested regJob in case something goes wrong
+	// Uninitialised child ptrs might panic during error reporting
 	regJob := &RegistrationJob{
 		Metadata: new(libgin.RepositoryMetadata),
 		Config:   conf,
 	}
+	regJob.Metadata.DataCite = new(libgin.DataCite)
 	resData := reqResultData{}
 
 	encryptedRequestData := r.PostFormValue("reqdata")
@@ -163,15 +166,16 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	// generate random DOI (keep generating if it's already registered)
 	var doi string
-	for ntry := 0; doi == "" && libgin.IsRegisteredDOI(doi); ntry++ {
+	maxtry := 5
+	for ntry := 0; doi == "" || libgin.IsRegisteredDOI(doi); ntry++ {
 		// limit to 5 attempts in case something goes wrong (a bug in the
 		// randomiser) or we somehow win the lottery and keep generating valid
 		// DOIs
-		if ntry == 5 {
+		if ntry == maxtry {
+			errors = append(errors, fmt.Sprintf("Couldn't find a new DOI after %d tries (or the PRNG is broken)", maxtry))
 			resData.Success = false
 			resData.Level = "warning"
 			resData.Message = template.HTML(msgSubmitError)
-			renderResult(w, &resData)
 			return
 
 		}
