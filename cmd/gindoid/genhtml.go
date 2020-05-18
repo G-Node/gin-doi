@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
-	humanize "github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
@@ -126,31 +125,4 @@ func fetchAndParse(ginurl string, repopath string) (*libgin.RepositoryYAML, erro
 		return nil, fmt.Errorf("Failed to parse metadata for repository %q\n", repopath)
 	}
 	return doiInfo, nil
-}
-
-// getArchiveSize checks if the DOI is already registered and if it is,
-// retrieves the size of the dataset archive.
-// If it fails in any way, it returns an empty string.
-func getArchiveSize(storeurl string, doibase string, uuid string) string {
-	// try both new (doi-based) and old (uuid-based) zip filenames since we
-	// currently have both on the server
-
-	doi := doibase + uuid[:6]
-	zipfnames := []string{
-		strings.ReplaceAll(doi, "/", "_") + ".zip",
-		uuid + ".zip",
-	}
-
-	for _, zipfname := range zipfnames {
-		zipurl, _ := url.Parse(storeurl)
-		zipurl.Path = path.Join(doi, zipfname)
-
-		size, err := libgin.GetArchiveSize(zipurl.String())
-		if err != nil {
-			fmt.Printf("Request for archive %q failed: %s\n", zipurl.String(), err.Error())
-			continue
-		}
-		return humanize.IBytes(uint64(size))
-	}
-	return ""
 }
