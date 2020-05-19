@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
+	"time"
 
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
@@ -80,6 +82,21 @@ func renderResult(w http.ResponseWriter, resData *reqResultData) {
 	}
 }
 
+const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
+
+// randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
+func randAlnum(n int) string {
+	N := len(ALNUM)
+
+	chrs := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for idx := range chrs {
+		chrs[idx] = ALNUM[rand.Intn(N)]
+	}
+
+	return string(chrs)
+}
+
 // startDOIRegistration starts the DOI registration process by authenticating
 // with the GIN server and adding a new DOIJob to the jobQueue.
 func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan *RegistrationJob, conf *Configuration) {
@@ -92,10 +109,13 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	errors := make([]string, 0, 5)
 
+	// Fully initialise nested regJob in case something goes wrong
+	// Uninitialised child ptrs might panic during error reporting
 	regJob := &RegistrationJob{
 		Metadata: new(libgin.RepositoryMetadata),
 		Config:   conf,
 	}
+	regJob.Metadata.DataCite = new(libgin.DataCite)
 	resData := reqResultData{}
 
 	encryptedRequestData := r.PostFormValue("reqdata")
@@ -127,20 +147,6 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	// otherwise, unexpected repository name, so don't set ForkRepository and
 	// the cloner will notify
 
-	// calculate DOI
-	uuid := makeUUID(regJob.Metadata.SourceRepository)
-	doi := conf.DOIBase + uuid[:6]
-
-	if libgin.IsRegisteredDOI(doi) {
-		resData.Success = false
-		resData.Level = "warning"
-		resData.Message = template.HTML(fmt.Sprintf(msgAlreadyRegistered, doi, doi))
-		renderResult(w, &resData)
-		return
-	}
-
-	regJob.Metadata.UUID = uuid
-
 	// exiting beyond this point should trigger an email notification
 	defer func() {
 		err := notifyAdmin(regJob, errors)
@@ -157,6 +163,24 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		// Render the result
 		renderResult(w, &resData)
 	}()
+
+	// generate random DOI (keep generating if it's already registered)
+	var doi string
+	maxtry := 5
+	for ntry := 0; doi == "" || libgin.IsRegisteredDOI(doi); ntry++ {
+		// limit to 5 attempts in case something goes wrong (a bug in the
+		// randomiser) or we somehow win the lottery and keep generating valid
+		// DOIs
+		if ntry == maxtry {
+			errors = append(errors, fmt.Sprintf("Couldn't find a new DOI after %d tries (or the PRNG is broken)", maxtry))
+			resData.Success = false
+			resData.Level = "warning"
+			resData.Message = template.HTML(msgSubmitError)
+			return
+
+		}
+		doi = conf.DOIBase + randAlnum(6)
+	}
 
 	// NOTE: Delete?
 	_, err = conf.GIN.Session.RequestAccount(requser.Username)
