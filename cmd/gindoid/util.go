@@ -297,9 +297,9 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 			citation := referenceDescriptions[idx]
 			referenceDescriptions = append(referenceDescriptions[:idx], referenceDescriptions[idx+1:]...) // remove found element
 			_, citation = splitDescriptionType(citation)
-			// filter out the ID from the citation
-			idstr := fmt.Sprintf("(%s)", ref.ID)
-			citation = strings.Replace(citation, idstr, "", -1)
+			// filter out the DOI URL from the citation
+			urlstr := fmt.Sprintf("(%s)", ref.GetURL())
+			citation = strings.Replace(citation, urlstr, "", -1)
 			ref.Citation = citation
 		}
 		refs = append(refs, *ref)
