@@ -237,7 +237,7 @@ func GetCitation(md *libgin.RepositoryMetadata) string {
 		}
 		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
 	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. doi:%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
+	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
 }
 
 // GetReferences returns the references cited by a dataset.  If the references
@@ -297,9 +297,9 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 			citation := referenceDescriptions[idx]
 			referenceDescriptions = append(referenceDescriptions[:idx], referenceDescriptions[idx+1:]...) // remove found element
 			_, citation = splitDescriptionType(citation)
-			// filter out the ID from the citation
-			idstr := fmt.Sprintf("(%s)", ref.ID)
-			citation = strings.Replace(citation, idstr, "", -1)
+			// filter out the DOI URL from the citation
+			urlstr := fmt.Sprintf("(%s)", ref.GetURL())
+			citation = strings.Replace(citation, urlstr, "", -1)
 			ref.Citation = citation
 		}
 		refs = append(refs, *ref)
