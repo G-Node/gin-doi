@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 3)
+	cmds := make([]*cobra.Command, 4)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -50,6 +50,19 @@ func setUpCommands(verstr string) *cobra.Command {
 The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each XML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the page is still generated with the available information.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkhtml,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+	cmds[3] = &cobra.Command{
+		Use:   "make-keyword-pages <xml file>...",
+		Short: "Generate keyword index pages",
+		Long: `Generate keyword index pages.
+
+The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each unique keyword found in the XML files. Each page lists (and links to) all datasets that use the keyword.
+
+Previously generated pages are overwritten, so this command only makes sense if using all published XML files to generate complete listings.`,
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mkkeywords,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
