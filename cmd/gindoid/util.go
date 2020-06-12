@@ -284,8 +284,9 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	// map IDs to new references for easier construction from the two sources
 	// but also use the slice to maintain order
 	for _, relid := range md.RelatedIdentifiers {
-		if relid.RelationType == "IsVariantFormOf" {
+		if relid.RelationType == "IsVariantFormOf" || relid.RelationType == "IsIdenticalTo" {
 			// IsVariantFormOf is used for the URLs.
+			// IsIdenticalTo is used for the old DOI URLs.
 			// Here we assume that any other type is a citation
 			continue
 		}
