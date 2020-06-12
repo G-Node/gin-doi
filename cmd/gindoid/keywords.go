@@ -3,13 +3,13 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"html/template"
-	"log"
-	"os"
-
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
+	"html/template"
+	"log"
+	"os"
+	"strings"
 )
 
 func mkkeywords(cmd *cobra.Command, args []string) {
@@ -39,6 +39,7 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		}
 
 		for _, kw := range metadata.Subjects {
+			kw = strings.ToLower(kw)
 			doilist := keywordMap[kw]
 			doilist = append(doilist, metadata.Identifier.ID)
 			keywordMap[kw] = doilist
