@@ -28,6 +28,7 @@ var tmplfuncs = template.FuncMap{
 	"GetReferences": GetReferences,
 	"GetCitation":   GetCitation,
 	"GetIssuedDate": GetIssuedDate,
+	"KeywordURL":    KeywordURL,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -343,4 +344,12 @@ func GetIssuedDate(md *libgin.RepositoryMetadata) string {
 		return ""
 	}
 	return date.Format("02 Jan. 2006")
+}
+
+// KeywordURL returns a keyword sanitised for use in a URL path:
+// Lowercase + replace / with _.
+func KeywordURL(kw string) string {
+	kw = strings.ToLower(kw)
+	kw = strings.ReplaceAll(kw, "/", "_")
+	return kw
 }

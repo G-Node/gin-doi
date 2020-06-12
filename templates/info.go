@@ -27,7 +27,7 @@ const DOIInfo = `
 
 {{if .Subjects}}
 	<h3>Keywords</h3>
-	| {{range $index, $kw := .Subjects}} <a href="/keywords/{{$kw}}">{{$kw}}</a> | {{end}}
+	| {{range $index, $kw := .Subjects}} <a href="/keywords/{{$kw | KeywordURL}}/">{{$kw}}</a> | {{end}}
 	<meta itemprop="keywords" content="{{JoinComma .Subjects}}">
 {{end}}
 
