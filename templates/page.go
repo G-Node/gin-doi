@@ -36,7 +36,7 @@ const LandingPage = `<!DOCTYPE html>
 					<span itemscope itemtype="http://schema.org/Dataset">
 						{{template "doiInfo" .}}
 						<h3>Citation</h3>
-						{{GetCitation .}}<br>
+						{{FormatCitation .}}<br>
 					</span>
 				</div>
 			</div>

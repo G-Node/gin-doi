@@ -36,7 +36,7 @@ const Keyword = `<!DOCTYPE html>
 						<thead><tr> <th class="ten wide"></th><th class="two wide"></th> <th class="four wide"></th></tr></thead>
 						{{range $idx, $dataset := .Datasets}}
 							{{$title := index $dataset.Titles 0}}
-							{{$date := GetIssuedDate $dataset}}
+							{{$date := FormatIssuedDate $dataset}}
 							{{$doi := $dataset.Identifier.ID}}
 							{{$authors := FormatAuthorList $dataset}}
 							<tr><td><a href=https://doi.org/{{$doi}}>{{$title}}</a><br>{{$authors}}</td><td>{{$date}}</td> <td><a href=https://doi.org/{{$doi}}>{{$doi}}</a></td></tr>

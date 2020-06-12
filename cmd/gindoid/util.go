@@ -25,9 +25,9 @@ var tmplfuncs = template.FuncMap{
 	"AuthorBlock":      AuthorBlock,
 	"JoinComma":        JoinComma,
 	"Replace":          strings.ReplaceAll,
-	"GetReferences":    GetReferences,
-	"GetCitation":      GetCitation,
-	"GetIssuedDate":    GetIssuedDate,
+	"FormatReferences": FormatReferences,
+	"FormatCitation":   FormatCitation,
+	"FormatIssuedDate": FormatIssuedDate,
 	"KeywordURL":       KeywordURL,
 	"FormatAuthorList": FormatAuthorList,
 }
@@ -221,8 +221,8 @@ func GetGINURL(conf *Configuration) string {
 	return address
 }
 
-// GetCitation returns the formatted citation string for a given dataset.
-func GetCitation(md *libgin.RepositoryMetadata) string {
+// FormatCitation returns the formatted citation string for a given dataset.
+func FormatCitation(md *libgin.RepositoryMetadata) string {
 	authors := make([]string, len(md.Creators))
 	for idx, author := range md.Creators {
 		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
@@ -243,13 +243,13 @@ func GetCitation(md *libgin.RepositoryMetadata) string {
 	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
 }
 
-// GetReferences returns the references cited by a dataset.  If the references
+// FormatReferences returns the references cited by a dataset.  If the references
 // are already populated in the YAMLData field they are returned as is.  If
 // they are not, they are reconstructed to the YAML format from the DataCite
 // metadata.  The latter can occur when loading a previously generated DataCite
 // XML file instead of reading the original YAML from the repository.  If no
 // references are found in either location, an empty slice is returned.
-func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
+func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	if md.YAMLData != nil && len(md.YAMLData.References) != 0 {
 		return md.YAMLData.References
 	}
@@ -325,9 +325,9 @@ func GetReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	return refs
 }
 
-// GetIssuedDate returns the issued date of the dataset in the format DD Mon.
+// FormatIssuedDate returns the issued date of the dataset in the format DD Mon.
 // YYYY for adding to the preparation and landing pages.
-func GetIssuedDate(md *libgin.RepositoryMetadata) string {
+func FormatIssuedDate(md *libgin.RepositoryMetadata) string {
 	var datestr string
 	for _, mddate := range md.Dates {
 		// There should be only one, but we might add some other types of date
