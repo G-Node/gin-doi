@@ -19,16 +19,17 @@ import (
 // Global function map for the templates that render the DOI information
 // (request page and landing page).
 var tmplfuncs = template.FuncMap{
-	"Upper":         strings.ToUpper,
-	"FunderName":    FunderName,
-	"AwardNumber":   AwardNumber,
-	"AuthorBlock":   AuthorBlock,
-	"JoinComma":     JoinComma,
-	"Replace":       strings.ReplaceAll,
-	"GetReferences": GetReferences,
-	"GetCitation":   GetCitation,
-	"GetIssuedDate": GetIssuedDate,
-	"KeywordURL":    KeywordURL,
+	"Upper":            strings.ToUpper,
+	"FunderName":       FunderName,
+	"AwardNumber":      AwardNumber,
+	"AuthorBlock":      AuthorBlock,
+	"JoinComma":        JoinComma,
+	"Replace":          strings.ReplaceAll,
+	"GetReferences":    GetReferences,
+	"GetCitation":      GetCitation,
+	"GetIssuedDate":    GetIssuedDate,
+	"KeywordURL":       KeywordURL,
+	"FormatAuthorList": FormatAuthorList,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -220,6 +221,7 @@ func GetGINURL(conf *Configuration) string {
 	return address
 }
 
+// GetCitation returns the formatted citation string for a given dataset.
 func GetCitation(md *libgin.RepositoryMetadata) string {
 	authors := make([]string, len(md.Creators))
 	for idx, author := range md.Creators {
@@ -352,4 +354,15 @@ func KeywordURL(kw string) string {
 	kw = strings.ToLower(kw)
 	kw = strings.ReplaceAll(kw, "/", "_")
 	return kw
+}
+
+// FormatAuthorList returns a comma-separated list of the author names for a
+// dataset.
+func FormatAuthorList(md *libgin.RepositoryMetadata) string {
+	names := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		names[idx] = author.Name
+	}
+	authors := strings.Join(names, ", ")
+	return authors
 }

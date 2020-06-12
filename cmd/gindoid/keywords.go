@@ -13,7 +13,7 @@ import (
 )
 
 func mkkeywords(cmd *cobra.Command, args []string) {
-	keywordMap := make(map[string][]string) // map keywords to DOIs
+	keywordMap := make(map[string][]*libgin.RepositoryMetadata) // map keywords to DOIs
 	fmt.Println("Reading files")
 	for idx, filearg := range args {
 		var contents []byte
@@ -40,9 +40,9 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 
 		for _, kw := range metadata.Subjects {
 			kw = KeywordURL(kw)
-			doilist := keywordMap[kw]
-			doilist = append(doilist, metadata.Identifier.ID)
-			keywordMap[kw] = doilist
+			datasets := keywordMap[kw]
+			datasets = append(datasets, metadata)
+			keywordMap[kw] = datasets
 		}
 		fmt.Printf(" %d/%d\r", idx+1, len(args))
 	}
@@ -50,8 +50,8 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 	fmt.Printf("\nFound %d keywords\n", len(keywordMap))
 	fmt.Println("Creating pages")
 
-	for kw, doilist := range keywordMap {
-		tmpl, err := template.New(kw).Parse(gdtmpl.Keyword)
+	for kw, datasets := range keywordMap {
+		tmpl, err := template.New(kw).Funcs(tmplfuncs).Parse(gdtmpl.Keyword)
 		if err != nil {
 			log.Printf("Could not parse the keyword page template: %s", err.Error())
 			continue
@@ -66,7 +66,7 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		defer fp.Close()
 		data := make(map[string]interface{})
 		data["Keyword"] = kw
-		data["DOIs"] = doilist
+		data["Datasets"] = datasets
 		if err := tmpl.Execute(fp, data); err != nil {
 			log.Printf("Error rendering the keyword: %s", err.Error())
 			continue

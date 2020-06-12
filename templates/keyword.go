@@ -32,11 +32,16 @@ const Keyword = `<!DOCTYPE html>
 
 			<div class="home middle very relaxed page grid" id="main">
 				<div class="ui container sixteen wide centered column doi">
-					<span itemscope itemtype="http://schema.org/Dataset">
-					{{range $idx, $doi := .DOIs}}
-						<div><a href=https://doi.org/{{$doi}}>{{$doi}}</a></div>
-					{{end}}
-					</span>
+					<table class="ui very basic table">
+						<thead><tr> <th class="ten wide"></th><th class="two wide"></th> <th class="four wide"></th></tr></thead>
+						{{range $idx, $dataset := .Datasets}}
+							{{$title := index $dataset.Titles 0}}
+							{{$date := GetIssuedDate $dataset}}
+							{{$doi := $dataset.Identifier.ID}}
+							{{$authors := FormatAuthorList $dataset}}
+							<tr><td><a href=https://doi.org/{{$doi}}>{{$title}}</a><br>{{$authors}}</td><td>{{$date}}</td> <td><a href=https://doi.org/{{$doi}}>{{$doi}}</a></td></tr>
+						{{end}}
+					</table>
 				</div>
 			</div>
 		</div>
