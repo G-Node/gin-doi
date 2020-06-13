@@ -3,13 +3,13 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"html/template"
-	"log"
-	"os"
-
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
+	"html/template"
+	"log"
+	"os"
+	"sort"
 )
 
 func mkkeywords(cmd *cobra.Command, args []string) {
@@ -66,6 +66,10 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		defer fp.Close()
 		data := make(map[string]interface{})
 		data["Keyword"] = kw
+		// Sort by date, lex order, which for ISO date strings should work fine
+		sort.Slice(datasets, func(i, j int) bool {
+			return datasets[i].Dates[0].Value > datasets[j].Dates[0].Value
+		})
 		data["Datasets"] = datasets
 		if err := tmpl.Execute(fp, data); err != nil {
 			log.Printf("Error rendering the keyword: %s", err.Error())
