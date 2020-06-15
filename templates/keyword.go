@@ -14,22 +14,7 @@ const Keyword = `<!DOCTYPE html>
 	</head>
 	<body>
 		<div class="full height">
-			<div class="following bar light">
-				<div class="ui container">
-					<div class="ui grid">
-						<div class="column">
-							<div class="ui top secondary menu">
-								<a class="item brand" href="https://gin.g-node.org/">
-									<img class="ui mini image" src="/assets/img/favicon.png">
-								</a>
-								<a class="item" href="/">Published Data</a>
-								<a class="item" href="https://gin.g-node.org/explore/repos">Public datasets on GIN</a>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
+			{{template "Nav"}}
 			<div class="home middle very relaxed page grid" id="main">
 				<div class="sixteenn wide center aligned centered column">
 					<h1>G-Node Open Data</h1>

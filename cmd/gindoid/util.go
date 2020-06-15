@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 )
 
@@ -365,4 +366,34 @@ func FormatAuthorList(md *libgin.RepositoryMetadata) string {
 	}
 	authors := strings.Join(names, ", ")
 	return authors
+}
+
+var templateMap = map[string]string{
+	"Nav":                gdtmpl.Nav,
+	"RequestFailurePage": gdtmpl.RequestFailurePage,
+	"RequestPage":        gdtmpl.RequestPage,
+	"DOIInfo":            gdtmpl.DOIInfo,
+	"LandingPage":        gdtmpl.LandingPage,
+	"KeywordIndex":       gdtmpl.KeywordIndex,
+	"Keyword":            gdtmpl.Keyword,
+}
+
+// prepareTemplates initialises and parses a sequence of templates in the order
+// they appear in the arguments.  It always adds the Nav template first and
+// includes the common template functions in tmplfuncs.
+func prepareTemplates(templateNames ...string) (*template.Template, error) {
+	tmpl, err := template.New("Nav").Funcs(tmplfuncs).Parse(templateMap["Nav"])
+	for _, tName := range templateNames {
+		tContent, ok := templateMap[tName]
+		if !ok {
+			return nil, fmt.Errorf("Unknown template with name %q", tName)
+		}
+		tmpl, err = tmpl.New(tName).Parse(tContent)
+		if err != nil {
+			log.Printf("Could not parse the %q template: %s", tName, err.Error())
+			return nil, err
+		}
+	}
+	return tmpl, nil
+
 }

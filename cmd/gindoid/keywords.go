@@ -3,13 +3,12 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	gdtmpl "github.com/G-Node/gin-doi/templates"
-	"github.com/G-Node/libgin/libgin"
-	"github.com/spf13/cobra"
-	"html/template"
 	"log"
 	"os"
 	"sort"
+
+	"github.com/G-Node/libgin/libgin"
+	"github.com/spf13/cobra"
 )
 
 func mkkeywords(cmd *cobra.Command, args []string) {
@@ -51,13 +50,12 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 	fmt.Println("Creating pages")
 
 	for kw, datasets := range keywordMap {
-		tmpl, err := template.New(kw).Funcs(tmplfuncs).Parse(gdtmpl.Keyword)
+		tmpl, err := prepareTemplates("Keyword")
 		if err != nil {
-			log.Printf("Could not parse the keyword page template: %s", err.Error())
 			continue
 		}
-
 		os.MkdirAll(kw, 0777)
+
 		fp, err := os.Create(fmt.Sprintf("%s/index.html", kw))
 		if err != nil {
 			log.Printf("Could not create the keyword page file: %s", err.Error())

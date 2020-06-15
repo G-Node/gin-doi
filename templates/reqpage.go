@@ -63,7 +63,7 @@ const RequestPage = `<!DOCTYPE html>
 						</div>
 					</div>
 					<hr>
-					{{template "doiInfo" .Metadata}}
+					{{template "DOIInfo" .Metadata}}
 					<hr>
 					<div class="column center">
 						<h3>END OF PREVIEW</h3>
