@@ -31,6 +31,11 @@ const Keyword = `<!DOCTYPE html>
 			</div>
 
 			<div class="home middle very relaxed page grid" id="main">
+				<div class="sixteenn wide center aligned centered column">
+					<h1>G-Node Open Data</h1>
+					{{$n := len .Datasets}}
+					<h2>{{$n}} Registered Dataset{{if gt $n 1}}s{{end}} with keyword: {{.Keyword}}</h2>
+				</div>
 				<div class="ui container sixteen wide centered column doi">
 					<table class="ui very basic table">
 						<thead><tr> <th class="ten wide"></th><th class="two wide"></th> <th class="four wide"></th></tr></thead>
