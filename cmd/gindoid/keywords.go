@@ -75,4 +75,35 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		}
 		continue
 	}
+
+	// make keyword index page
+	keywordList := make([]string, 0, len(keywordMap))
+
+	// collect keywords in slice and sort by the number of datasets for each
+	for kw := range keywordMap {
+		keywordList = append(keywordList, kw)
+	}
+	sort.Slice(keywordList, func(i, j int) bool {
+		ilen := len(keywordMap[keywordList[i]])
+		jlen := len(keywordMap[keywordList[j]])
+		return ilen > jlen
+	})
+
+	data := make(map[string]interface{})
+	data["KeywordList"] = keywordList
+	data["KeywordMap"] = keywordMap
+	tmpl, err := prepareTemplates("KeywordIndex")
+	if err != nil {
+		return
+	}
+	fp, err := os.Create("index.html")
+	if err != nil {
+		log.Printf("Could not create the keyword page file: %s", err.Error())
+		return
+	}
+	defer fp.Close()
+
+	if err := tmpl.Execute(fp, data); err != nil {
+		log.Printf("Error rendering keyword list page: %s", err.Error())
+	}
 }
