@@ -370,6 +370,7 @@ func FormatAuthorList(md *libgin.RepositoryMetadata) string {
 
 var templateMap = map[string]string{
 	"Nav":                gdtmpl.Nav,
+	"Footer":             gdtmpl.Footer,
 	"RequestFailurePage": gdtmpl.RequestFailurePage,
 	"RequestPage":        gdtmpl.RequestPage,
 	"DOIInfo":            gdtmpl.DOIInfo,
@@ -383,6 +384,15 @@ var templateMap = map[string]string{
 // includes the common template functions in tmplfuncs.
 func prepareTemplates(templateNames ...string) (*template.Template, error) {
 	tmpl, err := template.New("Nav").Funcs(tmplfuncs).Parse(templateMap["Nav"])
+	if err != nil {
+		log.Printf("Could not parse the \"Nav\" template: %s", err.Error())
+		return nil, err
+	}
+	tmpl, err = tmpl.New("Footer").Parse(templateMap["Footer"])
+	if err != nil {
+		log.Printf("Could not parse the \"Footer\" template: %s", err.Error())
+		return nil, err
+	}
 	for _, tName := range templateNames {
 		tContent, ok := templateMap[tName]
 		if !ok {
