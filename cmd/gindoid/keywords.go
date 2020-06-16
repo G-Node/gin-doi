@@ -86,6 +86,10 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 	sort.Slice(keywordList, func(i, j int) bool {
 		ilen := len(keywordMap[keywordList[i]])
 		jlen := len(keywordMap[keywordList[j]])
+		if ilen == jlen {
+			// sort alphabetically
+			return keywordList[i] < keywordList[j]
+		}
 		return ilen > jlen
 	})
 
