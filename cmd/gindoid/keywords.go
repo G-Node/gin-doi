@@ -38,7 +38,7 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		}
 
 		for _, kw := range metadata.Subjects {
-			kw = KeywordURL(kw)
+			kw = KeywordPath(kw)
 			datasets := keywordMap[kw]
 			datasets = append(datasets, metadata)
 			keywordMap[kw] = datasets

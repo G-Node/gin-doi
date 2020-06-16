@@ -29,7 +29,7 @@ var tmplfuncs = template.FuncMap{
 	"FormatReferences": FormatReferences,
 	"FormatCitation":   FormatCitation,
 	"FormatIssuedDate": FormatIssuedDate,
-	"KeywordURL":       KeywordURL,
+	"KeywordPath":      KeywordPath,
 	"FormatAuthorList": FormatAuthorList,
 }
 
@@ -349,9 +349,9 @@ func FormatIssuedDate(md *libgin.RepositoryMetadata) string {
 	return date.Format("02 Jan. 2006")
 }
 
-// KeywordURL returns a keyword sanitised for use in a URL path:
+// KeywordPath returns a keyword sanitised for use in a URL path:
 // Lowercase + replace / with _.
-func KeywordURL(kw string) string {
+func KeywordPath(kw string) string {
 	kw = strings.ToLower(kw)
 	kw = strings.ReplaceAll(kw, "/", "_")
 	return kw
