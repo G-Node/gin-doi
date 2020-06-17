@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,8 +32,15 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
 
-	repoURL := GetGINURL(conf) + job.Metadata.SourceRepository
-	forkURL := GetGINURL(conf) + job.Metadata.ForkRepository
+	ginurl, err := url.Parse(GetGINURL(conf))
+	if err != nil {
+		preperrors = append(preperrors, fmt.Sprintf("Bad GIN URL configured: %s", err.Error()))
+	}
+
+	ginurl.Path = job.Metadata.SourceRepository
+	repoURL := ginurl.String()
+	ginurl.Path = job.Metadata.ForkRepository
+	forkURL := ginurl.String()
 
 	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
 	var archiveURL string

@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -144,7 +145,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	// add fork repository to job data to render landing page
 	repoParts := strings.SplitN(regJob.Metadata.SourceRepository, "/", 2)
 	if len(repoParts) == 2 {
-		regJob.Metadata.ForkRepository = strings.Join([]string{"doi", repoParts[1]}, "/")
+		regJob.Metadata.ForkRepository = path.Join("doi", repoParts[1])
 	}
 	// otherwise, unexpected repository name, so don't set ForkRepository and
 	// the cloner will notify
