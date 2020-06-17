@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/G-Node/gin-cli/git"
-	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
@@ -167,17 +165,10 @@ func zip(source, zipfilename string) (int64, error) {
 // createLandingPage renders and writes a registered dataset landing page based
 // on the LandingPage template.
 func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string) error {
-	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
+	tmpl, err := prepareTemplates("DOIInfo", "LandingPage")
 	if err != nil {
-		log.Printf("Could not parse the DOI info template: %s", err.Error())
 		return err
 	}
-	tmpl, err = tmpl.New("landingpage").Parse(gdtmpl.LandingPage)
-	if err != nil {
-		log.Printf("Could not parse the landing page template: %s", err.Error())
-		return err
-	}
-
 	fp, err := os.Create(targetfile)
 	if err != nil {
 		log.Printf("Could not create the landing page file: %s", err.Error())

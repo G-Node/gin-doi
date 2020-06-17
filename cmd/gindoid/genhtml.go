@@ -93,7 +93,8 @@ func mkhtml(cmd *cobra.Command, args []string) {
 		}
 
 		// if no DOI found in file, just fall back to the argument number
-		fname := fmt.Sprintf("%s.html", strings.ReplaceAll(metadata.Identifier.ID, "/", "_"))
+		os.MkdirAll(metadata.Identifier.ID, 0777)
+		fname := fmt.Sprintf("%s/index.html", metadata.Identifier.ID)
 		if metadata.Identifier.ID == "" {
 			fmt.Println("WARNING: Couldn't determine DOI. Using generic filename.")
 			fname = fmt.Sprintf("%03d-index.html", idx)

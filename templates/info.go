@@ -16,7 +16,7 @@ const DOIInfo = `
 	<a href="{{if .ForkRepository}}https://gin.g-node.org/{{.ForkRepository}}{{end}}" class="ui blue doi label" data-tooltip="Browse the archived dataset's contents on GIN. This is a snapshot of the published version."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>
 	<a href="{{if .Identifier.ID}}{{Replace .Identifier.ID "/" "_"}}.zip{{end}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD ARCHIVE (ZIP{{if .Size}} {{.Size}}{{end}})</a>
 	</p>
-	<p><strong>Published</strong> {{GetIssuedDate .}} | <strong>License</strong> {{with index .RightsList 0}} <a href="{{.URL}}" itemprop="license">{{.Name}}</a>{{end}}</p>
+	<p><strong>Published</strong> {{FormatIssuedDate .}} | <strong>License</strong> {{with index .RightsList 0}} <a href="{{.URL}}" itemprop="license">{{.Name}}</a>{{end}}</p>
 </div>
 <hr>
 
@@ -27,11 +27,11 @@ const DOIInfo = `
 
 {{if .Subjects}}
 	<h3>Keywords</h3>
-	| {{range $index, $kw := .Subjects}} <a href="/keywords/{{$kw}}">{{$kw}}</a> | {{end}}
+	| {{range $index, $kw := .Subjects}} <a href="/keywords/{{$kw | KeywordPath}}/">{{$kw}}</a> | {{end}}
 	<meta itemprop="keywords" content="{{JoinComma .Subjects}}">
 {{end}}
 
-{{with $refs := GetReferences .}}
+{{with $refs := FormatReferences .}}
 {{if $refs}}
 	<h3>References</h3>
 	<ul class="doi itemlist">

@@ -68,6 +68,8 @@ type reqResultData struct {
 // 'RequestResult' template. If it fails to parse the template, it renders
 // the Message from the result data in plain HTML.
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
+	// This page doesn't require functions and has a different nav header so we
+	// don't use the prepareTemplates utility function here.
 	tmpl, err := template.New("requestresult").Parse(gdtmpl.RequestResult)
 	if err != nil {
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
@@ -261,6 +263,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		w.WriteHeader(http.StatusBadRequest)
 		regRequest.Message = template.HTML(msgInvalidRequest)
 		regRequest.Metadata = &libgin.RepositoryMetadata{}
+		// This page doesn't require functions and has a different nav header
+		// so we don't use the prepareTemplates utility function here.
 		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
@@ -306,15 +310,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	}
 
 	// All good: Render request page
-	tmpl, err := template.New("doiInfo").Funcs(tmplfuncs).Parse(gdtmpl.DOIInfo)
+	tmpl, err := prepareTemplates("DOIInfo", "RequestPage")
 	if err != nil {
-		log.Printf("Failed to parse DOI info template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	tmpl, err = tmpl.New("requestpage").Parse(gdtmpl.RequestPage)
-	if err != nil {
-		log.Printf("Failed to parse requestpage template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		// TODO: Notify via email
 		return
