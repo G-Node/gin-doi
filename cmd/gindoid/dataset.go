@@ -52,7 +52,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	} else if storeURL, err := url.Parse(conf.Storage.StoreURL); err == nil {
 		storeURL.Path = path.Join(job.Metadata.Identifier.ID, zipfname)
 		archiveURL = storeURL.String()
-		job.Metadata.Sizes = []string{humanize.IBytes(uint64(zipsize))}
+		job.Metadata.Sizes = &[]string{humanize.IBytes(uint64(zipsize))}
 	} else {
 		preperrors = append(preperrors, fmt.Sprintf("zip file created, but failed to parse StoreURL: %s", err.Error()))
 	}
