@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -48,9 +49,12 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
-	} else {
-		archiveURL = conf.Storage.StoreURL + job.Metadata.Identifier.ID + zipfname
+	} else if storeURL, err := url.Parse(conf.Storage.StoreURL); err == nil {
+		storeURL.Path = path.Join(job.Metadata.Identifier.ID, zipfname)
+		archiveURL = storeURL.String()
 		job.Metadata.Sizes = []string{humanize.IBytes(uint64(zipsize))}
+	} else {
+		preperrors = append(preperrors, fmt.Sprintf("zip file created, but failed to parse StoreURL: %s", err.Error()))
 	}
 	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
 
