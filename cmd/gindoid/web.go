@@ -69,9 +69,7 @@ type reqResultData struct {
 // 'RequestResult' template. If it fails to parse the template, it renders
 // the Message from the result data in plain HTML.
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
-	// This page doesn't require functions and has a different nav header so we
-	// don't use the prepareTemplates utility function here.
-	tmpl, err := template.New("requestresult").Parse(gdtmpl.RequestResult)
+	tmpl, err := prepareTemplates("RequestResult")
 	if err != nil {
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
@@ -282,7 +280,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
 	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
+		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}

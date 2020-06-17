@@ -373,6 +373,7 @@ var templateMap = map[string]string{
 	"Footer":             gdtmpl.Footer,
 	"RequestFailurePage": gdtmpl.RequestFailurePage,
 	"RequestPage":        gdtmpl.RequestPage,
+	"RequestResult":      gdtmpl.RequestResult,
 	"DOIInfo":            gdtmpl.DOIInfo,
 	"LandingPage":        gdtmpl.LandingPage,
 	"KeywordIndex":       gdtmpl.KeywordIndex,
