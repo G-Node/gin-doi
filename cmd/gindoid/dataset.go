@@ -50,7 +50,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		preperrors = append(preperrors, err.Error())
 	} else {
 		archiveURL = conf.Storage.StoreURL + job.Metadata.Identifier.ID + zipfname
-		job.Metadata.Size = humanize.IBytes(uint64(zipsize))
+		job.Metadata.Sizes = []string{humanize.IBytes(uint64(zipsize))}
 	}
 	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
 
