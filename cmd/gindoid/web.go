@@ -120,7 +120,6 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	encryptedRequestData := r.PostFormValue("reqdata")
 	reqdata, err := decryptRequestData(encryptedRequestData, conf.Key)
-	resData.Repository = reqdata.Repository
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
 		resData.Message = template.HTML(msgInvalidRequest)
@@ -128,6 +127,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		renderResult(w, &resData)
 		return
 	}
+	resData.Repository = reqdata.Repository
 
 	log.Printf("Received DOI request: %+v", reqdata)
 
