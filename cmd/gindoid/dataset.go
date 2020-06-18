@@ -65,7 +65,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		log.Print("Could not create the metadata template")
 		// XML Creation failed; return with error
 		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		notifyAdmin(job, preperrors)
+		notifyAdmin(job, preperrors, nil)
 		return err
 	}
 	defer fp.Close()
@@ -74,7 +74,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	if err != nil {
 		log.Print("Could not render the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
-		notifyAdmin(job, preperrors)
+		notifyAdmin(job, preperrors, nil)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -83,9 +83,11 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 
+	warnings := collectWarnings(job)
+
 	if len(preperrors) > 0 {
 		// Resend email with errors if any occurred
-		notifyAdmin(job, preperrors)
+		notifyAdmin(job, preperrors, warnings)
 	}
 	return err
 }
