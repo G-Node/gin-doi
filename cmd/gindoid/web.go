@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
@@ -261,12 +260,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		regRequest.Message = template.HTML(msgInvalidRequest)
-		regRequest.Metadata = &libgin.RepositoryMetadata{}
-		// This page doesn't require functions and has a different nav header
-		// so we don't use the prepareTemplates utility function here.
-		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		regRequest.Metadata = new(libgin.RepositoryMetadata)
+		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			log.Printf("Failed to parse RequestFailurePage template: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -285,7 +282,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
-		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -298,7 +295,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	if err != nil {
 		log.Print("DOI file invalid")
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
-		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
