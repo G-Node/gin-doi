@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"testing"
 
@@ -48,9 +49,141 @@ func TestRequestPageTemplate(t *testing.T) {
 	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
 	regRequest.Metadata.ForkRepository = "" // not forked yet
 
-	err = tmpl.Execute(w, regRequest)
+	w := new(bytes.Buffer)
 	if err := tmpl.Execute(w, regRequest); err != nil {
 		t.Log(w.String()) // Print the rendered output
 		t.Fatalf("Failed to execute RequestPage: %s", err.Error())
 	}
+}
+
+func TestRequestResultTemplate(t *testing.T) {
+	tmpl, err := prepareTemplates("RequestResult")
+	if err != nil {
+		t.Fatalf("Failed to parse RequestResult template: %s", err.Error())
+	}
+
+	resData := new(reqResultData)
+
+	// failure
+	resData.Success = false
+	resData.Level = "error"
+	resData.Message = template.HTML(msgSubmitFailed)
+
+	w := new(bytes.Buffer)
+	if err := tmpl.Execute(w, resData); err != nil {
+		t.Log(w.String()) // Print the rendered output
+		t.Fatalf("Failed to execute RequestResult: %s", err.Error())
+	}
+
+	// warning
+	resData.Success = true
+	resData.Level = "warning"
+	resData.Message = template.HTML(msgSubmitError)
+
+	w = new(bytes.Buffer)
+	if err := tmpl.Execute(w, resData); err != nil {
+		t.Log(w.String()) // Print the rendered output
+		t.Fatalf("Failed to execute RequestResult: %s", err.Error())
+	}
+
+	// success
+	message := fmt.Sprintf(msgServerIsArchiving, "test/DOI.xyz")
+	resData.Success = true
+	resData.Level = "success"
+	resData.Message = template.HTML(message)
+
+	w = new(bytes.Buffer)
+	if err := tmpl.Execute(w, resData); err != nil {
+		t.Log(w.String()) // Print the rendered output
+		t.Fatalf("Failed to execute RequestResult: %s", err.Error())
+	}
+}
+
+func TestLandingPageTemplate(t *testing.T) {
+	tmpl, err := prepareTemplates("DOIInfo", "LandingPage")
+	if err != nil {
+		t.Fatalf("Failed to parse DOIInfo, LandingPage templates: %s", err.Error())
+	}
+
+	// read datacite.yml template for test
+	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	if err != nil {
+		t.Fatalf("Failed to retrieve datacite.yml from GIN")
+	}
+	doiInfo, err := readRepoYAML(infoyml)
+	metadata := new(libgin.RepositoryMetadata)
+	metadata.YAMLData = doiInfo
+	metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
+	metadata.SourceRepository = "test/repository"
+	metadata.ForkRepository = "doi/repository"
+
+	w := new(bytes.Buffer)
+	if err := tmpl.Execute(w, metadata); err != nil {
+		t.Log(w.String()) // Print the rendered output
+		t.Fatalf("Failed to execute LandingPage: %s", err.Error())
+	}
+}
+
+func TestKeywordIndexTemplate(t *testing.T) {
+	tmpl, err := prepareTemplates("KeywordIndex")
+	if err != nil {
+		t.Fatalf("Failed to parse KeywordIndex templates: %s", err.Error())
+	}
+
+	// read datacite.yml template for test
+	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	if err != nil {
+		t.Fatalf("Failed to retrieve datacite.yml from GIN")
+	}
+	doiInfo, err := readRepoYAML(infoyml)
+	metadata := new(libgin.RepositoryMetadata)
+	metadata.YAMLData = doiInfo
+	metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
+	metadata.SourceRepository = "test/repository"
+	metadata.ForkRepository = "doi/repository"
+
+	data := make(map[string]interface{})
+	data["KeywordList"] = []string{"a", "b", "anotherkeyword"}
+	keywordMap := make(map[string][]*libgin.RepositoryMetadata, 3)
+	keywordMap["a"] = []*libgin.RepositoryMetadata{metadata}
+	keywordMap["b"] = []*libgin.RepositoryMetadata{metadata}
+	keywordMap["anotherkeyword"] = []*libgin.RepositoryMetadata{metadata}
+	data["KeywordMap"] = keywordMap
+
+	w := new(bytes.Buffer)
+	if err := tmpl.Execute(w, data); err != nil {
+		t.Log(w.String()) // Print the rendered output
+		t.Fatalf("Failed to execute KeywordIndex: %s", err.Error())
+	}
+}
+
+func TestKeywordTemplate(t *testing.T) {
+	tmpl, err := prepareTemplates("Keyword")
+	if err != nil {
+		t.Fatalf("Failed to parse Keyword templates: %s", err.Error())
+	}
+
+	// read datacite.yml template for test
+	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	if err != nil {
+		t.Fatalf("Failed to retrieve datacite.yml from GIN")
+	}
+	doiInfo, err := readRepoYAML(infoyml)
+	metadata := new(libgin.RepositoryMetadata)
+	metadata.YAMLData = doiInfo
+	metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
+	metadata.SourceRepository = "test/repository"
+	metadata.ForkRepository = "doi/repository"
+
+	data := make(map[string]interface{})
+	data["KeywordList"] = []string{"a", "b", "anotherkeyword"}
+	data["Keyword"] = "test"
+	data["Datasets"] = []*libgin.RepositoryMetadata{metadata}
+
+	w := new(bytes.Buffer)
+	if err := tmpl.Execute(w, data); err != nil {
+		t.Log(w.String()) // Print the rendered output
+		t.Fatalf("Failed to execute Keyword: %s", err.Error())
+	}
+
 }
