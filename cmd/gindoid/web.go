@@ -7,10 +7,10 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
-	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
@@ -68,9 +68,7 @@ type reqResultData struct {
 // 'RequestResult' template. If it fails to parse the template, it renders
 // the Message from the result data in plain HTML.
 func renderResult(w http.ResponseWriter, resData *reqResultData) {
-	// This page doesn't require functions and has a different nav header so we
-	// don't use the prepareTemplates utility function here.
-	tmpl, err := template.New("requestresult").Parse(gdtmpl.RequestResult)
+	tmpl, err := prepareTemplates("RequestResult")
 	if err != nil {
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
@@ -122,7 +120,6 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	encryptedRequestData := r.PostFormValue("reqdata")
 	reqdata, err := decryptRequestData(encryptedRequestData, conf.Key)
-	resData.Repository = reqdata.Repository
 	if err != nil {
 		log.Printf("Invalid request: %s", err.Error())
 		resData.Message = template.HTML(msgInvalidRequest)
@@ -130,6 +127,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		renderResult(w, &resData)
 		return
 	}
+	resData.Repository = reqdata.Repository
 
 	log.Printf("Received DOI request: %+v", reqdata)
 
@@ -144,14 +142,14 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	// add fork repository to job data to render landing page
 	repoParts := strings.SplitN(regJob.Metadata.SourceRepository, "/", 2)
 	if len(repoParts) == 2 {
-		regJob.Metadata.ForkRepository = strings.Join([]string{"doi", repoParts[1]}, "/")
+		regJob.Metadata.ForkRepository = path.Join("doi", repoParts[1])
 	}
 	// otherwise, unexpected repository name, so don't set ForkRepository and
 	// the cloner will notify
 
 	// exiting beyond this point should trigger an email notification
 	defer func() {
-		err := notifyAdmin(regJob, errors)
+		err := notifyAdmin(regJob, errors, nil)
 		if err != nil {
 			// Email send failed
 			// Log the error
@@ -262,12 +260,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		log.Printf("Invalid request: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		regRequest.Message = template.HTML(msgInvalidRequest)
-		regRequest.Metadata = &libgin.RepositoryMetadata{}
-		// This page doesn't require functions and has a different nav header
-		// so we don't use the prepareTemplates utility function here.
-		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		regRequest.Metadata = new(libgin.RepositoryMetadata)
+		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			log.Printf("Failed to parse RequestFailurePage template: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -281,12 +277,12 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 
 	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
 	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks DOIfy on a stale page
+		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
-		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
@@ -299,7 +295,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	if err != nil {
 		log.Print("DOI file invalid")
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
-		tmpl, err := template.New("requestpage").Parse(gdtmpl.RequestFailurePage)
+		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)

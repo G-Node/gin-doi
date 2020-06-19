@@ -18,7 +18,7 @@ const (
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
 // sendMail function to send it.
-func notifyAdmin(job *RegistrationJob, errors []string) error {
+func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -52,6 +52,14 @@ func notifyAdmin(job *RegistrationJob, errors []string) error {
 		}
 	}
 
+	warninglist := ""
+	if len(warnings) > 0 {
+		warninglist = "The following issues were detected and may need attention\n"
+		for idx, msg := range warnings {
+			warninglist = fmt.Sprintf("%s	%d. %s\n", warninglist, idx+1, msg)
+		}
+	}
+
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
 	namestr := username
@@ -68,8 +76,10 @@ func notifyAdmin(job *RegistrationJob, errors []string) error {
 	DOI target URL: %s
 
 %s
+
+%s
 `
-	body = fmt.Sprintf(body, repopath, repourl, namestr, useremail, xmlurl, doitarget, errorlist)
+	body = fmt.Sprintf(body, repopath, repourl, namestr, useremail, xmlurl, doitarget, errorlist, warninglist)
 	return sendMail(subject, body, conf)
 }
 

@@ -21,7 +21,7 @@ LDFLAGS = -ldflags="-X main.appversion=$(VERNUM) -X main.build=$(BUILDNUM) -X ma
 
 SOURCES = $(shell find . -type f -iname "*.go") version go.mod go.sum
 
-.PHONY: $(APP) install clean uninstall
+.PHONY: $(APP) install clean uninstall test coverage showcoverage
 
 $(APP): $(BUILDLOC)/$(APP)
 
@@ -36,3 +36,11 @@ uninstall:
 
 $(BUILDLOC)/$(APP): $(SOURCES)
 	go build -trimpath $(LDFLAGS) $(GCFLAGS) -o $(BUILDLOC)/$(APP) ./cmd/gindoid
+
+test: coverage
+
+coverage: $(SOURCES)
+	go test -coverpkg=./... -coverprofile=coverage ./...
+
+showcoverage: coverage
+	go tool cover -html=coverage

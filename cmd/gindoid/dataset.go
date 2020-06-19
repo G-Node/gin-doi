@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -31,8 +33,15 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
 	preperrors := make([]string, 0, 5)
 
-	repoURL := GetGINURL(conf) + job.Metadata.SourceRepository
-	forkURL := GetGINURL(conf) + job.Metadata.ForkRepository
+	ginurl, err := url.Parse(GetGINURL(conf))
+	if err != nil {
+		preperrors = append(preperrors, fmt.Sprintf("Bad GIN URL configured: %s", err.Error()))
+	}
+
+	ginurl.Path = job.Metadata.SourceRepository
+	repoURL := ginurl.String()
+	ginurl.Path = job.Metadata.ForkRepository
+	forkURL := ginurl.String()
 
 	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
 	var archiveURL string
@@ -40,9 +49,12 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		// failed to clone and zip
 		// save the error for reporting and continue with the XML prep
 		preperrors = append(preperrors, err.Error())
+	} else if storeURL, err := url.Parse(conf.Storage.StoreURL); err == nil {
+		storeURL.Path = path.Join(job.Metadata.Identifier.ID, zipfname)
+		archiveURL = storeURL.String()
+		job.Metadata.Sizes = &[]string{humanize.IBytes(uint64(zipsize))}
 	} else {
-		archiveURL = conf.Storage.StoreURL + job.Metadata.Identifier.ID + zipfname
-		job.Metadata.Size = humanize.IBytes(uint64(zipsize))
+		preperrors = append(preperrors, fmt.Sprintf("zip file created, but failed to parse StoreURL: %s", err.Error()))
 	}
 	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
 
@@ -53,7 +65,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		log.Print("Could not create the metadata template")
 		// XML Creation failed; return with error
 		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		notifyAdmin(job, preperrors)
+		notifyAdmin(job, preperrors, nil)
 		return err
 	}
 	defer fp.Close()
@@ -62,7 +74,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	if err != nil {
 		log.Print("Could not render the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
-		notifyAdmin(job, preperrors)
+		notifyAdmin(job, preperrors, nil)
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -71,9 +83,11 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		preperrors = append(preperrors, fmt.Sprintf("Failed to write the metadata XML file: %s", err))
 	}
 
+	warnings := collectWarnings(job)
+
 	if len(preperrors) > 0 {
 		// Resend email with errors if any occurred
-		notifyAdmin(job, preperrors)
+		notifyAdmin(job, preperrors, warnings)
 	}
 	return err
 }
