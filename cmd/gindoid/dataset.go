@@ -85,7 +85,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 
 	warnings := collectWarnings(job)
 
-	if len(preperrors) > 0 {
+	if len(preperrors)+len(warnings) > 0 {
 		// Resend email with errors if any occurred
 		notifyAdmin(job, preperrors, warnings)
 	}
