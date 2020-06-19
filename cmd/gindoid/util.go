@@ -414,9 +414,11 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 // notification email.
 func collectWarnings(job *RegistrationJob) (warnings []string) {
 	// Check if any funder IDs are missing
-	for _, funder := range *job.Metadata.FundingReferences {
-		if funder.Identifier == nil || funder.Identifier.ID == "" {
-			warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
+	if job.Metadata.FundingReferences != nil {
+		for _, funder := range *job.Metadata.FundingReferences {
+			if funder.Identifier == nil || funder.Identifier.ID == "" {
+				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
+			}
 		}
 	}
 
