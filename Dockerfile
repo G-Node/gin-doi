@@ -1,7 +1,7 @@
 # BUILDER IMAGE
 FROM golang:alpine AS binbuilder
 
-RUN apk add --no-cache git openssh ca-certificates curl musl-dev openssh
+RUN apk add --no-cache git openssh ca-certificates curl musl-dev openssh make gcc
 
 # Download git-annex to builder image and extract
 RUN mkdir /git-annex
@@ -9,12 +9,10 @@ RUN curl -Lo /git-annex/git-annex-standalone-amd64.tar.gz https://downloads.kite
 RUN cd /git-annex && tar -xzf git-annex-standalone-amd64.tar.gz && rm git-annex-standalone-amd64.tar.gz
 
 RUN go version
-COPY ./go.mod ./go.sum /gindoid/
-COPY ./cmd /gindoid/cmd/
-COPY ./templates /gindoid/templates/
+COPY . /gindoid
 WORKDIR /gindoid
 
-RUN go build ./cmd/gindoid
+RUN make
 
 ### ============================= ###
 
@@ -29,7 +27,7 @@ COPY --from=binbuilder /git-annex /git-annex
 ENV PATH="${PATH}:/git-annex/git-annex.linux"
 
 COPY ./assets /assets
-COPY --from=binbuilder /gindoid/gindoid /
+COPY --from=binbuilder /gindoid/build/gindoid /
 VOLUME ["/doidata"]
 VOLUME ["/config"]
 
