@@ -46,6 +46,7 @@ const (
 	msgNoDescription    = "No description provided."
 	msgNoLicense        = "No valid license provided. Please specify a license URL and name and make sure it matches the license file in the repository."
 	msgNoLicenseFile    = `The LICENSE file is missing. The full text of the license is required to be in the repository when publishing. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for details and links to recommended data licenses.`
+	msgLicenseMismatch  = `The LICENSE file does not match the license specified in the metadata. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for links to full text for available licenses.`
 	msgInvalidReference = "One of the Reference entries is not valid. Please provide the full citation and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
@@ -221,7 +222,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	_, err = readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "LICENSE"))
+	licenseText, err := readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "LICENSE"))
 	if err != nil {
 		// No license file
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())
@@ -230,6 +231,19 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		resData.Success = false
 		resData.Level = "warning"
 		resData.Message = template.HTML(msgNoLicenseFile)
+		return
+	}
+
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", yamlInfo.License.Name))
+	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
+		// License file doesn't match specified license
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", yamlInfo.License.Name)
+		log.Print(errmsg)
+		log.Printf("Request data: %+v", reqdata)
+		errors = append(errors, errmsg)
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgLicenseMismatch)
 		return
 	}
 
@@ -304,6 +318,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		tmpl.Execute(w, regRequest)
 		return
 	}
+
 	doiInfo, err := readRepoYAML(infoyml)
 	if err != nil {
 		log.Print("DOI file invalid")
@@ -318,12 +333,29 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	_, err = readFileAtURL(repoFileURL(conf, regRequest.Repository, "LICENSE"))
+	licenseText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "LICENSE"))
 	if err != nil {
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())
 		log.Printf("Request data: %+v", regRequest)
 		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error())}
 		regRequest.Message = template.HTML(msgNoLicenseFile)
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", doiInfo.License.Name))
+	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
+		// License file doesn't match specified license
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", doiInfo.License.Name)
+		log.Print(errmsg)
+		log.Printf("Request data: %+v", reqdata)
+		regRequest.Message = template.HTML(msgLicenseMismatch)
 		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
