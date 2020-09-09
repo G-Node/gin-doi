@@ -45,6 +45,7 @@ const (
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = "No description provided."
 	msgNoLicense        = "No valid license provided. Please specify a license URL and name and make sure it matches the license file in the repository."
+	msgNoLicenseFile    = `The LICENSE file is missing. The full text of the license is required to be in the repository when publishing. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for details and links to recommended data licenses.`
 	msgInvalidReference = "One of the Reference entries is not valid. Please provide the full citation and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
@@ -220,6 +221,18 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
+	_, err = readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "LICENSE"))
+	if err != nil {
+		// No license file
+		log.Printf("Failed to fetch LICENSE: %s", err.Error())
+		log.Printf("Request data: %+v", reqdata)
+		errors = append(errors, fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error()))
+		resData.Success = false
+		resData.Level = "warning"
+		resData.Message = template.HTML(msgNoLicenseFile)
+		return
+	}
+
 	regJob.Metadata.YAMLData = yamlInfo
 	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(yamlInfo)
 	regJob.Metadata.Identifier.ID = doi
@@ -295,6 +308,22 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	if err != nil {
 		log.Print("DOI file invalid")
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	_, err = readFileAtURL(repoFileURL(conf, regRequest.Repository, "LICENSE"))
+	if err != nil {
+		log.Printf("Failed to fetch LICENSE: %s", err.Error())
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error())}
+		regRequest.Message = template.HTML(msgNoLicenseFile)
 		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
 			log.Printf("Failed to parse requestpage template: %s", err.Error())
