@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -16,9 +17,14 @@ import (
 // repoFileURL returns the full URL to a file on the master branch of a
 // repository.
 func repoFileURL(conf *Configuration, repopath string, filename string) string {
+	u, err := url.Parse(GetGINURL(conf))
+	if err != nil {
+		// not configured properly; return nothing
+		return ""
+	}
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/%s", repopath, filename)
-	url := fmt.Sprintf("%s/%s", GetGINURL(conf), fetchRepoPath)
-	return url
+	u.Path = fetchRepoPath
+	return u.String()
 }
 
 // readFileAtURL returns the contents of a file at a given URL.
