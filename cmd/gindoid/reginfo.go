@@ -13,9 +13,10 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// dataciteURL returns the full URL to a repository's datacite.yml file.
-func dataciteURL(repopath string, conf *Configuration) string {
-	fetchRepoPath := fmt.Sprintf("%s/raw/master/datacite.yml", repopath)
+// repoFileURL returns the full URL to a file on the master branch of a
+// repository.
+func repoFileURL(conf *Configuration, repopath string, filename string) string {
+	fetchRepoPath := fmt.Sprintf("%s/raw/master/%s", repopath, filename)
 	url := fmt.Sprintf("%s/%s", GetGINURL(conf), fetchRepoPath)
 	return url
 }
@@ -56,7 +57,8 @@ func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 	return yamlInfo, nil
 }
 
-// checkMissingValues returns the list of required fields that have no values set.
+// checkMissingValues returns a list of messages for missing or invalid values.
+// If all values are valid, the returned slice is empty.
 func checkMissingValues(info *libgin.RepositoryYAML) []string {
 	missing := []string{}
 	if info.Title == "" {

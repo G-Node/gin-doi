@@ -195,7 +195,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	infoyml, err := readFileAtURL(dataciteURL(regJob.Metadata.SourceRepository, conf))
+	infoyml, err := readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "datacite.yml"))
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
 		// made private) between preparing the request and submitting it
@@ -275,7 +275,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
 	regRequest.Metadata = &libgin.RepositoryMetadata{}
 
-	infoyml, err := readFileAtURL(dataciteURL(regRequest.Repository, conf))
+	infoyml, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "datacite.yml"))
 	if err != nil {
 		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
