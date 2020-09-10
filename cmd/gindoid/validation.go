@@ -1,0 +1,85 @@
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/G-Node/libgin/libgin"
+)
+
+// collectWarnings checks for non-critical missing information or issues that
+// may need admin attention. These should be sent with the followup
+// notification email.
+func collectWarnings(job *RegistrationJob) (warnings []string) {
+	// Check if any funder IDs are missing
+	if job.Metadata.FundingReferences != nil {
+		for _, funder := range *job.Metadata.FundingReferences {
+			if funder.Identifier == nil || funder.Identifier.ID == "" {
+				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
+			}
+		}
+	}
+
+	// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
+	// This shouldn't be an issue, but it can cause formatting issues
+	for idx, ref := range job.Metadata.YAMLData.References {
+		if ref.Name != "" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
+		}
+	}
+
+	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
+	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
+		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
+	}
+
+	return
+}
+
+// checkMissingValues returns a list of messages for missing or invalid values.
+// If all values are valid, the returned slice is empty.
+func checkMissingValues(info *libgin.RepositoryYAML) []string {
+	missing := make([]string, 0, 6)
+	if info.Title == "" {
+		missing = append(missing, msgNoTitle)
+	}
+	if len(info.Authors) == 0 {
+		missing = append(missing, msgNoAuthors)
+	} else {
+		for _, auth := range info.Authors {
+			if auth.LastName == "" || auth.FirstName == "" {
+				missing = append(missing, msgInvalidAuthors)
+			}
+		}
+	}
+	if info.Description == "" {
+		missing = append(missing, msgNoDescription)
+	}
+	if info.License == nil || info.License.Name == "" || info.License.URL == "" {
+		missing = append(missing, msgNoLicense)
+	}
+	if info.References != nil {
+		for _, ref := range info.References {
+			if (ref.Citation == "" && ref.Name == "") || ref.RefType == "" {
+				missing = append(missing, msgInvalidReference)
+			}
+		}
+	}
+	return missing
+}
+
+// checkLicenseMatch returns true if the license text found in the file at the
+// URL matches the provided license text. If the file at the URL cannot be
+// read, it defaults to true.
+func checkLicenseMatch(expectedTextURL string, licenseText string) bool {
+	expectedLicenseText, err := readFileAtURL(expectedTextURL)
+	if err != nil {
+		// License isn't known or there was a problem reading the file in the
+		// repository.
+		// Return positive response since we can't validate automatically.
+		log.Printf("Can't validate License text. Unknown license name in datacite.yml: %q", expectedTextURL)
+		return true
+	}
+
+	return string(expectedLicenseText) == licenseText
+}

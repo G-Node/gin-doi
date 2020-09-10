@@ -63,54 +63,6 @@ func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 	return yamlInfo, nil
 }
 
-// checkMissingValues returns a list of messages for missing or invalid values.
-// If all values are valid, the returned slice is empty.
-func checkMissingValues(info *libgin.RepositoryYAML) []string {
-	missing := []string{}
-	if info.Title == "" {
-		missing = append(missing, msgNoTitle)
-	}
-	if len(info.Authors) == 0 {
-		missing = append(missing, msgNoAuthors)
-	} else {
-		for _, auth := range info.Authors {
-			if auth.LastName == "" || auth.FirstName == "" {
-				missing = append(missing, msgInvalidAuthors)
-			}
-		}
-	}
-	if info.Description == "" {
-		missing = append(missing, msgNoDescription)
-	}
-	if info.License == nil || info.License.Name == "" || info.License.URL == "" {
-		missing = append(missing, msgNoLicense)
-	}
-	if info.References != nil {
-		for _, ref := range info.References {
-			if (ref.Citation == "" && ref.Name == "") || ref.RefType == "" {
-				missing = append(missing, msgInvalidReference)
-			}
-		}
-	}
-	return missing
-}
-
-// checkLicenseMatch returns true if the license text found in the file at the
-// URL matches the provided license text. If the file at the URL cannot be
-// read, it defaults to true.
-func checkLicenseMatch(expectedTextURL string, licenseText string) bool {
-	expectedLicenseText, err := readFileAtURL(expectedTextURL)
-	if err == nil {
-		// License isn't known or there was a problem reading the file in the
-		// repository.
-		// Return positive response since we can't validate automatically.
-		log.Printf("Can't validate License text. Unknown license name in datacite.yml: %q", expectedTextURL)
-		return true
-	}
-
-	return string(expectedLicenseText) == licenseText
-}
-
 // RegistrationRequest holds the encrypted and decrypted data of a registration
 // request, as well as the unmarshalled data of the target repository's
 // datacite.yml metadata.  It's used to render the preparation page (request

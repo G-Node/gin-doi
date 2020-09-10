@@ -406,34 +406,4 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 		}
 	}
 	return tmpl, nil
-
-}
-
-// collectWarnings checks for non-critical missing information or issues that
-// may need admin attention. These should be sent with the followup
-// notification email.
-func collectWarnings(job *RegistrationJob) (warnings []string) {
-	// Check if any funder IDs are missing
-	if job.Metadata.FundingReferences != nil {
-		for _, funder := range *job.Metadata.FundingReferences {
-			if funder.Identifier == nil || funder.Identifier.ID == "" {
-				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
-			}
-		}
-	}
-
-	// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
-	// This shouldn't be an issue, but it can cause formatting issues
-	for idx, ref := range job.Metadata.YAMLData.References {
-		if ref.Name != "" {
-			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
-		}
-	}
-
-	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
-	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
-		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
-	}
-
-	return
 }
