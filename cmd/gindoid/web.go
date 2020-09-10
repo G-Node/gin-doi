@@ -132,63 +132,14 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
 	regRequest.Metadata = &libgin.RepositoryMetadata{}
 
-	dataciteText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "datacite.yml"))
+	repoMetadata, err := readAndValidate(conf, regRequest.Repository)
 	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
-		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", regRequest)
-		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
+		regRequest.ErrorMessages = []string{err.Error()}
+		regRequest.Message = template.HTML(err.Error())
 		tmpl, err := prepareTemplates("RequestFailurePage")
 		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	repoMetadata, err := readRepoYAML(dataciteText)
-	if err != nil {
-		log.Print("DOI file invalid")
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	licenseText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "LICENSE"))
-	if err != nil {
-		log.Printf("Failed to fetch LICENSE: %s", err.Error())
-		log.Printf("Request data: %+v", regRequest)
-		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error())}
-		regRequest.Message = template.HTML(msgNoLicenseFile)
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
-	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
-		// License file doesn't match specified license
-		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
-		log.Print(errmsg)
-		log.Printf("Request data: %+v", reqdata)
-		regRequest.Message = template.HTML(msgLicenseMismatch)
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			log.Printf("Failed to parse RequestFailurePage template: %s", err.Error())
+			log.Printf("Request data: %+v", regRequest)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -316,53 +267,12 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	dataciteText, err := readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "datacite.yml"))
+	repoMetadata, err := readAndValidate(conf, regJob.Metadata.SourceRepository)
 	if err != nil {
-		// Can happen if the datacite.yml file or the repository is removed (or
-		// made private) between preparing the request and submitting it
-		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", reqdata)
-		errors = append(errors, fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error()))
-		resData.Success = true
-		resData.Level = "warning"
-		resData.Message = template.HTML(msgSubmitError)
-		return
-	}
-	repoMetadata, err := readRepoYAML(dataciteText)
-	if err != nil {
-		// Can happen if the datacite.yml file is modified (and made invalid)
-		// between preparing the request and submitting it
-		log.Printf("Failed to parse datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", reqdata)
-		errors = append(errors, fmt.Sprintf("Failed to parse datacite.yml: %s", err.Error()))
-		resData.Success = true
-		resData.Level = "warning"
-		resData.Message = template.HTML(msgSubmitError)
-		return
-	}
-
-	licenseText, err := readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "LICENSE"))
-	if err != nil {
-		// No license file
-		log.Printf("Failed to fetch LICENSE: %s", err.Error())
-		log.Printf("Request data: %+v", reqdata)
-		errors = append(errors, fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error()))
+		errors = append(errors, err.Error())
 		resData.Success = false
-		resData.Level = "warning"
-		resData.Message = template.HTML(msgNoLicenseFile)
-		return
-	}
-
-	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
-	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
-		// License file doesn't match specified license
-		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
-		log.Print(errmsg)
-		log.Printf("Request data: %+v", reqdata)
-		errors = append(errors, errmsg)
-		resData.Success = false
-		resData.Level = "warning"
-		resData.Message = template.HTML(msgLicenseMismatch)
+		resData.Level = "error"
+		resData.Message = template.HTML(err.Error())
 		return
 	}
 

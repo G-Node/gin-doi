@@ -414,3 +414,39 @@ func (d *RegistrationRequest) GetDOIURI() string {
 func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
 }
+
+// readAndValidate loads the datacite.yml file at the given URL, validates it
+// and returns the RepositoryYAML struct or an error message if the retrieval,
+// parsing, or validation fails.  The message is appropriate for display to the
+// user.
+func readAndValidate(conf *Configuration, repository string) (*libgin.RepositoryYAML, error) {
+	dataciteText, err := readFileAtURL(repoFileURL(conf, repository, "datacite.yml"))
+	if err != nil {
+		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
+		err := fmt.Errorf("%s <p><i>No datacite.yml file found in repository</i></p>", msgInvalidDOI)
+		return nil, err
+	}
+
+	repoMetadata, err := readRepoYAML(dataciteText)
+	if err != nil {
+		log.Print("DOI file invalid")
+		err := fmt.Errorf("%s<p><i>%s</i></p>", msgInvalidDOI, err.Error())
+		return nil, err
+	}
+
+	licenseText, err := readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
+	if err != nil {
+		log.Printf("Failed to fetch LICENSE: %s", err.Error())
+		return nil, fmt.Errorf(msgNoLicenseFile)
+	}
+
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
+	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
+		// License file doesn't match specified license
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
+		log.Print(errmsg)
+		return nil, fmt.Errorf(msgLicenseMismatch)
+	}
+
+	return repoMetadata, nil
+}
