@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"math/rand"
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
@@ -38,21 +36,6 @@ func renderResult(w http.ResponseWriter, resData *reqResultData) {
 	if err != nil {
 		log.Printf("Error rendering RequestResult template: %v", err.Error())
 	}
-}
-
-const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
-
-// randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
-func randAlnum(n int) string {
-	N := len(ALNUM)
-
-	chrs := make([]byte, n)
-	rand.Seed(time.Now().UnixNano())
-	for idx := range chrs {
-		chrs[idx] = ALNUM[rand.Intn(N)]
-	}
-
-	return string(chrs)
 }
 
 // startDOIRegistration starts the DOI registration process by authenticating

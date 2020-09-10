@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,21 @@ import (
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 )
+
+const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
+
+// randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
+func randAlnum(n int) string {
+	N := len(ALNUM)
+
+	chrs := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for idx := range chrs {
+		chrs[idx] = ALNUM[rand.Intn(N)]
+	}
+
+	return string(chrs)
+}
 
 // Global function map for the templates that render the DOI information
 // (request page and landing page).
