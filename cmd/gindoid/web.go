@@ -136,7 +136,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	infoyml, err := readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "datacite.yml"))
+	dataciteText, err := readFileAtURL(repoFileURL(conf, regJob.Metadata.SourceRepository, "datacite.yml"))
 	if err != nil {
 		// Can happen if the datacite.yml file or the repository is removed (or
 		// made private) between preparing the request and submitting it
@@ -148,7 +148,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		resData.Message = template.HTML(msgSubmitError)
 		return
 	}
-	yamlInfo, err := readRepoYAML(infoyml)
+	repoMetadata, err := readRepoYAML(dataciteText)
 	if err != nil {
 		// Can happen if the datacite.yml file is modified (and made invalid)
 		// between preparing the request and submitting it
@@ -173,10 +173,10 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", yamlInfo.License.Name))
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
 	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
 		// License file doesn't match specified license
-		errmsg := fmt.Sprintf("License file does not match specified license: %q", yamlInfo.License.Name)
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
 		log.Print(errmsg)
 		log.Printf("Request data: %+v", reqdata)
 		errors = append(errors, errmsg)
@@ -186,8 +186,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
-	regJob.Metadata.YAMLData = yamlInfo
-	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(yamlInfo)
+	regJob.Metadata.YAMLData = repoMetadata
+	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
 	regJob.Metadata.Identifier.ID = doi
 	regJob.Metadata.Identifier.Type = "DOI"
 
@@ -241,7 +241,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
 	regRequest.Metadata = &libgin.RepositoryMetadata{}
 
-	infoyml, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "datacite.yml"))
+	dataciteText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "datacite.yml"))
 	if err != nil {
 		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
 		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
@@ -258,7 +258,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	doiInfo, err := readRepoYAML(infoyml)
+	repoMetadata, err := readRepoYAML(dataciteText)
 	if err != nil {
 		log.Print("DOI file invalid")
 		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
@@ -288,10 +288,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", doiInfo.License.Name))
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
 	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
 		// License file doesn't match specified license
-		errmsg := fmt.Sprintf("License file does not match specified license: %q", doiInfo.License.Name)
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
 		log.Print(errmsg)
 		log.Printf("Request data: %+v", reqdata)
 		regRequest.Message = template.HTML(msgLicenseMismatch)
@@ -313,11 +313,11 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		return
 	}
 
-	j, _ := json.MarshalIndent(doiInfo, "", "  ")
+	j, _ := json.MarshalIndent(repoMetadata, "", "  ")
 	log.Printf("Received DOI information: %s", string(j))
 
-	regRequest.Metadata.YAMLData = doiInfo
-	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
+	regRequest.Metadata.YAMLData = repoMetadata
+	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
 	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
 	regRequest.Metadata.ForkRepository = "" // not forked yet
 
