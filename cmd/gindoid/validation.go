@@ -109,12 +109,14 @@ func validateDataCiteValues(info *libgin.RepositoryYAML) []string {
 	invalid := make([]string, 0)
 
 	if !contains(allowedValues["resourcetype"], info.ResourceType) {
-		invalid = append(invalid, "...")
+		msg := fmt.Sprintf("<strong>ResourceType</strong> must be one of the following: %s", strings.Join(allowedValues["resourcetype"], ", "))
+		invalid = append(invalid, msg)
 	}
 
 	for _, ref := range info.References {
 		if !contains(allowedValues["reftype"], ref.RefType) {
-			invalid = append(invalid, "...")
+			msg := fmt.Sprintf("Reference type (<strong>RefType</strong>) must be one of the following: %s", strings.Join(allowedValues["reftype"], ", "))
+			invalid = append(invalid, msg)
 		}
 	}
 

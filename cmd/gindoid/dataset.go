@@ -448,5 +448,9 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 		return nil, fmt.Errorf(msgLicenseMismatch)
 	}
 
+	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
+		return nil, fmt.Errorf(strings.Join(msgs, "\n"))
+	}
+
 	return repoMetadata, nil
 }
