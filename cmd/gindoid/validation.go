@@ -3,9 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
 )
+
+// allowedValues for various keys of the datacite.yml file.  All keys and
+// values are lowercase and should be compared as such for case insensitive
+// matching.
+var allowedValues = map[string][]string{
+	"reftype":      {"issupplementto", "isdescribedby", "isreferencedby"},
+	"resourcetype": {"dataset", "software", "datapaper", "image", "text"},
+}
 
 // collectWarnings checks for non-critical missing information or issues that
 // may need admin attention. These should be sent with the followup
@@ -82,4 +91,32 @@ func checkLicenseMatch(expectedTextURL string, licenseText string) bool {
 	}
 
 	return string(expectedLicenseText) == licenseText
+}
+
+func contains(list []string, value string) bool {
+	for _, valid := range list {
+		if strings.ToLower(valid) == strings.ToLower(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// validateDataCiteValues checks if the datacite keys that have limited value
+// options have a valid value.  Returns a slice of error messages to display to
+// the user.  The slice is empty if all values are valid.
+func validateDataCiteValues(info *libgin.RepositoryYAML) []string {
+	invalid := make([]string, 0)
+
+	if !contains(allowedValues["resourcetype"], info.ResourceType) {
+		invalid = append(invalid, "...")
+	}
+
+	for _, ref := range info.References {
+		if !contains(allowedValues["reftype"], ref.RefType) {
+			invalid = append(invalid, "...")
+		}
+	}
+
+	return invalid
 }
