@@ -20,21 +20,201 @@ type reqResultData struct {
 	Repository string
 }
 
-// renderResult renders the results of a registration request using the
-// 'RequestResult' template. If it fails to parse the template, it renders
-// the Message from the result data in plain HTML.
-func renderResult(w http.ResponseWriter, resData *reqResultData) {
-	tmpl, err := prepareTemplates("RequestResult")
+func web(cmd *cobra.Command, args []string) {
+	log.Printf("Starting up %s", cmd.Version)
+
+	config, err := loadconfig()
 	if err != nil {
-		log.Printf("Failed to parse requestresult template: %s", err.Error())
-		log.Printf("Request data: %+v", resData)
-		// failed to render result template; just show the message wrapped in html tags
-		w.Write([]byte("<html>" + resData.Message + "</html>"))
+		log.Fatalf("Startup failed: %v", err)
+	}
+
+	// Pretty print configuration for debugging, but hide sensitive stuff
+	cc := *config
+	cc.Key = "[HIDDEN]"
+	cc.GIN.Password = "[HIDDEN]"
+	j, _ := json.MarshalIndent(cc, "", "  ")
+	log.Print(string(j))
+
+	log.Printf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
+	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer config.GIN.Session.Logout()
+
+	jobQueue := make(chan *RegistrationJob, config.MaxQueue)
+	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
+	dispatcher.run(newWorker)
+
+	// Start the HTTP handlers.
+
+	// Root redirects to storage URL (DOI listing page)
+	http.Handle("/", http.RedirectHandler(config.Storage.StoreURL, http.StatusMovedPermanently))
+
+	// register renders the info page with the registration button
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Got request: %s", r.URL.String())
+		renderRequestPage(w, r, config)
+	})
+
+	// submit starts the registration job
+	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
+		startDOIRegistration(w, r, jobQueue, config)
+	})
+
+	// assets fetches static assets using a custom FileSystem
+	assetserver := http.FileServer(newAssetFS("/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", assetserver))
+
+	fmt.Printf("Listening for connections on port %d\n", config.Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
+}
+
+// decryptRequestData decrypts the submitted data into a map.  Returns with
+// error if the decryption fails, the encrypted data is not a valid JSON
+// object, or if any of the expected keys (username, realname, repository,
+// email) are not present.
+func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, error) {
+	plaintext, err := libgin.DecryptURLString([]byte(key), regrequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt verification string: %s", err.Error())
+	}
+
+	data := libgin.DOIRequestData{}
+	err = json.Unmarshal([]byte(plaintext), &data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request data: %s", err.Error())
+	}
+
+	// Required info: username, repo, email
+	if data.Username == "" || data.Repository == "" || data.Email == "" {
+		return nil, fmt.Errorf("invalid request: required key is missing or empty")
+	}
+
+	return &data, nil
+}
+
+// renderRequestPage renders the page for the staging area, where information
+// is provided to the user and offers to start the DOI registration request.
+// It validates the metadata provided from the GIN repository and shows
+// appropriate error messages and instructions.
+func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configuration) {
+	log.Printf("Got a new DOI request")
+	if err := r.ParseForm(); err != nil {
+		log.Print("Could not parse form data")
+		w.WriteHeader(http.StatusInternalServerError)
+		// TODO: Notify via email (maybe)
 		return
 	}
-	err = tmpl.Execute(w, &resData)
+	encReqData := r.Form.Get("regrequest")
+
+	log.Printf("Got request: %s", encReqData)
+
+	regRequest := &RegistrationRequest{}
+	reqdata, err := decryptRequestData(encReqData, conf.Key)
 	if err != nil {
-		log.Printf("Error rendering RequestResult template: %v", err.Error())
+		log.Printf("Invalid request: %s", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		regRequest.Message = template.HTML(msgInvalidRequest)
+		regRequest.Metadata = new(libgin.RepositoryMetadata)
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse RequestFailurePage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	regRequest.DOIRequestData = reqdata
+	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
+	regRequest.Metadata = &libgin.RepositoryMetadata{}
+
+	dataciteText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "datacite.yml"))
+	if err != nil {
+		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
+		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	repoMetadata, err := readRepoYAML(dataciteText)
+	if err != nil {
+		log.Print("DOI file invalid")
+		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	licenseText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "LICENSE"))
+	if err != nil {
+		log.Printf("Failed to fetch LICENSE: %s", err.Error())
+		log.Printf("Request data: %+v", regRequest)
+		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error())}
+		regRequest.Message = template.HTML(msgNoLicenseFile)
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
+	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
+		// License file doesn't match specified license
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
+		log.Print(errmsg)
+		log.Printf("Request data: %+v", reqdata)
+		regRequest.Message = template.HTML(msgLicenseMismatch)
+		tmpl, err := prepareTemplates("RequestFailurePage")
+		if err != nil {
+			log.Printf("Failed to parse requestpage template: %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, regRequest)
+		return
+	}
+
+	// All good: Render request page
+	tmpl, err := prepareTemplates("DOIInfo", "RequestPage")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		// TODO: Notify via email
+		return
+	}
+
+	j, _ := json.MarshalIndent(repoMetadata, "", "  ")
+	log.Printf("Received DOI information: %s", string(j))
+
+	regRequest.Metadata.YAMLData = repoMetadata
+	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
+	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
+	regRequest.Metadata.ForkRepository = "" // not forked yet
+
+	err = tmpl.Execute(w, regRequest)
+	if err != nil {
+		log.Printf("Error rendering template: %s", err.Error())
 	}
 }
 
@@ -204,200 +384,20 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	resData.Message = template.HTML(message)
 }
 
-// renderRequestPage renders the page for the staging area, where information
-// is provided to the user and offers to start the DOI registration request.
-// It validates the metadata provided from the GIN repository and shows
-// appropriate error messages and instructions.
-func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configuration) {
-	log.Printf("Got a new DOI request")
-	if err := r.ParseForm(); err != nil {
-		log.Print("Could not parse form data")
-		w.WriteHeader(http.StatusInternalServerError)
-		// TODO: Notify via email (maybe)
+// renderResult renders the results of a registration request using the
+// 'RequestResult' template. If it fails to parse the template, it renders
+// the Message from the result data in plain HTML.
+func renderResult(w http.ResponseWriter, resData *reqResultData) {
+	tmpl, err := prepareTemplates("RequestResult")
+	if err != nil {
+		log.Printf("Failed to parse requestresult template: %s", err.Error())
+		log.Printf("Request data: %+v", resData)
+		// failed to render result template; just show the message wrapped in html tags
+		w.Write([]byte("<html>" + resData.Message + "</html>"))
 		return
 	}
-	encReqData := r.Form.Get("regrequest")
-
-	log.Printf("Got request: %s", encReqData)
-
-	regRequest := &RegistrationRequest{}
-	reqdata, err := decryptRequestData(encReqData, conf.Key)
+	err = tmpl.Execute(w, &resData)
 	if err != nil {
-		log.Printf("Invalid request: %s", err.Error())
-		w.WriteHeader(http.StatusBadRequest)
-		regRequest.Message = template.HTML(msgInvalidRequest)
-		regRequest.Metadata = new(libgin.RepositoryMetadata)
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse RequestFailurePage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
+		log.Printf("Error rendering RequestResult template: %v", err.Error())
 	}
-
-	regRequest.DOIRequestData = reqdata
-	regRequest.EncryptedRequestData = encReqData // Forward it through the hidden form in the template
-	regRequest.Metadata = &libgin.RepositoryMetadata{}
-
-	dataciteText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "datacite.yml"))
-	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
-		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
-		log.Printf("Request data: %+v", regRequest)
-		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch datacite.yml: %s", err.Error())}
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>No datacite.yml file found in repository</i>")
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	repoMetadata, err := readRepoYAML(dataciteText)
-	if err != nil {
-		log.Print("DOI file invalid")
-		regRequest.Message = template.HTML(msgInvalidDOI + " <p><i>" + err.Error() + "</i>")
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	licenseText, err := readFileAtURL(repoFileURL(conf, regRequest.Repository, "LICENSE"))
-	if err != nil {
-		log.Printf("Failed to fetch LICENSE: %s", err.Error())
-		log.Printf("Request data: %+v", regRequest)
-		regRequest.ErrorMessages = []string{fmt.Sprintf("Failed to fetch LICENSE: %s", err.Error())}
-		regRequest.Message = template.HTML(msgNoLicenseFile)
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
-	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
-		// License file doesn't match specified license
-		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
-		log.Print(errmsg)
-		log.Printf("Request data: %+v", reqdata)
-		regRequest.Message = template.HTML(msgLicenseMismatch)
-		tmpl, err := prepareTemplates("RequestFailurePage")
-		if err != nil {
-			log.Printf("Failed to parse requestpage template: %s", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		tmpl.Execute(w, regRequest)
-		return
-	}
-
-	// All good: Render request page
-	tmpl, err := prepareTemplates("DOIInfo", "RequestPage")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		// TODO: Notify via email
-		return
-	}
-
-	j, _ := json.MarshalIndent(repoMetadata, "", "  ")
-	log.Printf("Received DOI information: %s", string(j))
-
-	regRequest.Metadata.YAMLData = repoMetadata
-	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
-	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
-	regRequest.Metadata.ForkRepository = "" // not forked yet
-
-	err = tmpl.Execute(w, regRequest)
-	if err != nil {
-		log.Printf("Error rendering template: %s", err.Error())
-	}
-}
-
-// decryptRequestData decrypts the submitted data into a map.  Returns with
-// error if the decryption fails, the encrypted data is not a valid JSON
-// object, or if any of the expected keys (username, realname, repository,
-// email) are not present.
-func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, error) {
-	plaintext, err := libgin.DecryptURLString([]byte(key), regrequest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decrypt verification string: %s", err.Error())
-	}
-
-	data := libgin.DOIRequestData{}
-	err = json.Unmarshal([]byte(plaintext), &data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal request data: %s", err.Error())
-	}
-
-	// Required info: username, repo, email
-	if data.Username == "" || data.Repository == "" || data.Email == "" {
-		return nil, fmt.Errorf("invalid request: required key is missing or empty")
-	}
-
-	return &data, nil
-}
-
-func web(cmd *cobra.Command, args []string) {
-	log.Printf("Starting up %s", cmd.Version)
-
-	config, err := loadconfig()
-	if err != nil {
-		log.Fatalf("Startup failed: %v", err)
-	}
-
-	// Pretty print configuration for debugging, but hide sensitive stuff
-	cc := *config
-	cc.Key = "[HIDDEN]"
-	cc.GIN.Password = "[HIDDEN]"
-	j, _ := json.MarshalIndent(cc, "", "  ")
-	log.Print(string(j))
-
-	log.Printf("Logging in to GIN (%s) as %s", config.GIN.Session.WebAddress(), config.GIN.Username)
-	err = config.GIN.Session.Login(config.GIN.Username, config.GIN.Password, "gin-doi")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer config.GIN.Session.Logout()
-
-	jobQueue := make(chan *RegistrationJob, config.MaxQueue)
-	dispatcher := newDispatcher(jobQueue, config.MaxWorkers)
-	dispatcher.run(newWorker)
-
-	// Start the HTTP handlers.
-
-	// Root redirects to storage URL (DOI listing page)
-	http.Handle("/", http.RedirectHandler(config.Storage.StoreURL, http.StatusMovedPermanently))
-
-	// register renders the info page with the registration button
-	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Got request: %s", r.URL.String())
-		renderRequestPage(w, r, config)
-	})
-
-	// submit starts the registration job
-	http.HandleFunc("/submit", func(w http.ResponseWriter, r *http.Request) {
-		startDOIRegistration(w, r, jobQueue, config)
-	})
-
-	// assets fetches static assets using a custom FileSystem
-	assetserver := http.FileServer(newAssetFS("/assets"))
-	http.Handle("/assets/", http.StripPrefix("/assets/", assetserver))
-
-	fmt.Printf("Listening for connections on port %d\n", config.Port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Port), nil))
 }
