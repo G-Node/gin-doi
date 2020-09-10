@@ -449,7 +449,8 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	}
 
 	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
-		return nil, fmt.Errorf(strings.Join(msgs, "\n"))
+		err := fmt.Errorf("%s<i><p>%s</p></i>", msgInvalidDOI, strings.Join(msgs, "</p><p>"))
+		return nil, err
 	}
 
 	return repoMetadata, nil

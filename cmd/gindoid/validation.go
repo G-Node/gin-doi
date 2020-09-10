@@ -8,12 +8,10 @@ import (
 	"github.com/G-Node/libgin/libgin"
 )
 
-// allowedValues for various keys of the datacite.yml file.  All keys and
-// values are lowercase and should be compared as such for case insensitive
-// matching.
+// allowedValues for various keys of the datacite.yml file.
 var allowedValues = map[string][]string{
-	"reftype":      {"issupplementto", "isdescribedby", "isreferencedby"},
-	"resourcetype": {"dataset", "software", "datapaper", "image", "text"},
+	"reftype":      {"IsSupplementTo", "IsDescribedBy", "IsReferencedBy"},
+	"resourcetype": {"Dataset", "Software", "DataPaper", "Image", "Text"},
 }
 
 // collectWarnings checks for non-critical missing information or issues that
