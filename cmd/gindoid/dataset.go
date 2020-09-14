@@ -2,17 +2,22 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -332,4 +337,121 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 		}
 	}
 	return nil
+}
+
+// repoFileURL returns the full URL to a file on the master branch of a
+// repository.
+func repoFileURL(conf *Configuration, repopath string, filename string) string {
+	u, err := url.Parse(GetGINURL(conf))
+	if err != nil {
+		// not configured properly; return nothing
+		return ""
+	}
+	fetchRepoPath := fmt.Sprintf("%s/raw/master/%s", repopath, filename)
+	u.Path = fetchRepoPath
+	return u.String()
+}
+
+// readFileAtURL returns the contents of a file at a given URL.
+func readFileAtURL(url string) ([]byte, error) {
+	client := &http.Client{}
+	log.Printf("Fetching file at %q", url)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Request failed: %s", err.Error())
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Request returned non-OK status: %s", resp.Status)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Could not read file contents: %s", err.Error())
+		return nil, err
+	}
+	return body, nil
+}
+
+// readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.
+func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
+	yamlInfo := &libgin.RepositoryYAML{}
+	err := yaml.Unmarshal(infoyml, yamlInfo)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
+	}
+	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
+		log.Print("DOI file is missing entries")
+		return nil, fmt.Errorf(strings.Join(missing, " "))
+	}
+	return yamlInfo, nil
+}
+
+// RegistrationRequest holds the encrypted and decrypted data of a registration
+// request, as well as the unmarshalled data of the target repository's
+// datacite.yml metadata.  It's used to render the preparation page (request
+// page) for the user to review the metadata before finalising the request.
+type RegistrationRequest struct {
+	// Encrypted request data from GIN.
+	EncryptedRequestData string
+	// Decrypted and unmarshalled request data.
+	*libgin.DOIRequestData
+	// Used to display error or warning messages to the user through the templates.
+	Message template.HTML
+	// Metadata for the repository being registered
+	Metadata *libgin.RepositoryMetadata
+	// Errors during the registration process that get sent in the body of the
+	// email to the administrators.
+	ErrorMessages []string
+}
+
+func (d *RegistrationRequest) GetDOIURI() string {
+	var re = regexp.MustCompile(`(.+)\/`)
+	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
+}
+
+func (d *RegistrationRequest) AsHTML() template.HTML {
+	return template.HTML(d.Message)
+}
+
+// readAndValidate loads the datacite.yml file at the given URL, validates it
+// and returns the RepositoryYAML struct or an error message if the retrieval,
+// parsing, or validation fails.  The message is appropriate for display to the
+// user.
+func readAndValidate(conf *Configuration, repository string) (*libgin.RepositoryYAML, error) {
+	dataciteText, err := readFileAtURL(repoFileURL(conf, repository, "datacite.yml"))
+	if err != nil {
+		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
+		err := fmt.Errorf("%s <p><i>No datacite.yml file found in repository</i></p>", msgInvalidDOI)
+		return nil, err
+	}
+
+	repoMetadata, err := readRepoYAML(dataciteText)
+	if err != nil {
+		log.Print("DOI file invalid")
+		err := fmt.Errorf("%s<p><i>%s</i></p>", msgInvalidDOI, err.Error())
+		return nil, err
+	}
+
+	licenseText, err := readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
+	if err != nil {
+		log.Printf("Failed to fetch LICENSE: %s", err.Error())
+		return nil, fmt.Errorf(msgNoLicenseFile)
+	}
+
+	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
+	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
+		// License file doesn't match specified license
+		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
+		log.Print(errmsg)
+		return nil, fmt.Errorf(msgLicenseMismatch)
+	}
+
+	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
+		err := fmt.Errorf("%s<i><p>%s</p></i>", msgInvalidDOI, strings.Join(msgs, "</p><p>"))
+		return nil, err
+	}
+
+	return repoMetadata, nil
 }

@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,21 @@ import (
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 )
+
+const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
+
+// randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
+func randAlnum(n int) string {
+	N := len(ALNUM)
+
+	chrs := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
+	for idx := range chrs {
+		chrs[idx] = ALNUM[rand.Intn(N)]
+	}
+
+	return string(chrs)
+}
 
 // Global function map for the templates that render the DOI information
 // (request page and landing page).
@@ -406,34 +422,4 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 		}
 	}
 	return tmpl, nil
-
-}
-
-// collectWarnings checks for non-critical missing information or issues that
-// may need admin attention. These should be sent with the followup
-// notification email.
-func collectWarnings(job *RegistrationJob) (warnings []string) {
-	// Check if any funder IDs are missing
-	if job.Metadata.FundingReferences != nil {
-		for _, funder := range *job.Metadata.FundingReferences {
-			if funder.Identifier == nil || funder.Identifier.ID == "" {
-				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
-			}
-		}
-	}
-
-	// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
-	// This shouldn't be an issue, but it can cause formatting issues
-	for idx, ref := range job.Metadata.YAMLData.References {
-		if ref.Name != "" {
-			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
-		}
-	}
-
-	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
-	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
-		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
-	}
-
-	return
 }
