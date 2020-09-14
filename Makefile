@@ -40,7 +40,7 @@ $(BUILDLOC)/$(APP): $(SOURCES)
 test: coverage
 
 coverage: $(SOURCES)
-	go test -coverpkg=./... -coverprofile=coverage ./...
+	go test -race -coverpkg=./... -coverprofile=coverage ./...
 
 showcoverage: coverage
 	go tool cover -html=coverage
