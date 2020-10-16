@@ -20,6 +20,8 @@ const DOIInfo = `
 </div>
 <hr>
 
+{{NewVersionNotice .}}
+
 {{if .Descriptions}}
 	<h3>Description</h3>
 	<p itemprop="description">{{with index .Descriptions 0}}{{.Content}}{{end}}</p>
@@ -50,4 +52,6 @@ const DOIInfo = `
 		{{end}}
 	</ul>
 {{end}}
+
+{{OldVersionLink .}}
 `

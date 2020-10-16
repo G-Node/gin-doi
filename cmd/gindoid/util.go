@@ -47,6 +47,8 @@ var tmplfuncs = template.FuncMap{
 	"FormatIssuedDate": FormatIssuedDate,
 	"KeywordPath":      KeywordPath,
 	"FormatAuthorList": FormatAuthorList,
+	"NewVersionNotice": NewVersionNotice,
+	"OldVersionLink":   OldVersionLink,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -424,4 +426,12 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 		}
 	}
 	return tmpl, nil
+}
+
+func NewVersionNotice(md *libgin.RepositoryMetadata) string {
+	return ""
+}
+
+func OldVersionLink(md *libgin.RepositoryMetadata) string {
+	return ""
 }
