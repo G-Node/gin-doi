@@ -428,10 +428,30 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 	return tmpl, nil
 }
 
-func NewVersionNotice(md *libgin.RepositoryMetadata) string {
+func NewVersionNotice(md *libgin.RepositoryMetadata) template.HTML {
+	for _, relid := range md.RelatedIdentifiers {
+		if relid.RelationType == "IsOldVersionOf" {
+			noticeContainer := `
+<div class="ui warning message">
+	<div class="header">New dataset version</div>
+	<p>%s<p>
+</div>`
+			url := fmt.Sprintf("https://doi.org/%s", relid.Identifier)
+			text := fmt.Sprintf("A newer version of this dataset is available at <a href=%s>%s</a>", url, url)
+			return template.HTML(fmt.Sprintf(noticeContainer, text))
+		}
+	}
 	return ""
 }
 
-func OldVersionLink(md *libgin.RepositoryMetadata) string {
+func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
+	for _, relid := range md.RelatedIdentifiers {
+		if relid.RelationType == "IsNewVersionOf" {
+			url := fmt.Sprintf("https://doi.org/%s", relid.Identifier)
+			header := "<h3>Versions</h3>"
+			text := fmt.Sprintf("An older version of this dataset is available at <a href=%s>%s</a>", url, url)
+			return template.HTML(header + "\n" + text)
+		}
+	}
 	return ""
 }
