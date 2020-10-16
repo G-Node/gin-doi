@@ -304,9 +304,11 @@ func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	// map IDs to new references for easier construction from the two sources
 	// but also use the slice to maintain order
 	for _, relid := range md.RelatedIdentifiers {
-		if relid.RelationType == "IsVariantFormOf" || relid.RelationType == "IsIdenticalTo" {
+		if relid.RelationType == "IsVariantFormOf" || relid.RelationType == "IsIdenticalTo" ||
+			relid.RelationType == "IsNewVersionOf" || relid.RelationType == "IsOldVersionOf" {
 			// IsVariantFormOf is used for the URLs.
 			// IsIdenticalTo is used for the old DOI URLs.
+			// Is{New,Old}Version of is used for {new,old} versions of the same dataset.
 			// Here we assume that any other type is a citation
 			continue
 		}
