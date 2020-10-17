@@ -47,6 +47,8 @@ var tmplfuncs = template.FuncMap{
 	"FormatIssuedDate": FormatIssuedDate,
 	"KeywordPath":      KeywordPath,
 	"FormatAuthorList": FormatAuthorList,
+	"NewVersionNotice": NewVersionNotice,
+	"OldVersionLink":   OldVersionLink,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -304,9 +306,11 @@ func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	// map IDs to new references for easier construction from the two sources
 	// but also use the slice to maintain order
 	for _, relid := range md.RelatedIdentifiers {
-		if relid.RelationType == "IsVariantFormOf" || relid.RelationType == "IsIdenticalTo" {
+		if relid.RelationType == "IsVariantFormOf" || relid.RelationType == "IsIdenticalTo" ||
+			relid.RelationType == "IsNewVersionOf" || relid.RelationType == "IsOldVersionOf" {
 			// IsVariantFormOf is used for the URLs.
 			// IsIdenticalTo is used for the old DOI URLs.
+			// Is{New,Old}Version of is used for {new,old} versions of the same dataset.
 			// Here we assume that any other type is a citation
 			continue
 		}
@@ -422,4 +426,32 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 		}
 	}
 	return tmpl, nil
+}
+
+func NewVersionNotice(md *libgin.RepositoryMetadata) template.HTML {
+	for _, relid := range md.RelatedIdentifiers {
+		if relid.RelationType == "IsOldVersionOf" {
+			noticeContainer := `
+<div class="ui warning message">
+	<div class="header">New dataset version</div>
+	<p>%s<p>
+</div>`
+			url := fmt.Sprintf("https://doi.org/%s", relid.Identifier)
+			text := fmt.Sprintf("A newer version of this dataset is available at <a href=%s>%s</a>", url, url)
+			return template.HTML(fmt.Sprintf(noticeContainer, text))
+		}
+	}
+	return ""
+}
+
+func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
+	for _, relid := range md.RelatedIdentifiers {
+		if relid.RelationType == "IsNewVersionOf" {
+			url := fmt.Sprintf("https://doi.org/%s", relid.Identifier)
+			header := "<h3>Versions</h3>"
+			text := fmt.Sprintf("An older version of this dataset is available at <a href=%s>%s</a>", url, url)
+			return template.HTML(header + "\n" + text)
+		}
+	}
+	return ""
 }

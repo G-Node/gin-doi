@@ -21,7 +21,7 @@ LDFLAGS = -ldflags="-X main.appversion=$(VERNUM) -X main.build=$(BUILDNUM) -X ma
 
 SOURCES = $(shell find . -type f -iname "*.go") version go.mod go.sum
 
-.PHONY: $(APP) install clean uninstall test coverage showcoverage
+.PHONY: $(APP) install clean uninstall test
 
 $(APP): $(BUILDLOC)/$(APP)
 
@@ -40,7 +40,7 @@ $(BUILDLOC)/$(APP): $(SOURCES)
 test: coverage
 
 coverage: $(SOURCES)
-	go test -coverpkg=./... -coverprofile=coverage ./...
+	go test -race -coverpkg=./... -coverprofile=coverage ./...
 
-showcoverage: coverage
-	go tool cover -html=coverage
+coverage.html: coverage
+	go tool cover -html=coverage -o coverage.html
