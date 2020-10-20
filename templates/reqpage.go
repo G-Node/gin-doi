@@ -76,7 +76,7 @@ const RequestPage = `<!DOCTYPE html>
 								<li>Did you upload all data?</li>
 								<li>Does your repository contain a comprehensive description of the data (preferably in the README.md file)?</li>
 								<li>Does your repository contain a LICENSE file with a license matching the one indicated in datacite.yml?</li>
-								<li>Does your repository contain code or content licensed under different terms? You can include a separate LICENSE file for parts of the repository and describe its application in the README.</li>
+								<li>Does your repository contain code or content licensed under different terms? Please include a separate LICENSE file for parts of the repository and describe its application in the README.</li>
 							</ul>
 							<p><b>Please be aware that the entire repository will be published.</b></p>
 							<p><b>Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.</b></p>
