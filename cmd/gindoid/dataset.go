@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -13,10 +14,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
 	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
+	"github.com/gogs/go-gogs-client"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -62,6 +65,12 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		preperrors = append(preperrors, fmt.Sprintf("zip file created, but failed to parse StoreURL: %s", err.Error()))
 	}
 	job.Metadata.AddURLs(repoURL, forkURL, archiveURL)
+
+	// Check if there are older versions of the same dataset
+	if oldID := getPreviousDOI(job); oldID != "" {
+		relatedIdentifier := libgin.RelatedIdentifier{Identifier: oldID, Type: "DOI", RelationType: "IsNewVersionOf"}
+		job.Metadata.RelatedIdentifiers = append(job.Metadata.RelatedIdentifiers, relatedIdentifier)
+	}
 
 	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"))
 
@@ -454,4 +463,89 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	}
 
 	return repoMetadata, nil
+}
+
+// getPreviousDOI checks if the repository to be registered has a fork with a
+// registered DOI under the service's user, which indicates that it already has
+// been registered and this is a new version of the same dataset. If at any
+// point it fails with an error, it logs the error and returns an empty string.
+func getPreviousDOI(job *RegistrationJob) string {
+	// We could infer the repository's fork path by replacing the owner in the
+	// string with 'doi' (or the service's user), but it might be the case that
+	// a DOI owned repository already exists with the same name and is *not* a
+	// fork of this one (repo name collision).
+	client := job.Config.GIN.Session
+	repo := job.Metadata.SourceRepository
+	forks, err := getRepoForks(client, repo)
+	if err != nil {
+		return ""
+	}
+	for _, fork := range forks {
+		if strings.ToLower(fork.Owner.UserName) == client.Username {
+			// fork owned by DOI user: Check for tags
+			prevDOI, err := getLatestDOITag(client, &fork, job.Config.DOIBase)
+			if err != nil {
+				return ""
+			}
+			return prevDOI
+		}
+	}
+	return ""
+}
+
+// getRepoForks returns a list of forks for the repository.
+func getRepoForks(client *ginclient.Client, repo string) ([]gogs.Repository, error) {
+	reqpath := fmt.Sprintf("api/v1/repos/%s/forks", repo)
+	resp, err := client.Get(reqpath)
+	if err != nil {
+		log.Printf("Failed get forks for %q: %s", repo, err.Error())
+		return nil, err
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed read forks from response for %q: %s", repo, err.Error())
+		return nil, err
+	}
+	forks := make([]gogs.Repository, 0)
+	err = json.Unmarshal(data, &forks)
+	if err != nil {
+		log.Printf("Failed to unmarshal forks for %q: %s", repo, err.Error())
+	}
+	return forks, err
+}
+
+// getLatestDOITag returns the most recent repository tag that matches our DOI
+// prefix.
+func getLatestDOITag(client *ginclient.Client, repo *gogs.Repository, doiBase string) (string, error) {
+	// NOTE: The following API endpoint isn't available on GIN, but it has been
+	// added to GOGS upstream. This wont work until we update GIN Web.
+	reqpath := fmt.Sprintf("api/v1/repos/%s/releases", repo.FullName)
+	resp, err := client.Get(reqpath)
+	if err != nil {
+		log.Printf("Failed to get releases for %q: %s", repo.FullName, err.Error())
+		return "", err
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read releases from response for %q: %s", repo.FullName, err.Error())
+		return "", err
+	}
+	tags := make([]gogs.Release, 0)
+	err = json.Unmarshal(data, &tags)
+	if err != nil {
+		log.Printf("Failed to unmarshal releases for %q: %s", repo.FullName, err.Error())
+		return "", err
+	}
+	var latestTime int64
+	latestTag := ""
+	for _, tag := range tags {
+		if strings.Contains(tag.Name, doiBase) && libgin.IsRegisteredDOI(tag.Name) {
+			tagTime := tag.Created.Unix()
+			if tagTime > latestTime {
+				latestTag = tag.Name
+				latestTime = tagTime
+			}
+		}
+	}
+	return latestTag, nil
 }
