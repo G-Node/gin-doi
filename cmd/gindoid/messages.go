@@ -14,7 +14,6 @@ const (
 			<div class="header">The DOI server has started archiving your repository.</div>
 		We have reserved the following DOI for your dataset:<br>
 		<div class="ui label label-default">%s</div><br>
-		In rare cases the final DOI might be different.<br>
 		Please note that the final step in the registration process requires us to manually review your request.
 		It may therefore take up to two work days until the DOI is finally registered and your data becomes available.
 		We will notify you via email once the process is finished.<br>
@@ -26,7 +25,6 @@ const (
 
 We have received your request to publish the GIN repository %s.
 The following DOI has been reserved: %s
-In rare cases the final DOI might be different.
 
 Please note that the final step in the registration process requires us to manually review your request.  It may therefore take up to two work days until the DOI is finally registered and your data becomes available.
 We will notify you via email once the process is finished.
