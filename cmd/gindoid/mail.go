@@ -4,11 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/smtp"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/gogs/go-gogs-client"
 )
 
 const (
@@ -17,7 +21,7 @@ const (
 )
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
-// sendMail function to send it.
+// sendMail function to send it. Also opens an issue on the XMLRepo if set.
 func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
@@ -97,6 +101,28 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 		log.Printf("Notifying %s", DEFAULTTO)
 		recipients = []string{DEFAULTTO}
 	}
+
+	// open issue
+	xmlrepo := job.Config.XMLRepo
+	log.Printf("Opening issue on %s", xmlrepo)
+	xmldata, _ := job.Metadata.DataCite.Marshal()
+	path := fmt.Sprintf("api/v1/repos/%s/issues", xmlrepo)
+	data := gogs.CreateIssueOption{
+		Title: fmt.Sprintf("New publication request: %s (%s)", repopath, doi),
+		Body:  fmt.Sprintf("%s\n\n-----\n\nDOI XML:\n\n```xml\n%s\n```", body, xmldata),
+	}
+	client := job.Config.GIN.Session
+	resp, err := client.Post(path, data)
+	if err != nil {
+		log.Printf("Failed to open issue on XML repo: %s", err.Error())
+	} else if resp.StatusCode != http.StatusCreated {
+		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
+			log.Printf("Failed to open issue on XML repo: [%d] %s", resp.StatusCode, msg)
+		} else {
+			log.Printf("Failed to open issue on XML repo: [%d] failed to read response body", resp.StatusCode)
+		}
+	}
+
 	return sendMail(recipients, subject, body, conf)
 }
 
