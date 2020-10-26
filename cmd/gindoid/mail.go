@@ -80,13 +80,30 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 %s
 `
 	body = fmt.Sprintf(body, repopath, repourl, namestr, useremail, xmlurl, doitarget, errorlist, warninglist)
-	return sendMail(subject, body, conf)
+
+	recipients := make([]string, 0)
+	// Recipient list is read every time a sendMail() is called.
+	// This way, the recipient list can be changed without restarting the service.
+	emailfile, err := os.Open(conf.Email.RecipientsFile)
+	if err == nil {
+		defer emailfile.Close()
+		filereader := bufio.NewReader(emailfile)
+		for address, lerr := filereader.ReadString('\n'); lerr == nil; address, lerr = filereader.ReadString('\n') {
+			address = strings.TrimSpace(address)
+			recipients = append(recipients, address)
+		}
+	} else {
+		log.Printf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
+		log.Printf("Notifying %s", DEFAULTTO)
+		recipients = []string{DEFAULTTO}
+	}
+	return sendMail(recipients, subject, body, conf)
 }
 
 // sendMail sends an email with a given subject and body. The supplied
 // configuration specifies the server to use, the from address, and a file that
 // lists the addresses of the recipients.
-func sendMail(subject, body string, conf *Configuration) error {
+func sendMail(to []string, subject, body string, conf *Configuration) error {
 	if conf.Email.Server == "" {
 		log.Printf("Fake mail body: %s", body)
 		return nil
@@ -101,25 +118,19 @@ func sendMail(subject, body string, conf *Configuration) error {
 	// Set the sender and recipient.
 	c.Mail(conf.Email.From)
 	message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
-
-	// Recipient list is read every time a sendMail() is called.
-	// This way, the recipient list can be changed without restarting the service.
-	emailfile, err := os.Open(conf.Email.RecipientsFile)
-	if err == nil {
-		defer emailfile.Close()
-		filereader := bufio.NewReader(emailfile)
-		for address, lerr := filereader.ReadString('\n'); lerr == nil; address, lerr = filereader.ReadString('\n') {
+	if to != nil && len(to) > 0 {
+		for _, address := range to {
 			address = strings.TrimSpace(address)
 			log.Printf("To: %s", address)
 			c.Rcpt(address)
 			message = fmt.Sprintf("%s\nTo: %s", message, address)
 		}
 	} else {
-		log.Printf("Email file %s could not be read: %s", conf.Email.RecipientsFile, err.Error())
-		log.Printf("Notifying %s", DEFAULTTO)
-		log.Printf("To: %s", DEFAULTTO)
+		log.Print("Potential error: Mail server configured but no recipients specified.")
+		log.Printf("Notifying %q", DEFAULTTO)
 		c.Rcpt(DEFAULTTO)
 		message = fmt.Sprintf("%s\nTo: %s", message, DEFAULTTO)
+		body = fmt.Sprintf("Potential error: The following message had no specified recipients\n\n%s", body)
 	}
 
 	message = fmt.Sprintf("%s\n\n%s", message, body)
