@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/gogs/go-gogs-client"
 )
 
@@ -102,28 +104,14 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 		recipients = []string{DEFAULTTO}
 	}
 
-	// open issue
-	xmlrepo := job.Config.XMLRepo
-	log.Printf("Opening issue on %s", xmlrepo)
-	xmldata, _ := job.Metadata.DataCite.Marshal()
-	path := fmt.Sprintf("api/v1/repos/%s/issues", xmlrepo)
-	data := gogs.CreateIssueOption{
-		Title: fmt.Sprintf("New publication request: %s (%s)", repopath, doi),
-		Body:  fmt.Sprintf("%s\n\n-----\n\nDOI XML:\n\n```xml\n%s\n```", body, xmldata),
+	issueErr := createIssue(job, body, conf)
+	mailErr := sendMail(recipients, subject, body, conf)
+	if issueErr != nil && mailErr != nil {
+		// both failed; return error to let the user know that the request failed
+		// The underlying errors are already logged
+		return fmt.Errorf("Failed to notify admins of new request: %s (%s)", job.Metadata.SourceRepository, job.Metadata.Identifier.ID)
 	}
-	client := job.Config.GIN.Session
-	resp, err := client.Post(path, data)
-	if err != nil {
-		log.Printf("Failed to open issue on XML repo: %s", err.Error())
-	} else if resp.StatusCode != http.StatusCreated {
-		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
-			log.Printf("Failed to open issue on XML repo: [%d] %s", resp.StatusCode, msg)
-		} else {
-			log.Printf("Failed to open issue on XML repo: [%d] failed to read response body", resp.StatusCode)
-		}
-	}
-
-	return sendMail(recipients, subject, body, conf)
+	return nil
 }
 
 // notifyUser prepares an email notification to the user that successfully
@@ -199,4 +187,89 @@ func sendMail(to []string, subject, body string, conf *Configuration) error {
 	}
 	log.Print("sendMail Done")
 	return nil
+}
+
+// createIssue creates a new issue on the configured XMLRepo repository or
+// updates an existing one if the title matches.
+func createIssue(job *RegistrationJob, content string, conf *Configuration) error {
+	repopath := job.Metadata.SourceRepository
+	doi := job.Metadata.Identifier.ID
+	xmlrepo := job.Config.XMLRepo
+	log.Printf("Opening issue on %s", xmlrepo)
+	xmldata, _ := job.Metadata.DataCite.Marshal()
+	title := fmt.Sprintf("New publication request: %s (%s)", repopath, doi)
+	body := fmt.Sprintf("%s\n\n-----\n\nDOI XML:\n\n```xml\n%s\n```", content, xmldata)
+	client := job.Config.GIN.Session
+
+	var resp *http.Response
+	var posterr error
+	if issueID := getIssueID(client, xmlrepo, title); issueID >= 0 {
+		path := fmt.Sprintf("api/v1/repos/%s/issues/%d/comments", xmlrepo, issueID)
+		data := gogs.CreateIssueCommentOption{Body: body}
+		resp, posterr = client.Post(path, data)
+	} else {
+		path := fmt.Sprintf("api/v1/repos/%s/issues", xmlrepo)
+		data := gogs.CreateIssueOption{
+			Title: title,
+			Body:  body,
+		}
+		resp, posterr = client.Post(path, data)
+	}
+	if posterr != nil {
+		log.Printf("Failed to create issue or comment on XML repo: %s", posterr.Error())
+		return posterr
+	} else if resp.StatusCode != http.StatusCreated {
+		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
+			errmsg := fmt.Sprintf("Failed to create issue or comment on XML repo: [%d] %s", resp.StatusCode, msg)
+			log.Printf(errmsg)
+			return fmt.Errorf(errmsg)
+		} else {
+			msg := fmt.Sprintf("Failed to open issue on XML repo: [%d] failed to read response body: %s", resp.StatusCode, err.Error())
+			log.Print(msg)
+			return fmt.Errorf(msg)
+		}
+	}
+	return nil
+}
+
+// getIssueID returns the ID for an issue on a given repo that matches the
+// given title. It returns -1 if no issue matching the title is found or an
+// error occurs.
+func getIssueID(client *ginclient.Client, repo, title string) int64 {
+	path := fmt.Sprintf("api/v1/repos/%s/issues", repo)
+	resp, err := client.Get(path)
+	if err != nil {
+		// log the error and return with -1 and a new issue will be created
+		log.Printf("Failed to get issues for repository %s: %s", repo, err.Error())
+		return -1
+	} else if resp.StatusCode != http.StatusOK {
+		// log the error and return with -1 and a new issue will be created
+		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
+			log.Printf("Failed to get issues for repository %s: [%d] %s", repo, resp.StatusCode, msg)
+		} else {
+			log.Printf("Failed to get issues for repository %s: [%d] failed to read response body: %s", repo, resp.StatusCode, err.Error())
+		}
+		return -1
+	}
+
+	var issues []gogs.Issue
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to get issues for repository %s: %s", repo, err.Error())
+		return -1
+	}
+
+	if err := json.Unmarshal(content, &issues); err != nil {
+		log.Printf("Failed to get issues for repository %s: failed to unmarshal response: %s", repo, err.Error())
+		return -1
+	}
+
+	for _, issue := range issues {
+		if strings.EqualFold(issue.Title, title) {
+			log.Printf("Found issue matching %s: %d", title, issue.Index)
+			return issue.ID
+		}
+	}
+
+	return -1
 }
