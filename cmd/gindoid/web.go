@@ -221,7 +221,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	// exiting beyond this point should trigger an email notification
 	defer func() {
-		err := notifyAdmin(regJob, errors, nil)
+		// This is the first notification, so include the entire info
+		err := notifyAdmin(regJob, errors, nil, true)
 		if err != nil {
 			// Email send failed
 			// Log the error

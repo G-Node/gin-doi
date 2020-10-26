@@ -24,7 +24,9 @@ const (
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
 // sendMail function to send it. Also opens an issue on the XMLRepo if set.
-func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
+// If fullinfo is 'false', only errors and warnings are sent in the
+// notification.
+func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -73,19 +75,20 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 		namestr = fmt.Sprintf("%s (%s)", namestr, realname)
 	}
 
-	body := `A new DOI registration request has been received.
+	body := ""
+	if fullinfo {
+		infofmt := `A new DOI registration request has been received.
 
 - Repository: %s [%s]
 - User: %s
 - Email address: %s
 - DOI XML: %s
 - DOI target URL: %s
-
-%s
-
-%s
 `
-	body = fmt.Sprintf(body, repopath, repourl, namestr, useremail, xmlurl, doitarget, errorlist, warninglist)
+		body = fmt.Sprintf(infofmt, repopath, repourl, namestr, useremail, xmlurl, doitarget)
+	}
+
+	body = fmt.Sprintf("%s\n\n%s\n\n%s", body, errorlist, warninglist)
 
 	recipients := make([]string, 0)
 	// Recipient list is read every time a sendMail() is called.
@@ -104,7 +107,14 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 		recipients = []string{DEFAULTTO}
 	}
 
-	issueErr := createIssue(job, body, conf)
+	xmldata, _ := job.Metadata.DataCite.Marshal()
+	issueContent := body
+	if fullinfo {
+		// include xml file content
+		issueContent = fmt.Sprintf("%s\n\n-----\n\nDOI XML:\n\n```xml\n%s\n```", body, xmldata)
+	}
+	issueErr := createIssue(job, issueContent, conf)
+	// TODO: Add link to issue in email message
 	mailErr := sendMail(recipients, subject, body, conf)
 	if issueErr != nil && mailErr != nil {
 		// both failed; return error to let the user know that the request failed
@@ -196,22 +206,20 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) erro
 	doi := job.Metadata.Identifier.ID
 	xmlrepo := job.Config.XMLRepo
 	log.Printf("Opening issue on %s", xmlrepo)
-	xmldata, _ := job.Metadata.DataCite.Marshal()
 	title := fmt.Sprintf("New publication request: %s (%s)", repopath, doi)
-	body := fmt.Sprintf("%s\n\n-----\n\nDOI XML:\n\n```xml\n%s\n```", content, xmldata)
 	client := job.Config.GIN.Session
 
 	var resp *http.Response
 	var posterr error
 	if issueID := getIssueID(client, xmlrepo, title); issueID >= 0 {
 		path := fmt.Sprintf("api/v1/repos/%s/issues/%d/comments", xmlrepo, issueID)
-		data := gogs.CreateIssueCommentOption{Body: body}
+		data := gogs.CreateIssueCommentOption{Body: content}
 		resp, posterr = client.Post(path, data)
 	} else {
 		path := fmt.Sprintf("api/v1/repos/%s/issues", xmlrepo)
 		data := gogs.CreateIssueOption{
 			Title: title,
-			Body:  body,
+			Body:  content,
 		}
 		resp, posterr = client.Post(path, data)
 	}
