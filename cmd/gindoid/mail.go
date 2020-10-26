@@ -213,6 +213,11 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 	title := fmt.Sprintf("New publication request: %s (%s)", repopath, doi)
 	client := job.Config.GIN.Session
 
+	if xmlrepo == "" {
+		log.Printf("Issue content body: %s", content)
+		return 0, nil
+	}
+
 	var resp *http.Response
 	var posterr error
 	var existingIssue int64 = 0
