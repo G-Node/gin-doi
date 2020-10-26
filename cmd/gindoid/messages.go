@@ -14,8 +14,7 @@ const (
 			<div class="header">The DOI server has started archiving your repository.</div>
 		We have reserved the following DOI for your dataset:<br>
 		<div class="ui label label-default">%s</div><br>
-		Please note that the final step in the registration process requires us to manually review your request.
-		It may therefore take up to two work days until the DOI is finally registered and your data becomes available.
+		Please note that the registration process includes a manual curation step. It may therefore take up to two work days until the DOI is available. If any changes to the repository should be necessary you will be contacted by the curation team.<br>
 		We will notify you via email once the process is finished.<br>
 		<div class="ui tabs divider"> </div>
 		<b>This page can safely be closed. You do not need to keep it open.</b>
@@ -26,7 +25,7 @@ const (
 We have received your request to publish the GIN repository %s.
 The following DOI has been reserved: %s
 
-Please note that the final step in the registration process requires us to manually review your request.  It may therefore take up to two work days until the DOI is finally registered and your data becomes available.
+Please note that the registration process includes a manual curation step. It may therefore take up to two work days until the DOI is available. If any changes to the repository should be necessary you will be contacted by the curation team.
 We will notify you via email once the process is finished.
 
 If you would like to make any changes to the dataset before it is published, or if you have any questions or concerns, feel free to contact us at gin@g-node.org.
