@@ -100,6 +100,30 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 	return sendMail(recipients, subject, body, conf)
 }
 
+// notifyUser prepares an email notification to the user that successfully
+// submitted a request.
+func notifyUser(job *RegistrationJob) error {
+	doi := job.Metadata.Identifier.ID
+	conf := job.Config
+	repopath := job.Metadata.SourceRepository
+	user := job.Metadata.RequestingUser
+	username := user.Username
+	realname := user.RealName
+	useremail := user.Email
+	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
+
+	name := username
+	if realname != "" {
+		name = realname
+	}
+	recipients := []string{useremail}
+
+	subject := fmt.Sprintf("DOI registration request: %s", repopath)
+	message := fmt.Sprintf(msgSubmitSuccessEmail, name, repourl, doi)
+
+	return sendMail(recipients, subject, message, conf)
+}
+
 // sendMail sends an email with a given subject and body. The supplied
 // configuration specifies the server to use, the from address, and a file that
 // lists the addresses of the recipients.

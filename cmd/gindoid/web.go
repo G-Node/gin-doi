@@ -292,6 +292,12 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	resData.Success = true
 	resData.Level = "success"
 	resData.Message = template.HTML(message)
+
+	// Send user email notification
+	if err := notifyUser(regJob); err != nil {
+		// Inform admins that user email failed
+		errors = append(errors, fmt.Sprintf("Failed to send user notification email: %s", err.Error()))
+	}
 }
 
 // renderResult renders the results of a registration request using the
