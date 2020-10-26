@@ -39,6 +39,9 @@ type Configuration struct {
 		// File path with email addresses to which notifications are sent
 		RecipientsFile string
 	}
+	// XMLRepo is the repository where the registered dataset XML files are
+	// stored
+	XMLRepo string
 	// Settings related to the storage location for published data and landing
 	// pages
 	Storage struct {
@@ -75,6 +78,8 @@ func loadconfig() (*Configuration, error) {
 	cfg.Storage.TargetDirectory = libgin.ReadConf("target")
 	cfg.Storage.StoreURL = libgin.ReadConf("storeurl")
 	cfg.Storage.XMLURL = libgin.ReadConf("xmlurl")
+
+	cfg.XMLRepo = libgin.ReadConf("xmlrepo")
 
 	cfg.Key = libgin.ReadConf("key")
 	maxqueue, err := strconv.Atoi(libgin.ReadConfDefault("maxqueue", "100"))
