@@ -52,7 +52,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 	if len(errors) > 0 {
 		errorlist = "The following errors occurred during the dataset preparation\n"
 		for idx, msg := range errors {
-			errorlist = fmt.Sprintf("%s	%d. %s\n", errorlist, idx+1, msg)
+			errorlist = fmt.Sprintf("%s%d. %s\n", errorlist, idx+1, msg)
 		}
 	}
 
@@ -60,7 +60,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 	if len(warnings) > 0 {
 		warninglist = "The following issues were detected and may need attention\n"
 		for idx, msg := range warnings {
-			warninglist = fmt.Sprintf("%s	%d. %s\n", warninglist, idx+1, msg)
+			warninglist = fmt.Sprintf("%s%d. %s\n", warninglist, idx+1, msg)
 		}
 	}
 
@@ -73,11 +73,11 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string) error {
 
 	body := `A new DOI registration request has been received.
 
-	Repository: %s [%s]
-	User: %s
-	Email address: %s
-	DOI XML: %s
-	DOI target URL: %s
+- Repository: %s [%s]
+- User: %s
+- Email address: %s
+- DOI XML: %s
+- DOI target URL: %s
 
 %s
 
