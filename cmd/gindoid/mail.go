@@ -116,9 +116,13 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	}
 	issueIndex, issueErr := createIssue(job, issueContent, conf)
 	issueURL, _ := url.Parse(GetGINURL(conf))
-	issueURL.Path = path.Join(job.Metadata.SourceRepository, "issues", fmt.Sprintf("%d", issueIndex))
-	mailContent := fmt.Sprintf("%s\n\nVisit %s for comments and updates on the request.", body, issueURL.String())
-	mailErr := sendMail(recipients, subject, mailContent, conf)
+	issueURL.Path = path.Join(conf.XMLRepo, "issues", fmt.Sprintf("%d", issueIndex))
+	if issueErr == nil {
+		body = fmt.Sprintf("%s\n\nVisit %s for comments and updates on the request.", body, issueURL.String())
+	} else {
+		body = fmt.Sprintf("%s\n\n%s", body, issueErr.Error())
+	}
+	mailErr := sendMail(recipients, subject, body, conf)
 	if issueErr != nil && mailErr != nil {
 		// both failed; return error to let the user know that the request failed
 		// The underlying errors are already logged
@@ -221,18 +225,22 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 	var resp *http.Response
 	var posterr error
 	var existingIssue int64 = 0
-	if issueID := getIssueID(client, xmlrepo, title); issueID >= 0 {
-		path := fmt.Sprintf("api/v1/repos/%s/issues/%d/comments", xmlrepo, issueID)
-		data := gogs.CreateIssueCommentOption{Body: content}
-		resp, posterr = client.Post(path, data)
-		existingIssue = issueID
-	} else {
-		path := fmt.Sprintf("api/v1/repos/%s/issues", xmlrepo)
-		data := gogs.CreateIssueOption{
-			Title: title,
-			Body:  content,
+	if issueID, err := getIssueID(client, xmlrepo, title); err == nil {
+		if issueID > 0 {
+			// Issue exists: Add comment
+			path := fmt.Sprintf("api/v1/repos/%s/issues/%d/comments", xmlrepo, issueID)
+			data := gogs.CreateIssueCommentOption{Body: content}
+			resp, posterr = client.Post(path, data)
+			existingIssue = issueID
+		} else {
+			// Create new issue
+			path := fmt.Sprintf("api/v1/repos/%s/issues", xmlrepo)
+			data := gogs.CreateIssueOption{
+				Title: title,
+				Body:  content,
+			}
+			resp, posterr = client.Post(path, data)
 		}
-		resp, posterr = client.Post(path, data)
 	}
 	if posterr != nil {
 		log.Printf("Failed to create issue or comment on XML repo: %s", posterr.Error())
@@ -267,15 +275,14 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 }
 
 // getIssueID returns the ID for an issue on a given repo that matches the
-// given title. It returns -1 if no issue matching the title is found or an
-// error occurs.
-func getIssueID(client *ginclient.Client, repo, title string) int64 {
+// given title. It returns 0 if no issue matching the title is found.
+func getIssueID(client *ginclient.Client, repo, title string) (int64, error) {
 	path := fmt.Sprintf("api/v1/repos/%s/issues", repo)
 	resp, err := client.Get(path)
 	if err != nil {
 		// log the error and return with -1 and a new issue will be created
 		log.Printf("Failed to get issues for repository %s: %s", repo, err.Error())
-		return -1
+		return -1, err
 	} else if resp.StatusCode != http.StatusOK {
 		// log the error and return with -1 and a new issue will be created
 		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
@@ -283,27 +290,27 @@ func getIssueID(client *ginclient.Client, repo, title string) int64 {
 		} else {
 			log.Printf("Failed to get issues for repository %s: [%d] failed to read response body: %s", repo, resp.StatusCode, err.Error())
 		}
-		return -1
+		return -1, err
 	}
 
 	var issues []gogs.Issue
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Failed to get issues for repository %s: %s", repo, err.Error())
-		return -1
+		return -1, err
 	}
 
 	if err := json.Unmarshal(content, &issues); err != nil {
 		log.Printf("Failed to get issues for repository %s: failed to unmarshal response: %s", repo, err.Error())
-		return -1
+		return -1, err
 	}
 
 	for _, issue := range issues {
 		if strings.EqualFold(issue.Title, title) {
 			log.Printf("Found issue matching %s: %d", title, issue.Index)
-			return issue.ID
+			return issue.ID, nil
 		}
 	}
 
-	return -1
+	return 0, nil
 }
