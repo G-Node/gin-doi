@@ -161,7 +161,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.Metadata.YAMLData = repoMetadata
 	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
 	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
-	regRequest.Metadata.ForkRepository = "" // not forked yet
+	regRequest.Metadata.ForkRepository = regRequest.DOIRequestData.Repository // Make the button link to repo for preview
 
 	err = tmpl.Execute(w, regRequest)
 	if err != nil {
