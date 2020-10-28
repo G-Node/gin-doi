@@ -62,6 +62,8 @@ github.com/gogs/git-module v0.8.3 h1:9f8oxSs9OACWrGBYMVnnQNzyTcVN+zzcBM7CXnbmezw
 github.com/gogs/git-module v0.8.3/go.mod h1:aj4tcm7DxaszJWpZLZIRL6gfPXyguAHiE1PDfAAPrCw=
 github.com/gogs/git-module v1.0.0 h1:iOlCZ5kPc3RjnWRxdziL5hjCaosYyZw/Lf2odzR/kjw=
 github.com/gogs/git-module v1.0.0/go.mod h1:oN37FFStFjdnTJXsSbhIHKJXh2YeDsEcXPATVz/oeuQ=
+github.com/gogs/go-gogs-client v0.0.0-20200905025246-8bb8a50cb355 h1:xk0ImJ2ofG4iVcC57zoqPgqMhn65fyT/xWop8idRyCI=
+github.com/gogs/go-gogs-client v0.0.0-20200905025246-8bb8a50cb355/go.mod h1:fR6z1Ie6rtF7kl/vBYMfgD5/G5B1blui7z426/sj2DU=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
 github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef/go.mod h1:cIg4eruTrX1D+g88fzRXU5OdNfaM+9IcxsU14FzY7Hc=
 github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=

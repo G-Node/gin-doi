@@ -9,6 +9,7 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gogits/go-gogs-client v0.0.0-20200308113729-26bb60b9a908
+	github.com/gogs/go-gogs-client v0.0.0-20200905025246-8bb8a50cb355
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/pelletier/go-toml v1.6.0 // indirect

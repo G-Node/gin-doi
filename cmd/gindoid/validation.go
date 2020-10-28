@@ -40,6 +40,19 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
 	}
 
+	// NOTE: This is a workaround for the current inability to check a
+	// potential DOI fork for previous releases.  If the repository has a DOI
+	// fork, a notice is added to the admin email to check for previous
+	// releases manually.
+	if forks, err := getRepoForks(job.Config.GIN.Session, job.Metadata.SourceRepository); err == nil {
+		for _, fork := range forks {
+			if strings.ToLower(fork.Owner.UserName) == job.Config.GIN.Session.Username {
+				warnings = append(warnings, "Repository is already forked by DOI service user: Manual check for releases is required")
+				break
+			}
+		}
+	}
+
 	return
 }
 

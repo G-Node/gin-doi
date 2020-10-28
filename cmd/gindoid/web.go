@@ -161,7 +161,7 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.Metadata.YAMLData = repoMetadata
 	regRequest.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
 	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
-	regRequest.Metadata.ForkRepository = "" // not forked yet
+	regRequest.Metadata.ForkRepository = regRequest.DOIRequestData.Repository // Make the button link to repo for preview
 
 	err = tmpl.Execute(w, regRequest)
 	if err != nil {
@@ -221,7 +221,8 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 
 	// exiting beyond this point should trigger an email notification
 	defer func() {
-		err := notifyAdmin(regJob, errors, nil)
+		// This is the first notification, so include the entire info
+		err := notifyAdmin(regJob, errors, nil, true)
 		if err != nil {
 			// Email send failed
 			// Log the error
@@ -292,6 +293,12 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	resData.Success = true
 	resData.Level = "success"
 	resData.Message = template.HTML(message)
+
+	// Send user email notification
+	if err := notifyUser(regJob); err != nil {
+		// Inform admins that user email failed
+		errors = append(errors, fmt.Sprintf("Failed to send user notification email: %s", err.Error()))
+	}
 }
 
 // renderResult renders the results of a registration request using the
