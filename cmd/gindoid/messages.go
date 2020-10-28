@@ -14,6 +14,7 @@ const (
 			<div class="header">The DOI server has started archiving your repository.</div>
 		We have reserved the following DOI for your dataset:<br>
 		<div class="ui label label-default">%s</div><br>
+		An email has been sent containing the above information to your registered address on GIN.<br>
 		Please note that the registration process includes a manual curation step. It may therefore take up to two work days until the DOI is available. If any changes to the repository should be necessary you will be contacted by the curation team.<br>
 		We will notify you via email once the process is finished.<br>
 		<div class="ui tabs divider"> </div>
