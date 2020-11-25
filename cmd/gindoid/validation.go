@@ -10,7 +10,7 @@ import (
 
 // allowedValues for various keys of the datacite.yml file.
 var allowedValues = map[string][]string{
-	"reftype":      {"IsSupplementTo", "IsDescribedBy", "IsReferencedBy"},
+	"reftype":      {"IsSupplementTo", "IsDescribedBy", "IsReferencedBy", "IsVariantFormOf"},
 	"resourcetype": {"Dataset", "Software", "DataPaper", "Image", "Text"},
 }
 
