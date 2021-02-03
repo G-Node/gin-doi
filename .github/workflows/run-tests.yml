@@ -1,0 +1,80 @@
+name: run-tests
+on:
+  # Run build once a month
+  schedule:
+  - cron:  '0 0 1 * *'
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  # go vet and go fmt are mandatory.
+  # Other linters are optional but should dispay issues.
+  linters:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup go 1.15
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - name: Run go vet
+        run: go vet ./...
+      - name: Run gofmt
+        run: |
+          gofmt -s -l .
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
+      - name: Run golint
+        run: |
+          go get golang.org/x/lint/golint
+          golint ./...
+        # github actions discussion could make warnings like
+        # these visible eventually without failing the build.
+        # Check https://github.com/actions/toolkit/issues/399
+        continue-on-error: true
+      - name: Run errcheck
+        run: |
+          go get github.com/kisielk/errcheck
+          errcheck ./...
+        continue-on-error: true
+      - name: Run staticcheck
+        run: |
+          go get honnef.co/go/tools/cmd/staticcheck
+          staticcheck ./...
+        continue-on-error: true
+  tests:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Go 1.15
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - name: Show Go version
+        run: go version
+      - name: Fetch dependencies
+        run: go get -d ./...
+      - name: Run build
+        run: go build ./cmd/gindoid
+      - name: Run tests
+        run: go test ./...
+  run-coverall:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use golang version 1.15
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - name: Fetch dependencies
+        run: |
+          go get -d ./...
+          go get github.com/mattn/goveralls
+      - name: Create test coverage
+        run: go test -covermode atomic -coverprofile=covprofile ./...
+      - name: Send coverage
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: goveralls -coverprofile=covprofile -service=github
