@@ -117,23 +117,37 @@ func ReferenceID(ref libgin.Reference) string {
 	return EscXML(idparts[1])
 }
 
-// FunderName splits the funder name from a funding string of the form <FunderName>, <AwardNumber>.
-// This is a utility function for the doi.xml template.
+// FunderName splits the funder name from a funding string of the form <FunderName>; <AwardNumber>.
+// This is a utility function for the doi.xml template. Split character is semi-colon,
+// but for backwards compatibility reasons, comma is supported as a fallback split character
+// if no semi-colon is provided.
 func FunderName(fundref string) string {
-	fuparts := strings.SplitN(fundref, ",", 2)
+	splitchar := ";"
+	if !strings.Contains(fundref, splitchar) {
+		splitchar = ","
+	}
+
+	fuparts := strings.SplitN(fundref, splitchar, 2)
 	if len(fuparts) != 2 {
-		// No comma, return as is
+		// No splitchar, return as is
 		return EscXML(fundref)
 	}
 	return EscXML(strings.TrimSpace(fuparts[0]))
 }
 
-// AwardNumber splits the award number from a funding string of the form <FunderName>, <AwardNumber>.
-// This is a utility function for the doi.xml template.
+// AwardNumber splits the award number from a funding string of the form <FunderName>; <AwardNumber>.
+// This is a utility function for the doi.xml template. Split character is semi-colon,
+// but for backwards compatibility reasons, comma is supported as a fallback split character
+// if no semi-colon is provided.
 func AwardNumber(fundref string) string {
-	fuparts := strings.SplitN(fundref, ",", 2)
+	splitchar := ";"
+	if !strings.Contains(fundref, splitchar) {
+		splitchar = ","
+	}
+
+	fuparts := strings.SplitN(fundref, splitchar, 2)
 	if len(fuparts) != 2 {
-		// No comma, return empty
+		// No splitchar, return empty
 		return ""
 	}
 	return EscXML(strings.TrimSpace(fuparts[1]))
