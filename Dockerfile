@@ -30,6 +30,7 @@ COPY ./assets /assets
 COPY --from=binbuilder /gindoid/build/gindoid /
 VOLUME ["/doidata"]
 VOLUME ["/config"]
+VOLUME ["/doiprep"]
 
 ENTRYPOINT /gindoid start
 EXPOSE 10443
