@@ -19,7 +19,6 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
-	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/gogs/go-gogs-client"
 	yaml "gopkg.in/yaml.v2"
@@ -135,7 +134,9 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	// use DOI with / replacement for zip filename
 	zipbasename := strings.ReplaceAll(jobname, "/", "_") + ".zip"
 	zipfilename := filepath.Join(targetpath, zipbasename)
-	zipsize, err := runzip(repodir, zipfilename)
+	// the git folder will not be included in the zip file
+	exclude := []string{".git"}
+	zipsize, err := runzip(repodir, zipfilename, exclude)
 	if err != nil {
 		log.Print("Could not zip the data")
 		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
@@ -144,8 +145,9 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	return zipbasename, zipsize, nil
 }
 
-// runzip zips a source directory into a file with the given filename.
-func runzip(source, zipfilename string) (int64, error) {
+// runzip zips a source directory into a file with the given filename.  Any directories
+// or files handed over via the exclude parameter will not be zipped.
+func runzip(source, zipfilename string, exclude []string) (int64, error) {
 	fn := fmt.Sprintf("runzip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
 	if err != nil {
@@ -179,7 +181,7 @@ func runzip(source, zipfilename string) (int64, error) {
 		return -1, err
 	}
 
-	if err := archive.MakeZip(zipfp, "."); err != nil {
+	if err := MakeZip(zipfp, exclude, "."); err != nil {
 		log.Printf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
