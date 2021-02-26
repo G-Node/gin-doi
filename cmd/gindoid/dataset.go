@@ -127,10 +127,6 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	repoparts := strings.SplitN(repopath, "/", 2)
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(targetpath, reponame)
-	if err := derepoCloneDir(repodir); err != nil {
-		log.Print("Repository cleanup (uninit & derepo) failed")
-		return "", -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
-	}
 
 	// Zip
 	log.Printf("Preparing zip file for %s", jobname)
@@ -234,77 +230,6 @@ func prepDir(job *RegistrationJob) error {
 		log.Print("Could not write to .htaccess")
 		return err
 	}
-	return nil
-}
-
-// derepoCloneDir de-initialises the annex in a repository and deletes the .git
-// directory.
-func derepoCloneDir(directory string) error {
-	directory, err := filepath.Abs(directory)
-	if err != nil {
-		log.Printf("%s: Failed to get abs path for repo directory while cleaning up '%s'. Was our working directory removed?", lpStorage, directory)
-		return err
-	}
-	// NOTE: Most of the functionality in this method will be moved to libgin
-	// since GOGS has similar functions
-	// Change into directory to cleanup and defer changing back
-	origdir, err := os.Getwd()
-	if err != nil {
-		log.Printf("%s: Failed to get abs path for working directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
-		return err
-	}
-	defer os.Chdir(origdir)
-	if err := os.Chdir(directory); err != nil {
-		log.Printf("%s: Failed to change working directory to '%s': %v", lpStorage, directory, err)
-		return err
-	}
-
-	// Uninit annex
-	cmd := git.AnnexCommand("uninit")
-	// git annex uninit always returns with an error (-_-) so we ignore the
-	// error and check if annex info complains instead
-	cmd.Run()
-
-	_, err = git.AnnexInfo()
-	if err != nil {
-		log.Printf("%s: Failed to uninit annex in cloned repository '%s': %v", lpStorage, directory, err)
-	}
-
-	gitdir, err := filepath.Abs(filepath.Join(directory, ".git"))
-	if err != nil {
-		log.Printf("%s: Failed to get abs path for git directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
-		return err
-	}
-	// Set write permissions on everything under gitdir
-	var mode os.FileMode
-	walker := func(path string, info os.FileInfo, err error) error {
-		// walker sets the permission for any file found to 0660 and directories to
-		// 770, to allow deletion
-		if info == nil {
-			return nil
-		}
-
-		mode = 0660
-		if info.IsDir() {
-			mode = 0770
-		}
-
-		if err := os.Chmod(path, mode); err != nil {
-			log.Printf("failed to change permissions on '%s': %v", path, err)
-		}
-		return nil
-	}
-	if err := filepath.Walk(gitdir, walker); err != nil {
-		log.Printf("%s: Failed to set write permissions for directories and files under gitdir '%s': %v", lpStorage, gitdir, err)
-		return err
-	}
-
-	// Delete .git directory
-	if err := os.RemoveAll(gitdir); err != nil {
-		log.Printf("%s: Failed to remove git directory '%s': %v", lpStorage, gitdir, err)
-		return err
-	}
-
 	return nil
 }
 
