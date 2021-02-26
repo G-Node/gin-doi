@@ -52,7 +52,8 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	ginurl.Path = job.Metadata.ForkRepository
 	forkURL := ginurl.String()
 
-	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
+	preppath := filepath.Join(conf.Storage.PreparationDirectory, jobname)
+	zipfname, zipsize, err := cloneAndZip(repopath, jobname, preppath, targetpath, conf)
 	var archiveURL string
 	if err != nil {
 		// failed to clone and zip
@@ -108,33 +109,33 @@ func createRegisteredDataset(job *RegistrationJob) error {
 }
 
 // cloneAndZip clones the source repository into a temporary directory under
-// targetpath, zips the contents, and returns the archive filename and its size
-// in bytes.
-func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (string, int64, error) {
-	// Clone under targetpath (will create subdirectory with repository name)
-	if err := os.MkdirAll(targetpath, 0777); err != nil {
+// preppath, zips the contents at the targetpath, and returns the archive filename
+// and its size in bytes.
+func cloneAndZip(repopath string, jobname string, preppath string, targetpath string, conf *Configuration) (string, int64, error) {
+	log.Print("Start clone and zip")
+	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
+	if err := os.MkdirAll(preppath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
 		log.Print(errmsg)
 		return "", -1, fmt.Errorf(errmsg)
 	}
 
-	// Clone
-	if err := cloneRepo(repopath, targetpath, conf); err != nil {
+	// Clone repository at the preparation path
+	if err := cloneRepo(repopath, preppath, conf); err != nil {
 		log.Print("Repository cloning failed")
 		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
 	}
 
-	// Uninit the annex and delete .git directory
+	// Zip repository content to the target path
 	repoparts := strings.SplitN(repopath, "/", 2)
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
-	repodir := filepath.Join(targetpath, reponame)
+	repodir := filepath.Join(preppath, reponame)
 
-	// Zip
 	log.Printf("Preparing zip file for %s", jobname)
 	// use DOI with / replacement for zip filename
 	zipbasename := strings.ReplaceAll(jobname, "/", "_") + ".zip"
 	zipfilename := filepath.Join(targetpath, zipbasename)
-	// the git folder will not be included in the zip file
+	// exclude the git folder from the zip file
 	exclude := []string{".git"}
 	zipsize, err := runzip(repodir, zipfilename, exclude)
 	if err != nil {
@@ -210,13 +211,20 @@ func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string) e
 	return nil
 }
 
-// prepDir creates the directory where the dataset will be cloned and archived.
+// prepDir creates the directories where the dataset will be cloned and archived.
 func prepDir(job *RegistrationJob) error {
 	conf := job.Config
 	metadata := job.Metadata
+	prepdir := conf.Storage.PreparationDirectory
 	storagedir := conf.Storage.TargetDirectory
 	doi := metadata.Identifier.ID
-	err := os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
+
+	err := os.MkdirAll(filepath.Join(prepdir, doi), os.ModePerm)
+	if err != nil {
+		log.Print("Could not create the preparation directory")
+		return err
+	}
+	err = os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
 	if err != nil {
 		log.Print("Could not create the target directory")
 		return err
@@ -253,7 +261,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Cloning %s", URI)
+	log.Printf("Cloning %s to directory %s", URI, destdir)
 
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
