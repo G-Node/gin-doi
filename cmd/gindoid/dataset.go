@@ -133,7 +133,7 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	// use DOI with / replacement for zip filename
 	zipbasename := strings.ReplaceAll(jobname, "/", "_") + ".zip"
 	zipfilename := filepath.Join(targetpath, zipbasename)
-	zipsize, err := zip(repodir, zipfilename)
+	zipsize, err := runzip(repodir, zipfilename)
 	if err != nil {
 		log.Print("Could not zip the data")
 		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
@@ -142,9 +142,9 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	return zipbasename, zipsize, nil
 }
 
-// zip a source directory into a file with the given filename.
-func zip(source, zipfilename string) (int64, error) {
-	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
+// runzip zips a source directory into a file with the given filename.
+func runzip(source, zipfilename string) (int64, error) {
+	fn := fmt.Sprintf("runzip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
 	if err != nil {
 		log.Printf("%s: Failed to get abs path for source directory in function '%s': %v", lpStorage, fn, err)
