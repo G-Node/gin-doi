@@ -118,8 +118,8 @@ func TestMakeZip(t *testing.T) {
 	}
 	// Files excluded from the zip file
 	excl := map[string]struct{}{
-		".git/excluded.md":     {},
-		"excluded/excluded.md": {},
+		".git/excluded.md":      {},
+		".excluded/excluded.md": {},
 	}
 
 	zipreader, err := zip.OpenReader(zipfilename)
@@ -132,7 +132,7 @@ func TestMakeZip(t *testing.T) {
 	for _, file := range zipreader.File {
 		if _, included := incl[file.Name]; !included {
 			if _, notExcluded := excl[file.Name]; notExcluded {
-				t.Fatalf("Unexpected file found: %s", file.Name)
+				t.Fatalf("Not excluded file found: %s", file.Name)
 			}
 		} else {
 			includedCounter = append(includedCounter, file.Name)
