@@ -32,5 +32,8 @@ VOLUME ["/doidata"]
 VOLUME ["/config"]
 VOLUME ["/doiprep"]
 
-ENTRYPOINT /gindoid start
 EXPOSE 10443
+# ENTRYPOINT /gindoid start
+ADD docker_startup.sh .
+RUN chmod +x ./docker_startup.sh
+ENTRYPOINT ["./docker_startup.sh"]
