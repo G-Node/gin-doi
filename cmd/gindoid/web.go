@@ -139,6 +139,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		// Overwrite default GIN server URL with config GIN server URL
+		tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
 		tmpl.Execute(w, regRequest)
 		return
 	}
@@ -158,6 +160,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		// Overwrite default GIN server URL with config GIN server URL
+		tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
 		tmpl.Execute(w, regRequest)
 		return
 	}

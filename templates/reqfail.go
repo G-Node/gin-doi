@@ -40,10 +40,10 @@ const RequestFailurePage = `<!DOCTYPE html>
 					<div class="ui grid">
 						<div class="column">
 							<div class="ui top secondary menu">
-								<a class="item brand" href="https://gin.g-node.org/">
+								<a class="item brand" href="{{GINServerURL}}/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item active" href="https://gin.g-node.org/">Back to GIN</a>
+								<a class="item active" href="{{GINServerURL}}/">Back to GIN</a>
 							</div>
 						</div>
 					</div>
