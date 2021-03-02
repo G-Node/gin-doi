@@ -49,6 +49,7 @@ var tmplfuncs = template.FuncMap{
 	"FormatAuthorList": FormatAuthorList,
 	"NewVersionNotice": NewVersionNotice,
 	"OldVersionLink":   OldVersionLink,
+	"GINServerURL":     GINServerURL,
 }
 
 func readBody(r *http.Request) (*string, error) {
@@ -468,4 +469,12 @@ func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
 		}
 	}
 	return ""
+}
+
+// GINServerURL is the default template function returning
+// the main GIN server URL.  This function can be overriden
+// before calling HTML template execution to provide a different
+// GIN server instance URL.
+func GINServerURL() string {
+	return "https://gin.g-node.org"
 }

@@ -95,6 +95,21 @@ func decryptRequestData(regrequest string, key string) (*libgin.DOIRequestData, 
 	return &data, nil
 }
 
+// injectDynamicGINURL overwrites the 'GINServerURL' default template function
+// to provide a dynamic GIN server URL.
+func injectDynamicGINURL(tmpl *template.Template, ginurl string) *template.Template {
+	if ginurl != "" {
+		var injectedFunc = template.FuncMap{
+			"GINServerURL": func() string {
+				return ginurl
+			},
+		}
+		// Clone template to avoid race condition when setting injected FuncMap
+		tmpl = template.Must(tmpl.Clone()).Funcs(injectedFunc)
+	}
+	return tmpl
+}
+
 // renderRequestPage renders the page for the staging area, where information
 // is provided to the user and offers to start the DOI registration request.
 // It validates the metadata provided from the GIN repository and shows
