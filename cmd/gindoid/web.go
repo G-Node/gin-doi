@@ -178,6 +178,8 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 	regRequest.Metadata.SourceRepository = regRequest.DOIRequestData.Repository
 	regRequest.Metadata.ForkRepository = regRequest.DOIRequestData.Repository // Make the button link to repo for preview
 
+	// Overwrite default GIN server URL with config GIN server URL
+	tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
 	err = tmpl.Execute(w, regRequest)
 	if err != nil {
 		log.Printf("Error rendering template: %s", err.Error())

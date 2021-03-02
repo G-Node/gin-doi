@@ -41,10 +41,10 @@ const RequestPage = `<!DOCTYPE html>
 					<div class="ui grid">
 						<div class="column">
 							<div class="ui top secondary menu">
-								<a class="item brand" href="https://gin.g-node.org/">
+								<a class="item brand" href="{{GINServerURL}}/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a>
+								<a class="item active" href="{{GINServerURL}}/{{.Repository}}">Back to GIN</a>
 							</div>
 						</div>
 					</div>
@@ -86,7 +86,7 @@ const RequestPage = `<!DOCTYPE html>
 					<form action="/submit" method="post">
 						<input type="hidden" id="reqdata" name="reqdata" value="{{.EncryptedRequestData}}">
 						<div class="column center">
-							<a class="ui button" href=https://gin.g-node.org/{{.Repository}}>Cancel</a>
+							<a class="ui button" href={{GINServerURL}}/{{.Repository}}>Cancel</a>
 							<button class="ui green button" type="submit">Request DOI Now</button>
 						</div>
 					</form>
