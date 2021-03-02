@@ -11,7 +11,6 @@ const RequestResult = `<!DOCTYPE html>
 
 		<meta name="robots" content="noindex,nofollow">
 
-
 		<meta name="author" content="G-Node">
 		<meta name="description" content="Info">
 		<meta name="keywords" content="gin, data, sharing, science git">
@@ -21,7 +20,6 @@ const RequestResult = `<!DOCTYPE html>
 		<meta property="og:title" content="G-Node/Info">
 		<meta property="og:description" content="">
 		<meta property="og:image" content="https://gin.g-node.org/avatars/18">
-
 
 		<link rel="shortcut icon" href="/assets/img/favicon.png">
 		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
