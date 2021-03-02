@@ -24,7 +24,7 @@ const Footer = `
 		<footer>
 			<div class="ui container">
 				<div class="ui center links item brand footertext">
-					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2020</a>
+					<a href="http://www.g-node.org"><img class="ui mini footericon" src="https://projects.g-node.org/assets/gnode-bootstrap-theme/1.2.0-snapshot/img/gnode-icon-50x50-transparent.png"/>© G-Node, 2016-2021</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/about">About</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/imprint">Imprint</a>
 					<a href="https://gin.g-node.org/G-Node/Info/wiki/contact">Contact</a>
