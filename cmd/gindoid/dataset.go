@@ -74,7 +74,8 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		job.Metadata.RelatedIdentifiers = append(job.Metadata.RelatedIdentifiers, relatedIdentifier)
 	}
 
-	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"))
+	dynurl := GetGINURL(conf)
+	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"), dynurl)
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
@@ -193,11 +194,14 @@ func runzip(source, zipfilename string, exclude []string) (int64, error) {
 
 // createLandingPage renders and writes a registered dataset landing page based
 // on the LandingPage template.
-func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string) error {
+func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string, ginurl string) error {
 	tmpl, err := prepareTemplates("DOIInfo", "LandingPage")
 	if err != nil {
 		return err
 	}
+	// Overwrite default GIN server URL with config GIN server URL
+	tmpl = injectDynamicGINURL(tmpl, ginurl)
+
 	fp, err := os.Create(targetfile)
 	if err != nil {
 		log.Printf("Could not create the landing page file: %s", err.Error())

@@ -12,8 +12,8 @@ const DOIInfo = `
 	<meta itemprop="identifier" content="doi:{{.Identifier.ID}}">
 	<p>
 	<a href="{{if .Identifier.ID}}https://doi.org/{{.Identifier.ID}}{{end}}" class="ui black doi label" itemprop="url">DOI: {{if .Identifier.ID}}{{.Identifier.ID}}{{else}}UNPUBLISHED{{end}}</a>
-	{{if .SourceRepository}}<a href="https://gin.g-node.org/{{.SourceRepository}}" class="ui blue doi label" data-tooltip="Browse the live dataset's contents on GIN. The repository may contain updates."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>{{end}}
-	{{if .ForkRepository}}<a href="https://gin.g-node.org/{{.ForkRepository}}" class="ui blue doi label" data-tooltip="Browse the archived dataset's contents on GIN. This is a snapshot of the published version."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>{{end}}
+	{{if .SourceRepository}}<a href="{{GINServerURL}}/{{.SourceRepository}}" class="ui blue doi label" data-tooltip="Browse the live dataset's contents on GIN. The repository may contain updates."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE REPOSITORY</a>{{end}}
+	{{if .ForkRepository}}<a href="{{GINServerURL}}/{{.ForkRepository}}" class="ui blue doi label" data-tooltip="Browse the archived dataset's contents on GIN. This is a snapshot of the published version."><i class="doi label octicon octicon-link"></i>&nbsp;BROWSE ARCHIVE</a>{{end}}
 	<a href="{{if .Identifier.ID}}{{Replace .Identifier.ID "/" "_"}}.zip{{end}}" class="ui green doi label"><i class="doi label octicon octicon-desktop-download"></i>&nbsp;DOWNLOAD ARCHIVE (ZIP{{if .Sizes}} {{index .Sizes 0}}{{end}})</a>
 	</p>
 	<p><strong>Published</strong> {{FormatIssuedDate .}} | <strong>License</strong> {{with index .RightsList 0}} <a href="{{.URL}}" itemprop="license">{{.Name}}</a>{{end}}</p>
