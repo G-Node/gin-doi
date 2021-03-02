@@ -213,7 +213,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		log.Printf("Invalid request: %s", err.Error())
 		resData.Message = template.HTML(msgInvalidRequest)
 		// ignore the error, no email to send
-		renderResult(w, &resData)
+		renderResult(w, &resData, conf)
 		return
 	}
 	resData.Repository = reqdata.Repository
@@ -251,7 +251,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 			resData.Message = template.HTML(msgSubmitFailed)
 		}
 		// Render the result
-		renderResult(w, &resData)
+		renderResult(w, &resData, conf)
 	}()
 
 	// generate random DOI (keep generating if it's already registered)
@@ -321,7 +321,7 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 // renderResult renders the results of a registration request using the
 // 'RequestResult' template. If it fails to parse the template, it renders
 // the Message from the result data in plain HTML.
-func renderResult(w http.ResponseWriter, resData *reqResultData) {
+func renderResult(w http.ResponseWriter, resData *reqResultData, conf *Configuration) {
 	tmpl, err := prepareTemplates("RequestResult")
 	if err != nil {
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
@@ -330,6 +330,8 @@ func renderResult(w http.ResponseWriter, resData *reqResultData) {
 		w.Write([]byte("<html>" + resData.Message + "</html>"))
 		return
 	}
+	// Overwrite default GIN server URL with config GIN server URL
+	tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
 	err = tmpl.Execute(w, &resData)
 	if err != nil {
 		log.Printf("Error rendering RequestResult template: %v", err.Error())

@@ -39,10 +39,10 @@ const RequestResult = `<!DOCTYPE html>
 				<div class="ui container">
 					<div class="column">
 						<div class="ui top secondary menu">
-							<a class="item brand" href="https://gin.g-node.org/">
+							<a class="item brand" href="{{GINServerURL}}/">
 								<img class="ui mini image" src="/assets/img/favicon.png">
 							</a>
-							<a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a>
+							<a class="item active" href="{{GINServerURL}}/{{.Repository}}">Back to GIN</a>
 						</div>
 					</div>
 				</div>
