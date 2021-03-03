@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -62,6 +65,29 @@ type DOILicense struct {
 	URL   string
 	Name  string
 	Alias []string
+}
+
+// licenseFromFile opens a file from a provided filepath and
+// json unmarshals the file contents into a []DOILicense.
+// Returns an error or a valid []DOILicense.
+func licenseFromFile(filepath string) ([]DOILicense, error) {
+	fp, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer fp.Close()
+
+	jdata, err := ioutil.ReadAll(fp)
+	if err != nil {
+		return nil, err
+	}
+
+	var licenses []DOILicense
+	if err = json.Unmarshal(jdata, &licenses); err != nil {
+		return nil, err
+	}
+
+	return licenses, nil
 }
 
 // checkMissingValues returns a list of messages for missing or invalid values.
