@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -65,6 +66,36 @@ type DOILicense struct {
 	URL   string
 	Name  string
 	Alias []string
+}
+
+// ReadCommonLicenses returns an array of common DOI licenses.
+// The common DOI licenses are read from a "doi-licenses.json"
+// file found besides the DOI environment variables file. This
+// enables an update to common DOI licenses without restarting
+// the server.
+// If this file is not available, a fallback license file
+// is read from a resources folder. If none of the license files
+// can be read, an empty []DOILicense is returned.
+func ReadCommonLicenses() []DOILicense {
+	// try to load custom license file from the env var directory
+	filepath := filepath.Join(libgin.ReadConf("configdir"), "doi-licenses.json")
+	licenses, err := licenseFromFile(filepath)
+	if err == nil {
+		log.Println("Using custom licenses")
+		return licenses
+	}
+
+	// if a custom license is not available, fetch default licenses
+	var defaultLicenses []DOILicense
+	if err = json.Unmarshal([]byte(defaultLicensesJSON), &defaultLicenses); err == nil {
+		log.Println("Using default licenses")
+		return defaultLicenses
+	}
+
+	// everything failed, return empty licenses struct
+	log.Println("Could not load licenses")
+	var emptyLicenses []DOILicense
+	return emptyLicenses
 }
 
 // licenseFromFile opens a file from a provided filepath and
