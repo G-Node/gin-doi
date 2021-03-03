@@ -118,6 +118,38 @@ func TestLicFromURL(t *testing.T) {
 	}
 }
 
+func TestLicFromName(t *testing.T) {
+	liclist := ReadCommonLicenses()
+
+	// test license not found
+	licName := "I SHALL NOT BE FOUND"
+	_, ok := licFromName(liclist, licName)
+	if ok {
+		t.Fatalf("License name '%s' should not have been found", licName)
+	}
+
+	// test character case deviation name identification
+	licNameCorrect := "Creative Commons Attribution 4.0 International Public License"
+	licName = " creative commons attribution 4.0 International Public License "
+	lic, ok := licFromName(liclist, licName)
+	if !ok {
+		t.Fatalf("Error finding case deviant license name: '%s'", licName)
+	}
+	if lic.Name != licNameCorrect {
+		t.Fatalf("Found invalid license: '%s' expected '%s'", lic.Name, licNameCorrect)
+	}
+
+	// test identification by alias
+	licAlias := "  cc BY 4.0  "
+	lic, ok = licFromName(liclist, licAlias)
+	if !ok {
+		t.Fatalf("Error finding license by alias: '%s'", licAlias)
+	}
+	if lic.Name != licNameCorrect {
+		t.Fatalf("Found invalid license by alias: '%s' expected '%s'", lic.Name, licNameCorrect)
+	}
+}
+
 func TestCleanupcompstr(t *testing.T) {
 	instr := "  aLLcasEs  "
 	expected := "allcases"

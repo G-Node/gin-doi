@@ -83,6 +83,22 @@ func licFromURL(commonLicenses []DOILicense, licenseURL string) (DOILicense, boo
 	return emptyLicense, false
 }
 
+// licFromName identifies a common license from a []DOILicense via a specific license title.
+// Returns either the found or an empty DOILicense and a corresponding boolean 'ok' flag.
+func licFromName(commonLicenses []DOILicense, licenseName string) (DOILicense, bool) {
+	licname := cleancompstr(licenseName)
+	for _, lic := range commonLicenses {
+		for _, alias := range lic.Alias {
+			if licname == strings.ToLower(alias) {
+				return lic, true
+			}
+		}
+	}
+
+	var emptyLicense DOILicense
+	return emptyLicense, false
+}
+
 // ReadCommonLicenses returns an array of common DOI licenses.
 // The common DOI licenses are read from a "doi-licenses.json"
 // file found besides the DOI environment variables file. This
