@@ -56,6 +56,14 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 	return
 }
 
+// DOILicense holds Name (official license title), URL (license online reference)
+// and Alias names for a license used for a DOI registration.
+type DOILicense struct {
+	URL   string
+	Name  string
+	Alias []string
+}
+
 // checkMissingValues returns a list of messages for missing or invalid values.
 // If all values are valid, the returned slice is empty.
 func checkMissingValues(info *libgin.RepositoryYAML) []string {
