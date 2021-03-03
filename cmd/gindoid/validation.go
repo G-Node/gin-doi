@@ -68,6 +68,21 @@ type DOILicense struct {
 	Alias []string
 }
 
+// licFromURL identifies a common license from a []DOILicense via a specified license URL.
+// Returns either the found or an empty DOILicense and a corresponding boolean 'ok' flag.
+func licFromURL(commonLicenses []DOILicense, licenseURL string) (DOILicense, bool) {
+	url := cleancompstr(licenseURL)
+	for _, lic := range commonLicenses {
+		// provided licenses URLs can be more verbose than the default license URL
+		if strings.Contains(url, strings.ToLower(lic.URL)) {
+			return lic, true
+		}
+	}
+
+	var emptyLicense DOILicense
+	return emptyLicense, false
+}
+
 // ReadCommonLicenses returns an array of common DOI licenses.
 // The common DOI licenses are read from a "doi-licenses.json"
 // file found besides the DOI environment variables file. This

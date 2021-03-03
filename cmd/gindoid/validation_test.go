@@ -86,6 +86,38 @@ func TestReadCommonLicenses(t *testing.T) {
 	}
 }
 
+func TestLicFromURL(t *testing.T) {
+	liclist := ReadCommonLicenses()
+
+	// test license URL not in common license list
+	licURL := "I AM NOT HERE"
+	_, ok := licFromURL(liclist, licURL)
+	if ok {
+		t.Fatalf("License URL '%s' should not have been found", licURL)
+	}
+
+	// test finding deviating character case license URL
+	licName := "Creative Commons Attribution 4.0 International Public License"
+	licURL = " https://creativecommons.org/licenses/BY/4.0 "
+	lic, ok := licFromURL(liclist, licURL)
+	if !ok {
+		t.Fatalf("Error finding case insensitive URL: '%s'", licURL)
+	}
+	if lic.Name != licName {
+		t.Fatalf("Found invalid license: '%s' expected '%s'", lic.Name, licName)
+	}
+
+	// test finding long suffix version of license URL
+	licURL = "https://creativecommons.org/licenses/by/4.0/legalcode"
+	lic, ok = licFromURL(liclist, licURL)
+	if !ok {
+		t.Fatalf("Error finding suffix version URL: '%s'", licURL)
+	}
+	if lic.Name != licName {
+		t.Fatalf("Found invalid license: '%s' expected '%s'", lic.Name, licName)
+	}
+}
+
 func TestCleanupcompstr(t *testing.T) {
 	instr := "  aLLcasEs  "
 	expected := "allcases"
