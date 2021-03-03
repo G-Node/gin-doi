@@ -133,3 +133,12 @@ func validateDataCiteValues(info *libgin.RepositoryYAML) []string {
 
 	return invalid
 }
+
+// cleancompstr cleans up an input string.
+// Surrounding whitespaces are removed and
+// converted to lower case.
+func cleancompstr(cleanup string) string {
+	cleanup = strings.TrimSpace(cleanup)
+	cleanup = strings.ToLower(cleanup)
+	return cleanup
+}
