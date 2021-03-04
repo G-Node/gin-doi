@@ -370,6 +370,7 @@ func (d *RegistrationRequest) AsHTML() template.HTML {
 // parsing, or validation fails.  The message is appropriate for display to the
 // user.
 func readAndValidate(conf *Configuration, repository string) (*libgin.RepositoryYAML, error) {
+	// fail registration on missing datacite.yaml file
 	dataciteText, err := readFileAtURL(repoFileURL(conf, repository, "datacite.yml"))
 	if err != nil {
 		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
@@ -377,6 +378,7 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 		return nil, err
 	}
 
+	// fail registration on invalid datacite.yaml file
 	repoMetadata, err := readRepoYAML(dataciteText)
 	if err != nil {
 		log.Print("DOI file invalid")
@@ -398,6 +400,7 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 		return nil, fmt.Errorf(msgLicenseMismatch)
 	}
 
+	// fail registration if unsupported values have been used
 	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
 		err := fmt.Errorf("%s<i><p>%s</p></i>", msgInvalidDOI, strings.Join(msgs, "</p><p>"))
 		return nil, err
@@ -495,6 +498,9 @@ func getLatestDOITag(client *ginclient.Client, repo *gogs.Repository, doiBase st
 // the dest io.Writer in ZIP format.  Any directories listed in source are
 // archived recursively.  Empty directories and directories and files specified
 // via the exclude parameter are ignored.
+// The zip file has no compression by design since most zipped files are large
+// binary files that do not compress well, while it might take a decent amount
+// of time in addition.
 func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 	// NOTE: Does not support commits other than master.
 
