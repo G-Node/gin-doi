@@ -57,6 +57,8 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	warnings = licenseWarnings(job, warnings)
+
 	return
 }
 
@@ -66,6 +68,53 @@ type DOILicense struct {
 	URL   string
 	Name  string
 	Alias []string
+}
+
+// licenseWarnings checks license URL, name and license content header
+// for consistency and against common licenses.
+func licenseWarnings(job *RegistrationJob, warnings []string) []string {
+	// check datacite license URL, name and license file title to spot mismatches
+	commonLicenses := ReadCommonLicenses()
+
+	// check if the datacite license can be matched to a common license via URL
+	licenseURL, ok := licFromURL(commonLicenses, job.Metadata.YAMLData.License.URL)
+	if !ok {
+		warnings = append(warnings, fmt.Sprintf("License URL not common: '%s'", job.Metadata.YAMLData.License.URL))
+	}
+
+	// check if the license can be matched to a common license via datacite license name
+	licenseName, ok := licFromName(commonLicenses, job.Metadata.YAMLData.License.Name)
+	if !ok {
+		warnings = append(warnings, fmt.Sprintf("License datacite name not common: '%s'", job.Metadata.YAMLData.License.Name))
+	}
+
+	// check if the license can be matched to a common license via the header line of the license file
+	var licenseHeader DOILicense
+	content, err := readFileAtURL(repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE"))
+	if err != nil {
+		warnings = append(warnings, "Could not access license file")
+	} else {
+		fileHeader := strings.Split(strings.Replace(string(content), "\r\n", "\n", -1), "\n")
+		var ok bool
+		if len(fileHeader) > 0 {
+			licenseHeader, ok = licFromName(commonLicenses, fileHeader[0])
+		}
+		if !ok {
+			warnings = append(warnings, fmt.Sprintf("License file content header not common: '%v'", fileHeader))
+		}
+	}
+
+	// check license URL against license name
+	if licenseURL.Name != licenseName.Name {
+		warnings = append(warnings, fmt.Sprintf("License URL/Name mismatch: '%s'/'%s'", licenseURL.Name, licenseName.Name))
+	}
+
+	// check license name against license file header
+	if licenseName.Name != licenseHeader.Name {
+		warnings = append(warnings, fmt.Sprintf("License name/file header mismatch: '%s'/'%s'", licenseName.Name, licenseHeader.Name))
+	}
+
+	return warnings
 }
 
 // licFromURL identifies a common license from a []DOILicense via a specified license URL.
