@@ -246,3 +246,61 @@ func TestLicenseWarnings(t *testing.T) {
 		t.Fatalf("All match: unexpected warnings(%d): %v", len(checkwarn), checkwarn)
 	}
 }
+
+func TestValidateDataCiteValues(t *testing.T) {
+	invResource := "<strong>ResourceType</strong> must be one of the following:"
+	invReference := "Reference type (<strong>RefType</strong>) must be one of the following:"
+
+	// Check required resourceType message on empty struct
+	yada := &libgin.RepositoryYAML{}
+
+	msgs := validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invResource) {
+		t.Fatalf("Expected resource type message: %v", msgs[0])
+	}
+
+	// Check invalid resource type
+	yada.ResourceType = "Idonotexist"
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invResource) {
+		t.Fatalf("Expected resource message: %v", msgs[0])
+	}
+
+	// Check fail on an existing but empty reference
+	yada.ResourceType = "Dataset"
+	var ref []libgin.Reference
+	ref = append(ref, libgin.Reference{})
+	yada.References = ref
+
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invReference) {
+		t.Fatalf("Expected reference message: %v", msgs[0])
+	}
+
+	// Check fail on invalid reference
+	yada.References[0].RefType = "idonotexist"
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invReference) {
+		t.Fatalf("Expected reference message: %v", msgs[0])
+	}
+
+	// Check all valid
+	yada.References[0].RefType = "IsSupplementTo"
+
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 0 {
+		t.Fatalf("Unexpected messages: %v", msgs)
+	}
+}
