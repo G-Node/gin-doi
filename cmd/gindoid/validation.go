@@ -239,22 +239,6 @@ func checkMissingValues(info *libgin.RepositoryYAML) []string {
 	return missing
 }
 
-// checkLicenseMatch returns true if the license text found in the file at the
-// URL matches the provided license text. If the file at the URL cannot be
-// read, it defaults to true.
-func checkLicenseMatch(expectedTextURL string, licenseText string) bool {
-	expectedLicenseText, err := readFileAtURL(expectedTextURL)
-	if err != nil {
-		// License isn't known or there was a problem reading the file in the
-		// repository.
-		// Return positive response since we can't validate automatically.
-		log.Printf("Can't validate License text. Unknown license name in datacite.yml: %q", expectedTextURL)
-		return true
-	}
-
-	return string(expectedLicenseText) == licenseText
-}
-
 func contains(list []string, value string) bool {
 	for _, valid := range list {
 		if strings.ToLower(valid) == strings.ToLower(value) {

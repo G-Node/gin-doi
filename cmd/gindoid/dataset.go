@@ -386,18 +386,11 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 		return nil, err
 	}
 
-	licenseText, err := readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
+	// fail registration on missing LICENSE file
+	_, err = readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
 	if err != nil {
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())
 		return nil, fmt.Errorf(msgNoLicenseFile)
-	}
-
-	expectedTextURL := repoFileURL(conf, "G-Node/Info", fmt.Sprintf("licenses/%s", repoMetadata.License.Name))
-	if !checkLicenseMatch(expectedTextURL, string(licenseText)) {
-		// License file doesn't match specified license
-		errmsg := fmt.Sprintf("License file does not match specified license: %q", repoMetadata.License.Name)
-		log.Print(errmsg)
-		return nil, fmt.Errorf(msgLicenseMismatch)
 	}
 
 	// fail registration if unsupported values have been used
