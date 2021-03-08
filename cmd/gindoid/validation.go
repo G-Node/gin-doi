@@ -57,7 +57,8 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
-	warnings = licenseWarnings(job, warnings)
+	repoLicURL := repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE")
+	warnings = licenseWarnings(job.Metadata.YAMLData, repoLicURL, warnings)
 
 	return
 }
@@ -72,27 +73,27 @@ type DOILicense struct {
 
 // licenseWarnings checks license URL, name and license content header
 // for consistency and against common licenses.
-func licenseWarnings(job *RegistrationJob, warnings []string) []string {
+func licenseWarnings(yada *libgin.RepositoryYAML, repoLicenseURL string, warnings []string) []string {
 	// check datacite license URL, name and license file title to spot mismatches
 	commonLicenses := ReadCommonLicenses()
 
 	// check if the datacite license can be matched to a common license via URL
-	licenseURL, ok := licFromURL(commonLicenses, job.Metadata.YAMLData.License.URL)
+	licenseURL, ok := licFromURL(commonLicenses, yada.License.URL)
 	if !ok {
-		warnings = append(warnings, fmt.Sprintf("License URL not common: '%s'", job.Metadata.YAMLData.License.URL))
+		warnings = append(warnings, fmt.Sprintf("License URL not common: '%s'", yada.License.URL))
 	}
 
 	// check if the license can be matched to a common license via datacite license name
-	licenseName, ok := licFromName(commonLicenses, job.Metadata.YAMLData.License.Name)
+	licenseName, ok := licFromName(commonLicenses, yada.License.Name)
 	if !ok {
-		warnings = append(warnings, fmt.Sprintf("License datacite name not common: '%s'", job.Metadata.YAMLData.License.Name))
+		warnings = append(warnings, fmt.Sprintf("License datacite name not common: '%s'", yada.License.Name))
 	}
 
 	// check if the license can be matched to a common license via the header line of the license file
 	var licenseHeader DOILicense
-	content, err := readFileAtURL(repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE"))
+	content, err := readFileAtURL(repoLicenseURL)
 	if err != nil {
-		warnings = append(warnings, "Could not access license file")
+		warnings = append(warnings, fmt.Sprintf("Could not access license file"))
 	} else {
 		fileHeader := strings.Split(strings.Replace(string(content), "\r\n", "\n", -1), "\n")
 		var ok bool
