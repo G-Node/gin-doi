@@ -25,6 +25,7 @@ const defaultLicensesJSON = `[
 	"Name":  "The 3-Clause BSD License",
 	"Alias": [
 	"The 3-Clause BSD License",
+	"BSD 3-Clause License",
 	"BSD-3-Clause"
 	]
 },
@@ -37,7 +38,7 @@ const defaultLicensesJSON = `[
 	]
 },
 {
-	"URL":   "https://creativecommons.org/publicdomain/zero/1.0/",
+	"URL":   "https://creativecommons.org/publicdomain/zero/1.0",
 	"Name":  "CC0 1.0 Universal",
 	"Alias": [
 	"CC0 1.0 Universal",
@@ -47,7 +48,7 @@ const defaultLicensesJSON = `[
 	]
 },
 {
-	"URL":   "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+	"URL":   "https://creativecommons.org/licenses/by-nc-sa/4.0",
 	"Name":  "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License",
 	"Alias": [
 	"Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License",
