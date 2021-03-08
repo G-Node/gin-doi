@@ -4,8 +4,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/G-Node/gin-cli v0.0.0-20200213155541-7b8a0596ebb3 h1:4zukb20sUPdrQDBJ8TlWsQjFZK0TJgnwIhfiaY/+/Cc=
 github.com/G-Node/gin-cli v0.0.0-20200213155541-7b8a0596ebb3/go.mod h1:pnIO6Skp2YvaAdH6OyOmP4DhQCk5jz1zmwOola6JorU=
-github.com/G-Node/libgin v0.5.5 h1:Rb6jpk1FDEYIepTRFiCBZuddA/q+jZs0SCfL4gldFZY=
-github.com/G-Node/libgin v0.5.5/go.mod h1:FnAfNDz2IpuHYd119zKpPaCn0GKnd2i4goHeM5opunU=
+github.com/G-Node/libgin v0.5.6-0.20210301194327-b377a1283351 h1:WE1fFLS362yVT6kvM10vevVAC/4lNjBMNSU4XcX/SZc=
+github.com/G-Node/libgin v0.5.6-0.20210301194327-b377a1283351/go.mod h1:FnAfNDz2IpuHYd119zKpPaCn0GKnd2i4goHeM5opunU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
