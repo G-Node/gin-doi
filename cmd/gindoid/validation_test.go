@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/G-Node/libgin/libgin"
 )
 
 func writeTmpFile(filename string, content string) error {
@@ -156,5 +159,90 @@ func TestCleanupcompstr(t *testing.T) {
 	outstr := cleancompstr(instr)
 	if outstr != expected {
 		t.Fatalf("Error string cleanup: '%s' expected: '%s'", outstr, expected)
+	}
+}
+
+func TestLicenseWarnings(t *testing.T) {
+	var warnings []string
+	yada := &libgin.RepositoryYAML{
+		License: &libgin.License{},
+	}
+
+	// Test all entries unknown, no license file access warnings
+	checkwarn := licenseWarnings(yada, "", warnings)
+	if len(checkwarn) != 3 {
+		t.Fatalf("Unexpected warnings(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "License URL not common: ''") {
+		t.Fatalf("Missing unkown license URL warning: %v", checkwarn)
+	}
+	if !strings.Contains(checkwarn[1], "License datacite name not common: ''") {
+		t.Fatalf("Missing unknown license name warning: %v", checkwarn)
+	}
+	if !strings.Contains(checkwarn[2], "Could not access license file") {
+		t.Fatalf("Missing failed license access warning: %v", checkwarn)
+	}
+
+	// Test all entries unknown, license file header unknown warnings
+	// Use github gin-doi Makefile as invalid license header file
+	licFileURL := "https://raw.githubusercontent.com/G-Node/gin-doi/master/Makefile"
+	checkwarn = licenseWarnings(yada, licFileURL, warnings[:0])
+	if len(checkwarn) != 3 {
+		t.Fatalf("Unexpected warnings(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[2], "License file content header not common: '") {
+		t.Fatalf("Missing unknown license file header warning: %v", checkwarn)
+	}
+
+	// Test all mismatch yURL!=yName!=fHeader
+	// Uses GIN-DOI github library LICENSE (BSD3) as reference license file
+	yada.License.URL = "https://creativecommons.org/publicdomain/zero/1.0"
+	yada.License.Name = "MIT License"
+	licFileURL = "https://raw.githubusercontent.com/G-Node/gin-doi/master/LICENSE"
+	checkwarn = licenseWarnings(yada, licFileURL, warnings[:0])
+	if len(checkwarn) != 2 {
+		t.Fatalf("yURL!=yName!=File: unexpected warnings(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "License URL/Name mismatch: 'CC0 1.0 Universal'/'The MIT License'") {
+		t.Fatalf("Invalid yURL!=yName!=File warning: %v", checkwarn)
+	}
+	if !strings.Contains(checkwarn[1], "License name/file header mismatch: 'The MIT License'/'The 3-Clause BSD License'") {
+		t.Fatalf("Invalid yURL!=yName!=File warning: %v", checkwarn)
+	}
+
+	// Test mismatch yURL!=(yName==fHeader)
+	// Uses GIN-DOI github library LICENSE (BSD3) as reference license file
+	yada.License.URL = "https://creativecommons.org/publicdomain/zero/1.0"
+	yada.License.Name = "The 3-Clause BSD License"
+	licFileURL = "https://raw.githubusercontent.com/G-Node/gin-doi/master/LICENSE"
+	checkwarn = licenseWarnings(yada, licFileURL, warnings[:0])
+	if len(checkwarn) != 1 {
+		t.Fatalf("yURL!=yName==File: unexpected warnings(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "License URL/Name mismatch: 'CC0 1.0 Universal'/'The 3-Clause BSD License'") {
+		t.Fatalf("Invalid yURL!=yName==File warning: %v", checkwarn)
+	}
+
+	// Test mismatch (yURL==yName)!=fHeader
+	// Uses GIN-DOI github library LICENSE (BSD3) as reference license file
+	yada.License.URL = "https://opensource.org/licenses/MIT"
+	yada.License.Name = "MIT License"
+	licFileURL = "https://raw.githubusercontent.com/G-Node/gin-doi/master/LICENSE"
+	checkwarn = licenseWarnings(yada, licFileURL, warnings[:0])
+	if len(checkwarn) != 1 {
+		t.Fatalf("yURL==yName!=File: unexpected warnings(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "License name/file header mismatch: 'The MIT License'/'The 3-Clause BSD License'") {
+		t.Fatalf("Invalid yURL==yName!=File warning: %v", checkwarn)
+	}
+
+	// Test URL, Name and Header match; uses GIN-DOI github library LICENSE (BSD3) as reference license file.
+	yada.License.URL = "https://opensource.org/licenses/BSD-3-Clause"
+	yada.License.Name = "BSD-3-Clause" // valid alias
+	licFileURL = "https://raw.githubusercontent.com/G-Node/gin-doi/master/LICENSE"
+
+	checkwarn = licenseWarnings(yada, licFileURL, warnings[:0])
+	if len(checkwarn) > 0 {
+		t.Fatalf("All match: unexpected warnings(%d): %v", len(checkwarn), checkwarn)
 	}
 }
