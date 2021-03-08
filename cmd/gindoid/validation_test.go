@@ -173,10 +173,10 @@ func TestLicenseWarnings(t *testing.T) {
 	if len(checkwarn) != 3 {
 		t.Fatalf("Unexpected warnings(%d): %v", len(checkwarn), checkwarn)
 	}
-	if !strings.Contains(checkwarn[0], "License URL not common: ''") {
+	if !strings.Contains(checkwarn[0], "License URL (datacite) not found: ''") {
 		t.Fatalf("Missing unkown license URL warning: %v", checkwarn)
 	}
-	if !strings.Contains(checkwarn[1], "License datacite name not common: ''") {
+	if !strings.Contains(checkwarn[1], "License name (datacite) not found: ''") {
 		t.Fatalf("Missing unknown license name warning: %v", checkwarn)
 	}
 	if !strings.Contains(checkwarn[2], "Could not access license file") {
@@ -190,7 +190,7 @@ func TestLicenseWarnings(t *testing.T) {
 	if len(checkwarn) != 3 {
 		t.Fatalf("Unexpected warnings(%d): %v", len(checkwarn), checkwarn)
 	}
-	if !strings.Contains(checkwarn[2], "License file content header not common: '") {
+	if !strings.Contains(checkwarn[2], "License file content header not found: '") {
 		t.Fatalf("Missing unknown license file header warning: %v", checkwarn)
 	}
 

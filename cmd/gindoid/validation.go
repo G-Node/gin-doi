@@ -80,13 +80,13 @@ func licenseWarnings(yada *libgin.RepositoryYAML, repoLicenseURL string, warning
 	// check if the datacite license can be matched to a common license via URL
 	licenseURL, ok := licFromURL(commonLicenses, yada.License.URL)
 	if !ok {
-		warnings = append(warnings, fmt.Sprintf("License URL not common: '%s'", yada.License.URL))
+		warnings = append(warnings, fmt.Sprintf("License URL (datacite) not found: '%s'", yada.License.URL))
 	}
 
 	// check if the license can be matched to a common license via datacite license name
 	licenseName, ok := licFromName(commonLicenses, yada.License.Name)
 	if !ok {
-		warnings = append(warnings, fmt.Sprintf("License datacite name not common: '%s'", yada.License.Name))
+		warnings = append(warnings, fmt.Sprintf("License name (datacite) not found: '%s'", yada.License.Name))
 	}
 
 	// check if the license can be matched to a common license via the header line of the license file
@@ -95,13 +95,18 @@ func licenseWarnings(yada *libgin.RepositoryYAML, repoLicenseURL string, warning
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("Could not access license file"))
 	} else {
-		fileHeader := strings.Split(strings.Replace(string(content), "\r\n", "\n", -1), "\n")
-		var ok bool
+		headstr := string(content)
+		fileHeader := strings.Split(strings.Replace(headstr, "\r\n", "\n", -1), "\n")
+		var ok bool // false if fileHeader 0 or licFromName returns !ok
 		if len(fileHeader) > 0 {
 			licenseHeader, ok = licFromName(commonLicenses, fileHeader[0])
 		}
 		if !ok {
-			warnings = append(warnings, fmt.Sprintf("License file content header not common: '%v'", fileHeader))
+			// Limit license file content in warning message
+			if len(headstr) > 20 {
+				headstr = fmt.Sprintf("%s...", headstr[0:20])
+			}
+			warnings = append(warnings, fmt.Sprintf("License file content header not found: '%s'", headstr))
 		}
 	}
 
