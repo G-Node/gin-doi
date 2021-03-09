@@ -45,6 +45,8 @@ type Configuration struct {
 	// Settings related to the storage location for published data and landing
 	// pages
 	Storage struct {
+		// Directory for cloning and zip creation
+		PreparationDirectory string
 		// Root storage location
 		TargetDirectory string
 		// URL where the published data is served from (used for email
@@ -75,6 +77,7 @@ func loadconfig() (*Configuration, error) {
 	cfg.Email.From = libgin.ReadConf("mailfrom")
 	cfg.Email.RecipientsFile = libgin.ReadConf("mailtofile")
 
+	cfg.Storage.PreparationDirectory = libgin.ReadConf("preparation")
 	cfg.Storage.TargetDirectory = libgin.ReadConf("target")
 	cfg.Storage.StoreURL = libgin.ReadConf("storeurl")
 	cfg.Storage.XMLURL = libgin.ReadConf("xmlurl")

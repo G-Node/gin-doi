@@ -1,9 +1,11 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,7 +19,6 @@ import (
 	"github.com/G-Node/gin-cli/ginclient"
 	"github.com/G-Node/gin-cli/git"
 	"github.com/G-Node/libgin/libgin"
-	"github.com/G-Node/libgin/libgin/archive"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/gogs/go-gogs-client"
 	yaml "gopkg.in/yaml.v2"
@@ -51,7 +52,8 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	ginurl.Path = job.Metadata.ForkRepository
 	forkURL := ginurl.String()
 
-	zipfname, zipsize, err := cloneAndZip(repopath, jobname, targetpath, conf)
+	preppath := filepath.Join(conf.Storage.PreparationDirectory, jobname)
+	zipfname, zipsize, err := cloneAndZip(repopath, jobname, preppath, targetpath, conf)
 	var archiveURL string
 	if err != nil {
 		// failed to clone and zip
@@ -107,37 +109,35 @@ func createRegisteredDataset(job *RegistrationJob) error {
 }
 
 // cloneAndZip clones the source repository into a temporary directory under
-// targetpath, zips the contents, and returns the archive filename and its size
-// in bytes.
-func cloneAndZip(repopath string, jobname string, targetpath string, conf *Configuration) (string, int64, error) {
-	// Clone under targetpath (will create subdirectory with repository name)
-	if err := os.MkdirAll(targetpath, 0777); err != nil {
+// preppath, zips the contents at the targetpath, and returns the archive filename
+// and its size in bytes.
+func cloneAndZip(repopath string, jobname string, preppath string, targetpath string, conf *Configuration) (string, int64, error) {
+	log.Print("Start clone and zip")
+	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
+	if err := os.MkdirAll(preppath, 0777); err != nil {
 		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
 		log.Print(errmsg)
 		return "", -1, fmt.Errorf(errmsg)
 	}
 
-	// Clone
-	if err := cloneRepo(repopath, targetpath, conf); err != nil {
+	// Clone repository at the preparation path
+	if err := cloneRepo(repopath, preppath, conf); err != nil {
 		log.Print("Repository cloning failed")
 		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
 	}
 
-	// Uninit the annex and delete .git directory
+	// Zip repository content to the target path
 	repoparts := strings.SplitN(repopath, "/", 2)
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
-	repodir := filepath.Join(targetpath, reponame)
-	if err := derepoCloneDir(repodir); err != nil {
-		log.Print("Repository cleanup (uninit & derepo) failed")
-		return "", -1, fmt.Errorf("Failed to uninit and cleanup repository '%s': %v", repopath, err)
-	}
+	repodir := filepath.Join(preppath, reponame)
 
-	// Zip
 	log.Printf("Preparing zip file for %s", jobname)
 	// use DOI with / replacement for zip filename
 	zipbasename := strings.ReplaceAll(jobname, "/", "_") + ".zip"
 	zipfilename := filepath.Join(targetpath, zipbasename)
-	zipsize, err := zip(repodir, zipfilename)
+	// exclude the git folder from the zip file
+	exclude := []string{".git"}
+	zipsize, err := runzip(repodir, zipfilename, exclude)
 	if err != nil {
 		log.Print("Could not zip the data")
 		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
@@ -146,9 +146,10 @@ func cloneAndZip(repopath string, jobname string, targetpath string, conf *Confi
 	return zipbasename, zipsize, nil
 }
 
-// zip a source directory into a file with the given filename.
-func zip(source, zipfilename string) (int64, error) {
-	fn := fmt.Sprintf("zip(%s, %s)", source, zipfilename) // keep original args for errmsg
+// runzip zips a source directory into a file with the given filename.  Any directories
+// or files handed over via the exclude parameter will not be zipped.
+func runzip(source, zipfilename string, exclude []string) (int64, error) {
+	fn := fmt.Sprintf("runzip(%s, %s)", source, zipfilename) // keep original args for errmsg
 	source, err := filepath.Abs(source)
 	if err != nil {
 		log.Printf("%s: Failed to get abs path for source directory in function '%s': %v", lpStorage, fn, err)
@@ -181,7 +182,7 @@ func zip(source, zipfilename string) (int64, error) {
 		return -1, err
 	}
 
-	if err := archive.MakeZip(zipfp, "."); err != nil {
+	if err := MakeZip(zipfp, exclude, "."); err != nil {
 		log.Printf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
@@ -210,13 +211,20 @@ func createLandingPage(metadata *libgin.RepositoryMetadata, targetfile string) e
 	return nil
 }
 
-// prepDir creates the directory where the dataset will be cloned and archived.
+// prepDir creates the directories where the dataset will be cloned and archived.
 func prepDir(job *RegistrationJob) error {
 	conf := job.Config
 	metadata := job.Metadata
+	prepdir := conf.Storage.PreparationDirectory
 	storagedir := conf.Storage.TargetDirectory
 	doi := metadata.Identifier.ID
-	err := os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
+
+	err := os.MkdirAll(filepath.Join(prepdir, doi), os.ModePerm)
+	if err != nil {
+		log.Print("Could not create the preparation directory")
+		return err
+	}
+	err = os.MkdirAll(filepath.Join(storagedir, doi), os.ModePerm)
 	if err != nil {
 		log.Print("Could not create the target directory")
 		return err
@@ -237,77 +245,6 @@ func prepDir(job *RegistrationJob) error {
 	return nil
 }
 
-// derepoCloneDir de-initialises the annex in a repository and deletes the .git
-// directory.
-func derepoCloneDir(directory string) error {
-	directory, err := filepath.Abs(directory)
-	if err != nil {
-		log.Printf("%s: Failed to get abs path for repo directory while cleaning up '%s'. Was our working directory removed?", lpStorage, directory)
-		return err
-	}
-	// NOTE: Most of the functionality in this method will be moved to libgin
-	// since GOGS has similar functions
-	// Change into directory to cleanup and defer changing back
-	origdir, err := os.Getwd()
-	if err != nil {
-		log.Printf("%s: Failed to get abs path for working directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
-		return err
-	}
-	defer os.Chdir(origdir)
-	if err := os.Chdir(directory); err != nil {
-		log.Printf("%s: Failed to change working directory to '%s': %v", lpStorage, directory, err)
-		return err
-	}
-
-	// Uninit annex
-	cmd := git.AnnexCommand("uninit")
-	// git annex uninit always returns with an error (-_-) so we ignore the
-	// error and check if annex info complains instead
-	cmd.Run()
-
-	_, err = git.AnnexInfo()
-	if err != nil {
-		log.Printf("%s: Failed to uninit annex in cloned repository '%s': %v", lpStorage, directory, err)
-	}
-
-	gitdir, err := filepath.Abs(filepath.Join(directory, ".git"))
-	if err != nil {
-		log.Printf("%s: Failed to get abs path for git directory while cleaning up directory '%s'. Was our working directory removed?", lpStorage, directory)
-		return err
-	}
-	// Set write permissions on everything under gitdir
-	var mode os.FileMode
-	walker := func(path string, info os.FileInfo, err error) error {
-		// walker sets the permission for any file found to 0660 and directories to
-		// 770, to allow deletion
-		if info == nil {
-			return nil
-		}
-
-		mode = 0660
-		if info.IsDir() {
-			mode = 0770
-		}
-
-		if err := os.Chmod(path, mode); err != nil {
-			log.Printf("failed to change permissions on '%s': %v", path, err)
-		}
-		return nil
-	}
-	if err := filepath.Walk(gitdir, walker); err != nil {
-		log.Printf("%s: Failed to set write permissions for directories and files under gitdir '%s': %v", lpStorage, gitdir, err)
-		return err
-	}
-
-	// Delete .git directory
-	if err := os.RemoveAll(gitdir); err != nil {
-		log.Printf("%s: Failed to remove git directory '%s': %v", lpStorage, gitdir, err)
-		return err
-	}
-
-	return nil
-}
-
 // cloneRepo clones a git repository (with git-annex) specified by URI to the
 // destination directory.
 func cloneRepo(URI string, destdir string, conf *Configuration) error {
@@ -324,7 +261,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Cloning %s", URI)
+	log.Printf("Cloning %s to directory %s", URI, destdir)
 
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
@@ -548,4 +485,93 @@ func getLatestDOITag(client *ginclient.Client, repo *gogs.Repository, doiBase st
 		}
 	}
 	return latestTag, nil
+}
+
+// MakeZip recursively writes all the files found under the provided sources to
+// the dest io.Writer in ZIP format.  Any directories listed in source are
+// archived recursively.  Empty directories and directories and files specified
+// via the exclude parameter are ignored.
+func MakeZip(dest io.Writer, exclude []string, source ...string) error {
+	// NOTE: Does not support commits other than master.
+
+	// check sources
+	for _, src := range source {
+		if _, err := os.Stat(src); err != nil {
+			return fmt.Errorf("Cannot access '%s': %s", src, err.Error())
+		}
+	}
+
+	zipwriter := zip.NewWriter(dest)
+	defer zipwriter.Close()
+
+	walker := func(path string, fi os.FileInfo, err error) error {
+
+		// return on any error
+		if err != nil {
+			return err
+		}
+
+		// return with specific SkipDir error when encountering an excluded directory or file;
+		// if it is a direcory, the directory content will be excluded as well.
+		for i := range exclude {
+			if exclude[i] == path {
+				return filepath.SkipDir
+			}
+		}
+
+		// create a new dir/file header
+		header, err := zip.FileInfoHeader(fi)
+		if err != nil {
+			return err
+		}
+
+		// update the name to correctly reflect the desired destination when unzipping
+		// header.Name = strings.TrimPrefix(strings.Replace(file, src, "", -1), string(filepath.Separator))
+		header.Name = path
+
+		if fi.Mode().IsDir() {
+			return nil
+		}
+
+		// write the header
+		w, err := zipwriter.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+
+		// Dereference symlinks
+		if fi.Mode()&os.ModeSymlink != 0 {
+			data, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			if _, err := io.Copy(w, strings.NewReader(data)); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		// open files for zipping
+		f, err := os.Open(path)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+
+		// copy file data into zip writer
+		if _, err := io.Copy(w, f); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// walk path
+	for _, src := range source {
+		err := filepath.Walk(src, walker)
+		if err != nil {
+			return fmt.Errorf("Error adding %s to zip file: %s", src, err.Error())
+		}
+	}
+	return nil
 }
