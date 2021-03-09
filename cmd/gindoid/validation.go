@@ -31,14 +31,6 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
-	// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
-	// This shouldn't be an issue, but it can cause formatting issues
-	for idx, ref := range job.Metadata.YAMLData.References {
-		if ref.Name != "" {
-			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
-		}
-	}
-
 	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
 	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
 		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
@@ -57,10 +49,31 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	// Check licenses
 	repoLicURL := repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE")
 	warnings = licenseWarnings(job.Metadata.YAMLData, repoLicURL, warnings)
 
+	// Check references
+	warnings = referenceWarnings(job.Metadata.YAMLData, warnings)
+
 	return
+}
+
+// referenceWarnings checks datacite references for validity and
+// returns corresponding warnings if required.
+func referenceWarnings(ref *libgin.RepositoryYAML, warnings []string) []string {
+	for idx, ref := range ref.References {
+		// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
+		// This shouldn't be an issue, but it can cause formatting issues
+		if ref.Name != "" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
+		}
+		// Check and warn for reftypes different from "IsSupplementTo"
+		if strings.ToLower(ref.RefType) != "issupplementto" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d uses refType '%s'", idx, ref.RefType))
+		}
+	}
+	return warnings
 }
 
 // DOILicense holds Name (official license title), URL (license online reference)
