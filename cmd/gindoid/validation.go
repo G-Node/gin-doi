@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -56,7 +57,45 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 	// Check references
 	warnings = referenceWarnings(job.Metadata.YAMLData, warnings)
 
+	// Check authors
+	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
+
 	return
+}
+
+// authorWarnings checks datacite authors for validity and returns
+// corresponding warnings if required.
+func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
+	var orcidRE = regexp.MustCompile(`([[:digit:]]{4}-){3}[[:digit:]]{3}[[:digit:]X]`)
+	var dupID = make(map[string]string)
+
+	for idx, auth := range yada.Authors {
+		lowerID := strings.ToLower(auth.ID)
+
+		// Warn when not able to identify ID type
+		if !strings.HasPrefix(lowerID, "orcid") && !strings.HasPrefix(lowerID, "researcherID") {
+			if orcid := orcidRE.Find([]byte(auth.ID)); orcid != nil {
+				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has ORCID like unspecified ID: %s", idx, auth.LastName, auth.ID))
+			} else {
+				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has unknown ID: %s", idx, auth.LastName, auth.ID))
+			}
+		}
+
+		// Warn on known ID type but missing value
+		idpref := map[string]bool{"orcid:": true, "researcherid:": true}
+		if _, found := idpref[strings.TrimSpace(lowerID)]; found {
+			warnings = append(warnings, fmt.Sprintf("Author %d (%s) has empty ID value: %s", idx, auth.LastName, auth.ID))
+		}
+
+		// Warn on dupliate ID entries
+		if authName, isduplicate := dupID[auth.ID]; isduplicate {
+			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", authName, auth.LastName, auth.ID))
+		} else {
+			dupID[auth.ID] = auth.LastName
+		}
+	}
+
+	return warnings
 }
 
 // referenceWarnings checks datacite references for validity and
