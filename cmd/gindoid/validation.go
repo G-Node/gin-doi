@@ -61,8 +61,8 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 
 // referenceWarnings checks datacite references for validity and
 // returns corresponding warnings if required.
-func referenceWarnings(ref *libgin.RepositoryYAML, warnings []string) []string {
-	for idx, ref := range ref.References {
+func referenceWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
+	for idx, ref := range yada.References {
 		// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
 		// This shouldn't be an issue, but it can cause formatting issues
 		if ref.Name != "" {
