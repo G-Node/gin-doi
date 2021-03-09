@@ -304,3 +304,40 @@ func TestValidateDataCiteValues(t *testing.T) {
 		t.Fatalf("Unexpected messages: %v", msgs)
 	}
 }
+
+func TestReferenceWarnings(t *testing.T) {
+	var warnings []string
+	// Check warnings on empty struct
+	yada := &libgin.RepositoryYAML{}
+
+	warn := referenceWarnings(yada, warnings)
+	if len(warn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+
+	// Check warning on "name" field used and warning on uncommon referenceType
+	var ref []libgin.Reference
+	ref = append(ref, libgin.Reference{Name: "used instead of citation", RefType: "IsDescribedBy"})
+	yada.References = ref
+
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 2 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+	if !strings.Contains(warn[0], "uses old 'Name' field instead of 'Citation'") {
+		t.Fatalf("Unexpected name field warning: %v", warn)
+	}
+	if !strings.Contains(warn[1], " uses refType 'IsDescribedBy'") {
+		t.Fatalf("Unexpected reference type warning: %v", warn)
+	}
+
+	// Check no warnings on valid reference
+	yada.References[0].Name = ""
+	yada.References[0].Citation = "validcitation"
+	yada.References[0].RefType = "IsSupplementTo"
+	yada.References[0].ID = "doi:10.12751/g-node.6953bb"
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+}
