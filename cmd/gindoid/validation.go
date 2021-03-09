@@ -68,9 +68,20 @@ func referenceWarnings(yada *libgin.RepositoryYAML, warnings []string) []string 
 		if ref.Name != "" {
 			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
 		}
-		// Check and warn for reftypes different from "IsSupplementTo"
+
+		// Warn if reftypes are different from "IsSupplementTo"
 		if strings.ToLower(ref.RefType) != "issupplementto" {
 			warnings = append(warnings, fmt.Sprintf("Reference %d uses refType '%s'", idx, ref.RefType))
+		}
+
+		// Warn if a reference does not provide a relatedIdentifier
+		var relIDType string
+		refIDParts := strings.SplitN(ref.ID, ":", 2)
+		if len(refIDParts) == 2 {
+			relIDType = strings.TrimSpace(refIDParts[0])
+		}
+		if relIDType == "" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d has no related ID type: '%s'; excluded from XML file", idx, ref.ID))
 		}
 	}
 	return warnings

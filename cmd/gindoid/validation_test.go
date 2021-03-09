@@ -315,10 +315,32 @@ func TestReferenceWarnings(t *testing.T) {
 		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
 	}
 
-	// Check warning on "name" field used and warning on uncommon referenceType
+	// Check refIDType warning on empty ID
 	var ref []libgin.Reference
-	ref = append(ref, libgin.Reference{Name: "used instead of citation", RefType: "IsDescribedBy"})
+	ref = append(ref, libgin.Reference{RefType: "IsSupplementTo"})
 	yada.References = ref
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+	if !strings.Contains(warn[0], "has no related ID type:") {
+		t.Fatalf("Unexpected related ID type warning: %v", warn)
+	}
+
+	// Check refIDType warning on missing id type
+	yada.References[0].ID = "10.12751/g-node.6953bb"
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+	if !strings.Contains(warn[0], "has no related ID type:") {
+		t.Fatalf("Unexpected related ID type warning: %v", warn)
+	}
+
+	// Check warning on "name" field used and warning on uncommon referenceType
+	yada.References[0].ID = "doi:10.12751/g-node.6953bb"
+	yada.References[0].Name = "used instead of citation"
+	yada.References[0].RefType = "IsDescribedBy"
 
 	warn = referenceWarnings(yada, warnings)
 	if len(warn) != 2 {
