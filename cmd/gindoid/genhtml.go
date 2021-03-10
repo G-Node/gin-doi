@@ -99,7 +99,7 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			fmt.Println("WARNING: Couldn't determine DOI. Using generic filename.")
 			fname = fmt.Sprintf("%03d-index.html", idx)
 		}
-		if err := createLandingPage(metadata, fname); err != nil {
+		if err := createLandingPage(metadata, fname, ""); err != nil {
 			fmt.Printf("Failed to render landing page for %q: %s\n", filearg, err.Error())
 			continue
 		}

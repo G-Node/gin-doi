@@ -12,7 +12,6 @@ const RequestPage = `<!DOCTYPE html>
 
 		<meta name="robots" content="noindex,nofollow">
 
-
 		<meta name="author" content="G-Node">
 		<meta name="description" content="Info">
 		<meta name="keywords" content="gin, data, sharing, science git">
@@ -22,7 +21,6 @@ const RequestPage = `<!DOCTYPE html>
 		<meta property="og:title" content="G-Node/Info">
 		<meta property="og:description" content="">
 		<meta property="og:image" content="https://gin.g-node.org/avatars/18">
-
 
 		<link rel="shortcut icon" href="/assets/img/favicon.png">
 		<link rel="stylesheet" href="/assets/octicons-4.3.0/octicons.min.css">
@@ -41,10 +39,10 @@ const RequestPage = `<!DOCTYPE html>
 					<div class="ui grid">
 						<div class="column">
 							<div class="ui top secondary menu">
-								<a class="item brand" href="https://gin.g-node.org/">
+								<a class="item brand" href="{{GINServerURL}}/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item active" href="https://gin.g-node.org/{{.Repository}}">Back to GIN</a>
+								<a class="item active" href="{{GINServerURL}}/{{.Repository}}">Back to GIN</a>
 							</div>
 						</div>
 					</div>
@@ -72,12 +70,14 @@ const RequestPage = `<!DOCTYPE html>
 						<i class="warning icon"></i>
 						<div class="content">
 							<div class="header">Please thoroughly check the following before proceeding</div>
-							<ul align="left">
-								<li>Did you upload all data?</li>
-								<li>Does your repository contain a comprehensive description of the data (preferably in the README.md file)?</li>
-								<li>Does your repository contain a LICENSE file with a license matching the one indicated in datacite.yml?</li>
-								<li>Does your repository contain code or content licensed under different terms? Please include a separate LICENSE file for parts of the repository and describe its application in the README.</li>
-							</ul>
+							<div class="content" align="left">
+								<ul>
+									<li>Did you upload all data?</li>
+									<li>Does your repository contain a comprehensive description of the data (preferably in the README.md file)?</li>
+									<li>Does your repository contain a LICENSE file with a license matching the one indicated in datacite.yml?</li>
+									<li>Does your repository contain code or content licensed under different terms? Please include a separate LICENSE file for parts of the repository and describe its application in the README.</li>
+								</ul>
+							</div>
 							<p><b>Please be aware that the entire repository will be published.</b></p>
 							<p><b>Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.</b></p>
 							<p><b>All contents of the repository will be part of the public archive!</b></p>
@@ -86,7 +86,7 @@ const RequestPage = `<!DOCTYPE html>
 					<form action="/submit" method="post">
 						<input type="hidden" id="reqdata" name="reqdata" value="{{.EncryptedRequestData}}">
 						<div class="column center">
-							<a class="ui button" href=https://gin.g-node.org/{{.Repository}}>Cancel</a>
+							<a class="ui button" href={{GINServerURL}}/{{.Repository}}>Cancel</a>
 							<button class="ui green button" type="submit">Request DOI Now</button>
 						</div>
 					</form>
