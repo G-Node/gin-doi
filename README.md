@@ -1,3 +1,8 @@
+[![Tests](https://github.com/g-node/gin-doi/workflows/run-tests/badge.svg?branch=master)](https://github.com/G-Node/gin-doi/actions)
+[![Coverage Status](https://coveralls.io/repos/github/G-Node/gin-doi/badge.svg?branch=master)](https://coveralls.io/github/G-Node/gin-doi?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/g-node/gin-doi)](https://goreportcard.com/report/github.com/g-node/gin-doi)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/g-node/gin-doi)](https://pkg.go.dev/github.com/G-Node/gin-doi)
+
 # GIN DOI
 
 GIN-DOI is the G-Node Infrastructure DOI service.
