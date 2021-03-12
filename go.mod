@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/G-Node/gin-cli v0.0.0-20200213155541-7b8a0596ebb3
-	github.com/G-Node/libgin v0.5.5
+	github.com/G-Node/libgin v0.5.6-0.20210301194327-b377a1283351
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect

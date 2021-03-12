@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -53,7 +57,154 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	repoLicURL := repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE")
+	warnings = licenseWarnings(job.Metadata.YAMLData, repoLicURL, warnings)
+
 	return
+}
+
+// DOILicense holds Name (official license title), URL (license online reference)
+// and Alias names for a license used for a DOI registration.
+type DOILicense struct {
+	URL   string
+	Name  string
+	Alias []string
+}
+
+// licenseWarnings checks license URL, name and license content header
+// for consistency and against common licenses.
+func licenseWarnings(yada *libgin.RepositoryYAML, repoLicenseURL string, warnings []string) []string {
+	// check datacite license URL, name and license file title to spot mismatches
+	commonLicenses := ReadCommonLicenses()
+
+	// check if the datacite license can be matched to a common license via URL
+	licenseURL, ok := licFromURL(commonLicenses, yada.License.URL)
+	if !ok {
+		warnings = append(warnings, fmt.Sprintf("License URL (datacite) not found: '%s'", yada.License.URL))
+	}
+
+	// check if the license can be matched to a common license via datacite license name
+	licenseName, ok := licFromName(commonLicenses, yada.License.Name)
+	if !ok {
+		warnings = append(warnings, fmt.Sprintf("License name (datacite) not found: '%s'", yada.License.Name))
+	}
+
+	// check if the license can be matched to a common license via the header line of the license file
+	var licenseHeader DOILicense
+	content, err := readFileAtURL(repoLicenseURL)
+	if err != nil {
+		warnings = append(warnings, fmt.Sprintf("Could not access license file"))
+	} else {
+		headstr := string(content)
+		fileHeader := strings.Split(strings.Replace(headstr, "\r\n", "\n", -1), "\n")
+		var ok bool // false if fileHeader 0 or licFromName returns !ok
+		if len(fileHeader) > 0 {
+			licenseHeader, ok = licFromName(commonLicenses, fileHeader[0])
+		}
+		if !ok {
+			// Limit license file content in warning message
+			if len(headstr) > 20 {
+				headstr = fmt.Sprintf("%s...", headstr[0:20])
+			}
+			warnings = append(warnings, fmt.Sprintf("License file content header not found: '%s'", headstr))
+		}
+	}
+
+	// check license URL against license name
+	if licenseURL.Name != licenseName.Name {
+		warnings = append(warnings, fmt.Sprintf("License URL/Name mismatch: '%s'/'%s'", licenseURL.Name, licenseName.Name))
+	}
+
+	// check license name against license file header
+	if licenseName.Name != licenseHeader.Name {
+		warnings = append(warnings, fmt.Sprintf("License name/file header mismatch: '%s'/'%s'", licenseName.Name, licenseHeader.Name))
+	}
+
+	return warnings
+}
+
+// licFromURL identifies a common license from a []DOILicense via a specified license URL.
+// Returns either the found or an empty DOILicense and a corresponding boolean 'ok' flag.
+func licFromURL(commonLicenses []DOILicense, licenseURL string) (DOILicense, bool) {
+	url := cleancompstr(licenseURL)
+	for _, lic := range commonLicenses {
+		// provided licenses URLs can be more verbose than the default license URL
+		if strings.Contains(url, strings.ToLower(lic.URL)) {
+			return lic, true
+		}
+	}
+
+	var emptyLicense DOILicense
+	return emptyLicense, false
+}
+
+// licFromName identifies a common license from a []DOILicense via a specific license title.
+// Returns either the found or an empty DOILicense and a corresponding boolean 'ok' flag.
+func licFromName(commonLicenses []DOILicense, licenseName string) (DOILicense, bool) {
+	licname := cleancompstr(licenseName)
+	for _, lic := range commonLicenses {
+		for _, alias := range lic.Alias {
+			if licname == strings.ToLower(alias) {
+				return lic, true
+			}
+		}
+	}
+
+	var emptyLicense DOILicense
+	return emptyLicense, false
+}
+
+// ReadCommonLicenses returns an array of common DOI licenses.
+// The common DOI licenses are read from a "doi-licenses.json"
+// file found besides the DOI environment variables file. This
+// enables an update to common DOI licenses without restarting
+// the server.
+// If this file is not available, a fallback license file
+// is read from a resources folder. If none of the license files
+// can be read, an empty []DOILicense is returned.
+func ReadCommonLicenses() []DOILicense {
+	// try to load custom license file from the env var directory
+	filepath := filepath.Join(libgin.ReadConf("configdir"), "doi-licenses.json")
+	licenses, err := licenseFromFile(filepath)
+	if err == nil {
+		log.Println("Using custom licenses")
+		return licenses
+	}
+
+	// if a custom license is not available, fetch default licenses
+	var defaultLicenses []DOILicense
+	if err = json.Unmarshal([]byte(defaultLicensesJSON), &defaultLicenses); err == nil {
+		log.Println("Using default licenses")
+		return defaultLicenses
+	}
+
+	// everything failed, return empty licenses struct
+	log.Println("Could not load licenses")
+	var emptyLicenses []DOILicense
+	return emptyLicenses
+}
+
+// licenseFromFile opens a file from a provided filepath and
+// json unmarshals the file contents into a []DOILicense.
+// Returns an error or a valid []DOILicense.
+func licenseFromFile(filepath string) ([]DOILicense, error) {
+	fp, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer fp.Close()
+
+	jdata, err := ioutil.ReadAll(fp)
+	if err != nil {
+		return nil, err
+	}
+
+	var licenses []DOILicense
+	if err = json.Unmarshal(jdata, &licenses); err != nil {
+		return nil, err
+	}
+
+	return licenses, nil
 }
 
 // checkMissingValues returns a list of messages for missing or invalid values.
@@ -88,22 +239,6 @@ func checkMissingValues(info *libgin.RepositoryYAML) []string {
 	return missing
 }
 
-// checkLicenseMatch returns true if the license text found in the file at the
-// URL matches the provided license text. If the file at the URL cannot be
-// read, it defaults to true.
-func checkLicenseMatch(expectedTextURL string, licenseText string) bool {
-	expectedLicenseText, err := readFileAtURL(expectedTextURL)
-	if err != nil {
-		// License isn't known or there was a problem reading the file in the
-		// repository.
-		// Return positive response since we can't validate automatically.
-		log.Printf("Can't validate License text. Unknown license name in datacite.yml: %q", expectedTextURL)
-		return true
-	}
-
-	return string(expectedLicenseText) == licenseText
-}
-
 func contains(list []string, value string) bool {
 	for _, valid := range list {
 		if strings.ToLower(valid) == strings.ToLower(value) {
@@ -132,4 +267,13 @@ func validateDataCiteValues(info *libgin.RepositoryYAML) []string {
 	}
 
 	return invalid
+}
+
+// cleancompstr cleans up an input string.
+// Surrounding whitespaces are removed and
+// converted to lower case.
+func cleancompstr(cleanup string) string {
+	cleanup = strings.TrimSpace(cleanup)
+	cleanup = strings.ToLower(cleanup)
+	return cleanup
 }
