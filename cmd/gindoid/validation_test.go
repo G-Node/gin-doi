@@ -247,6 +247,91 @@ func TestLicenseWarnings(t *testing.T) {
 	}
 }
 
+func TestAuthorWarnings(t *testing.T) {
+	var warnings []string
+	yada := &libgin.RepositoryYAML{}
+
+	// Check no author warning on empty struct or empty Author
+	checkwarn := authorWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+
+	var auth []libgin.Author
+	auth = append(auth, libgin.Author{})
+	yada.Authors = auth
+
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+
+	// Check warning on non identifiable ID that looks like an ORCID
+	yada.Authors[0].ID = "0000-0000-0000-0000"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has ORCID-like unspecified ID") {
+		t.Fatalf("Expected ORCID like ID message: %v", checkwarn[0])
+	}
+
+	// Check warning on non identifiable ID
+	yada.Authors[0].ID = "I:amNoID"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has unknown ID") {
+		t.Fatalf("Expected unknown ID message: %v", checkwarn[0])
+	}
+
+	// Check warning on known ID type, but missing value (orcid and researcherid)
+	yada.Authors[0].ID = "orCid:"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has empty ID value") {
+		t.Fatalf("Expected empty ORCID value message: %v", checkwarn[0])
+	}
+
+	yada.Authors[0].ID = "researcherID:"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has empty ID value") {
+		t.Fatalf("Expected empty researcherid value message: %v", checkwarn[0])
+	}
+
+	// Check warning on duplicate ORCID, researchID, unidentifyable ID
+	yada.Authors[0].ID = "orcid:0000-0000-0000-0000"
+	auth = yada.Authors
+	auth = append(auth, libgin.Author{ID: "researcherid:A-0000-0000"})
+	auth = append(auth, libgin.Author{ID: "orcid:0000-0000-0000-0000"})
+	auth = append(auth, libgin.Author{ID: "researcherid:A-0000-0000"})
+	yada.Authors = auth
+
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 2 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	for _, warn := range checkwarn {
+		if !strings.Contains(warn, "have the same ID:") {
+			t.Fatalf("Expected duplicate ID message: %v", warn)
+		}
+	}
+
+	// Check no warning on valid entries
+	yada.Authors[2].ID = "orcid:1111-1111-1111-1111"
+	yada.Authors[3].ID = "researcherid:A-1111-1111"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+}
+
 func TestValidateDataCiteValues(t *testing.T) {
 	invResource := "<strong>ResourceType</strong> must be one of the following:"
 	invReference := "Reference type (<strong>RefType</strong>) must be one of the following:"
