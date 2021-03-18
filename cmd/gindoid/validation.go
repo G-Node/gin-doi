@@ -70,12 +70,15 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 	var dupID = make(map[string]string)
 
 	for idx, auth := range yada.Authors {
+		if auth.ID == "" {
+			continue
+		}
 		lowerID := strings.ToLower(auth.ID)
 
 		// Warn when not able to identify ID type
-		if !strings.HasPrefix(lowerID, "orcid") && !strings.HasPrefix(lowerID, "researcherID") {
+		if !strings.HasPrefix(lowerID, "orcid") && !strings.HasPrefix(lowerID, "researcherid") {
 			if orcid := orcidRE.Find([]byte(auth.ID)); orcid != nil {
-				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has ORCID like unspecified ID: %s", idx, auth.LastName, auth.ID))
+				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has ORCID-like unspecified ID: %s", idx, auth.LastName, auth.ID))
 			} else {
 				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has unknown ID: %s", idx, auth.LastName, auth.ID))
 			}
@@ -89,9 +92,10 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 
 		// Warn on dupliate ID entries
 		if authName, isduplicate := dupID[auth.ID]; isduplicate {
-			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", authName, auth.LastName, auth.ID))
+			curr := fmt.Sprintf("%d (%s)", idx, auth.LastName)
+			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", authName, curr, auth.ID))
 		} else {
-			dupID[auth.ID] = auth.LastName
+			dupID[auth.ID] = fmt.Sprintf("%d (%s)", idx, auth.LastName)
 		}
 	}
 
