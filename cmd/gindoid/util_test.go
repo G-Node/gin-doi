@@ -34,7 +34,7 @@ func TestAwardNumber(t *testing.T) {
 	}
 
 	// Test no issue on empty string
-	outstr = AwardNumber("")
+	_ = AwardNumber("")
 
 	// Test proper split on comma with semi-colon and surrounding whitespaces
 	subnumissue := " award, num "
@@ -73,7 +73,7 @@ func TestFunderName(t *testing.T) {
 	}
 
 	// Test no issue on empty string
-	outstr = FunderName("")
+	_ = FunderName("")
 
 	// Test proper split on comma with semi-colon and surrounding whitespaces
 	subnameissue := " funder, name "
