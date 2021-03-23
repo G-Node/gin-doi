@@ -91,11 +91,11 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 		}
 
 		// Warn on dupliate ID entries
-		if authName, isduplicate := dupID[auth.ID]; isduplicate {
+		if authName, isduplicate := dupID[lowerID]; isduplicate {
 			curr := fmt.Sprintf("%d (%s)", idx, auth.LastName)
 			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", authName, curr, auth.ID))
 		} else {
-			dupID[auth.ID] = fmt.Sprintf("%d (%s)", idx, auth.LastName)
+			dupID[lowerID] = fmt.Sprintf("%d (%s)", idx, auth.LastName)
 		}
 	}
 

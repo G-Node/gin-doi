@@ -306,11 +306,11 @@ func TestAuthorWarnings(t *testing.T) {
 	}
 
 	// Check warning on duplicate ORCID, researchID, unidentifyable ID
-	yada.Authors[0].ID = "orcid:0000-0000-0000-0000"
+	yada.Authors[0].ID = "orcid:0000-0000-0000-000x"
 	auth = yada.Authors
-	auth = append(auth, libgin.Author{ID: "researcherid:A-0000-0000"})
-	auth = append(auth, libgin.Author{ID: "orcid:0000-0000-0000-0000"})
-	auth = append(auth, libgin.Author{ID: "researcherid:A-0000-0000"})
+	auth = append(auth, libgin.Author{ID: "researcherid:a-0000-0000"})
+	auth = append(auth, libgin.Author{ID: "ORCID:0000-0000-0000-000X"})
+	auth = append(auth, libgin.Author{ID: "researcherID:A-0000-0000"})
 	yada.Authors = auth
 
 	checkwarn = authorWarnings(yada, warnings)
