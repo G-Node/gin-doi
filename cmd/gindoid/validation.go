@@ -23,20 +23,6 @@ var allowedValues = map[string][]string{
 // may need admin attention. These should be sent with the followup
 // notification email.
 func collectWarnings(job *RegistrationJob) (warnings []string) {
-	// Check if any funder IDs are missing
-	if job.Metadata.FundingReferences != nil {
-		for _, funder := range *job.Metadata.FundingReferences {
-			if funder.Identifier == nil || funder.Identifier.ID == "" {
-				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
-			}
-		}
-	}
-
-	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
-	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
-		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
-	}
-
 	// NOTE: This is a workaround for the current inability to check a
 	// potential DOI fork for previous releases.  If the repository has a DOI
 	// fork, a notice is added to the admin email to check for previous
@@ -50,15 +36,29 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	// Check authors
+	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
+
+	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
+	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
+		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
+	}
+
 	// Check licenses
 	repoLicURL := repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE")
 	warnings = licenseWarnings(job.Metadata.YAMLData, repoLicURL, warnings)
 
+	// Check if any funder IDs are missing
+	if job.Metadata.FundingReferences != nil {
+		for _, funder := range *job.Metadata.FundingReferences {
+			if funder.Identifier == nil || funder.Identifier.ID == "" {
+				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
+			}
+		}
+	}
+
 	// Check references
 	warnings = referenceWarnings(job.Metadata.YAMLData, warnings)
-
-	// Check authors
-	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
 
 	return
 }
