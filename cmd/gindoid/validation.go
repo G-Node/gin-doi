@@ -160,7 +160,7 @@ func licenseWarnings(yada *libgin.RepositoryYAML, repoLicenseURL string, warning
 	var licenseHeader DOILicense
 	content, err := readFileAtURL(repoLicenseURL)
 	if err != nil {
-		warnings = append(warnings, fmt.Sprintf("Could not access license file"))
+		warnings = append(warnings, "Could not access license file")
 	} else {
 		headstr := string(content)
 		fileHeader := strings.Split(strings.Replace(headstr, "\r\n", "\n", -1), "\n")
