@@ -199,7 +199,9 @@ func AuthorBlock(authors []libgin.Creator) template.HTML {
 		var url, id, affiliationSup string
 		if author.Identifier != nil {
 			id = author.Identifier.ID
-			url = author.Identifier.SchemeURI + id
+			if author.Identifier.SchemeURI != "" {
+				url = author.Identifier.SchemeURI + id
+			}
 		}
 
 		// Author names are LastName, FirstName
