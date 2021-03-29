@@ -393,7 +393,7 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	_, err = readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
 	if err != nil {
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())
-		return nil, fmt.Errorf(msgNoLicenseFile)
+		return nil, fmt.Errorf("<p>%s</p>", msgNoLicenseFile)
 	}
 
 	// fail registration if unsupported values have been used
