@@ -398,7 +398,7 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 
 	// fail registration if unsupported values have been used
 	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
-		err := fmt.Errorf("%s<i><p>%s</p></i>", msgInvalidDOI, strings.Join(msgs, "</p><p>"))
+		err := fmt.Errorf("%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>", msgInvalidDOI, strings.Join(msgs, "</li><li>"))
 		return nil, err
 	}
 
