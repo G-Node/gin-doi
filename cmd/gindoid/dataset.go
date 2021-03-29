@@ -332,8 +332,9 @@ func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
 	}
 	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
+		missing = deduplicateValues(missing)
 		log.Print("DOI file is missing entries")
-		return nil, fmt.Errorf(strings.Join(missing, " "))
+		return nil, fmt.Errorf(strings.Join(missing, "; "))
 	}
 	return yamlInfo, nil
 }
@@ -382,7 +383,9 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	repoMetadata, err := readRepoYAML(dataciteText)
 	if err != nil {
 		log.Print("DOI file invalid")
-		err := fmt.Errorf("%s<p><i>%s</i></p>", msgInvalidDOI, err.Error())
+		// reformat error messages
+		msgs := strings.Split(err.Error(), "; ")
+		err := fmt.Errorf("%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>", msgInvalidDOI, strings.Join(msgs, "</li><li>"))
 		return nil, err
 	}
 
