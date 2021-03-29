@@ -66,6 +66,21 @@ func makeUUID(URI string) string {
 	return hex.EncodeToString(currMd5[:])
 }
 
+// deduplicateValues checks a string slice for duplicate
+// entries and returns a reduced string slice without any
+// duplicates.
+func deduplicateValues(dupvals []string) []string {
+	strmap := make(map[string]bool)
+	vals := []string{}
+	for _, val := range dupvals {
+		if _, exists := strmap[val]; !exists {
+			strmap[val] = true
+			vals = append(vals, val)
+		}
+	}
+	return vals
+}
+
 // EscXML runs a string through xml.EscapeText.
 // This is a utility function for the doi.xml template.
 func EscXML(txt string) string {
