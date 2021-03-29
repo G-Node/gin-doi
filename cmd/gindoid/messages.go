@@ -41,7 +41,7 @@ If you would like to make any changes to the dataset before it is published, or 
 	msgNoLicense        = "No valid license provided. Please specify a license URL and name and make sure it matches the license file in the repository."
 	msgNoLicenseFile    = `The LICENSE file is missing. The full text of the license is required to be in the repository when publishing. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for details and links to recommended data licenses.`
 	msgLicenseMismatch  = `The LICENSE file does not match the license specified in the metadata. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for links to full text for available licenses.`
-	msgInvalidReference = "One of the Reference entries is not valid. Please provide the full citation and type of the reference."
+	msgInvalidReference = "Not all Reference entries are valid. Please provide the full citation and type of the reference."
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`
 
 	msgSubmitError     = "An internal error occurred while we were processing your request.  The G-Node team has been notified of the problem and will attempt to repair it and process your request.  We may contact you for further information regarding your request.  Feel free to <a href=mailto:gin@g-node.org>contact us</a> if you would like to provide more information or ask about the status of your request."
