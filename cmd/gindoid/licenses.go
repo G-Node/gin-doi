@@ -44,7 +44,8 @@ const defaultLicensesJSON = `[
 	"CC0 1.0 Universal",
 	"CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
 	"Creative Commons CC0 1.0 Public Domain Dedication",
-	"CC0"
+	"CC0",
+	"Creative Commons CC0 1.0 Universal"
 	]
 },
 {

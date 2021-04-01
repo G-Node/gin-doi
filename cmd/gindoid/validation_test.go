@@ -246,3 +246,205 @@ func TestLicenseWarnings(t *testing.T) {
 		t.Fatalf("All match: unexpected warnings(%d): %v", len(checkwarn), checkwarn)
 	}
 }
+
+func TestAuthorWarnings(t *testing.T) {
+	var warnings []string
+	yada := &libgin.RepositoryYAML{}
+
+	// Check no author warning on empty struct or empty Author
+	checkwarn := authorWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+
+	var auth []libgin.Author
+	auth = append(auth, libgin.Author{})
+	yada.Authors = auth
+
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+
+	// Check warning on non identifiable ID that looks like an ORCID
+	yada.Authors[0].ID = "0000-0000-0000-0000"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has ORCID-like unspecified ID") {
+		t.Fatalf("Expected ORCID like ID message: %v", checkwarn[0])
+	}
+
+	// Check warning on non identifiable ID
+	yada.Authors[0].ID = "I:amNoID"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has unknown ID") {
+		t.Fatalf("Expected unknown ID message: %v", checkwarn[0])
+	}
+
+	// Check warning on known ID type, but missing value (orcid and researcherid)
+	yada.Authors[0].ID = "orCid:"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has empty ID value") {
+		t.Fatalf("Expected empty ORCID value message: %v", checkwarn[0])
+	}
+
+	yada.Authors[0].ID = "researcherID:"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "has empty ID value") {
+		t.Fatalf("Expected empty researcherid value message: %v", checkwarn[0])
+	}
+
+	// Check warning on duplicate ORCID, researchID, unidentifyable ID
+	yada.Authors[0].ID = "orcid:0000-0000-0000-000x"
+	auth = yada.Authors
+	auth = append(auth, libgin.Author{ID: "researcherid:a-0000-0000"})
+	auth = append(auth, libgin.Author{ID: "ORCID:0000-0000-0000-000X"})
+	auth = append(auth, libgin.Author{ID: "researcherID:A-0000-0000"})
+	yada.Authors = auth
+
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 2 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	for _, warn := range checkwarn {
+		if !strings.Contains(warn, "have the same ID:") {
+			t.Fatalf("Expected duplicate ID message: %v", warn)
+		}
+	}
+
+	// Check no warning on valid entries
+	yada.Authors[2].ID = "orcid:1111-1111-1111-1111"
+	yada.Authors[3].ID = "researcherid:A-1111-1111"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+}
+
+func TestValidateDataCiteValues(t *testing.T) {
+	invResource := "<strong>ResourceType</strong> must be one of the following:"
+	invReference := "Reference type (<strong>RefType</strong>) must be one of the following:"
+
+	// Check required resourceType message on empty struct
+	yada := &libgin.RepositoryYAML{}
+
+	msgs := validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invResource) {
+		t.Fatalf("Expected resource type message: %v", msgs[0])
+	}
+
+	// Check invalid resource type
+	yada.ResourceType = "Idonotexist"
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invResource) {
+		t.Fatalf("Expected resource message: %v", msgs[0])
+	}
+
+	// Check fail on an existing but empty reference
+	yada.ResourceType = "Dataset"
+	var ref []libgin.Reference
+	ref = append(ref, libgin.Reference{})
+	yada.References = ref
+
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invReference) {
+		t.Fatalf("Expected reference message: %v", msgs[0])
+	}
+
+	// Check fail on invalid reference
+	yada.References[0].RefType = "idonotexist"
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], invReference) {
+		t.Fatalf("Expected reference message: %v", msgs[0])
+	}
+
+	// Check all valid
+	yada.References[0].RefType = "IsSupplementTo"
+
+	msgs = validateDataCiteValues(yada)
+	if len(msgs) != 0 {
+		t.Fatalf("Unexpected messages: %v", msgs)
+	}
+}
+
+func TestReferenceWarnings(t *testing.T) {
+	var warnings []string
+	// Check warnings on empty struct
+	yada := &libgin.RepositoryYAML{}
+
+	warn := referenceWarnings(yada, warnings)
+	if len(warn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+
+	// Check refIDType warning on empty ID
+	var ref []libgin.Reference
+	ref = append(ref, libgin.Reference{RefType: "IsSupplementTo"})
+	yada.References = ref
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+	if !strings.Contains(warn[0], "has no related ID type:") {
+		t.Fatalf("Unexpected related ID type warning: %v", warn)
+	}
+
+	// Check refIDType warning on missing id type
+	yada.References[0].ID = "10.12751/g-node.6953bb"
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+	if !strings.Contains(warn[0], "has no related ID type:") {
+		t.Fatalf("Unexpected related ID type warning: %v", warn)
+	}
+
+	// Check warning on "name" field used and warning on uncommon referenceType
+	yada.References[0].ID = "doi:10.12751/g-node.6953bb"
+	yada.References[0].Name = "used instead of citation"
+	yada.References[0].RefType = "IsDescribedBy"
+
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 2 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+	if !strings.Contains(warn[0], "uses old 'Name' field instead of 'Citation'") {
+		t.Fatalf("Unexpected name field warning: %v", warn)
+	}
+	if !strings.Contains(warn[1], " uses refType 'IsDescribedBy'") {
+		t.Fatalf("Unexpected reference type warning: %v", warn)
+	}
+
+	// Check no warnings on valid reference
+	yada.References[0].Name = ""
+	yada.References[0].Citation = "validcitation"
+	yada.References[0].RefType = "IsSupplementTo"
+	yada.References[0].ID = "doi:10.12751/g-node.6953bb"
+	warn = referenceWarnings(yada, warnings)
+	if len(warn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(warn), warn)
+	}
+}

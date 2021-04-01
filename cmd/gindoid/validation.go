@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -22,28 +23,6 @@ var allowedValues = map[string][]string{
 // may need admin attention. These should be sent with the followup
 // notification email.
 func collectWarnings(job *RegistrationJob) (warnings []string) {
-	// Check if any funder IDs are missing
-	if job.Metadata.FundingReferences != nil {
-		for _, funder := range *job.Metadata.FundingReferences {
-			if funder.Identifier == nil || funder.Identifier.ID == "" {
-				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
-			}
-		}
-	}
-
-	// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
-	// This shouldn't be an issue, but it can cause formatting issues
-	for idx, ref := range job.Metadata.YAMLData.References {
-		if ref.Name != "" {
-			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
-		}
-	}
-
-	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
-	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
-		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
-	}
-
 	// NOTE: This is a workaround for the current inability to check a
 	// potential DOI fork for previous releases.  If the repository has a DOI
 	// fork, a notice is added to the admin email to check for previous
@@ -57,10 +36,103 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	// Check authors
+	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
+
+	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
+	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
+		warnings = append(warnings, fmt.Sprintf("Abstract may be too short: %d characters", absLen))
+	}
+
+	// Check licenses
 	repoLicURL := repoFileURL(job.Config, job.Metadata.SourceRepository, "LICENSE")
 	warnings = licenseWarnings(job.Metadata.YAMLData, repoLicURL, warnings)
 
+	// Check if any funder IDs are missing
+	if job.Metadata.FundingReferences != nil {
+		for _, funder := range *job.Metadata.FundingReferences {
+			if funder.Identifier == nil || funder.Identifier.ID == "" {
+				warnings = append(warnings, fmt.Sprintf("Couldn't find funder ID for funder %q", funder.Funder))
+			}
+		}
+	}
+
+	// Check references
+	warnings = referenceWarnings(job.Metadata.YAMLData, warnings)
+
+	// Warn if resourceType is not 'Dataset'
+	if !strings.EqualFold(job.Metadata.YAMLData.ResourceType, "dataset") {
+		warnings = append(warnings, fmt.Sprintf("ResourceType is %q (expected Dataset)", job.Metadata.YAMLData.ResourceType))
+	}
+
 	return
+}
+
+// authorWarnings checks datacite authors for validity and returns
+// corresponding warnings if required.
+func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
+	var orcidRE = regexp.MustCompile(`([[:digit:]]{4}-){3}[[:digit:]]{3}[[:digit:]X]`)
+	var dupID = make(map[string]string)
+
+	for idx, auth := range yada.Authors {
+		if auth.ID == "" {
+			continue
+		}
+		lowerID := strings.ToLower(auth.ID)
+
+		// Warn when not able to identify ID type
+		if !strings.HasPrefix(lowerID, "orcid") && !strings.HasPrefix(lowerID, "researcherid") {
+			if orcid := orcidRE.Find([]byte(auth.ID)); orcid != nil {
+				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has ORCID-like unspecified ID: %s", idx, auth.LastName, auth.ID))
+			} else {
+				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has unknown ID: %s", idx, auth.LastName, auth.ID))
+			}
+		}
+
+		// Warn on known ID type but missing value
+		idpref := map[string]bool{"orcid:": true, "researcherid:": true}
+		if _, found := idpref[strings.TrimSpace(lowerID)]; found {
+			warnings = append(warnings, fmt.Sprintf("Author %d (%s) has empty ID value: %s", idx, auth.LastName, auth.ID))
+		}
+
+		// Warn on dupliate ID entries
+		if authName, isduplicate := dupID[lowerID]; isduplicate {
+			curr := fmt.Sprintf("%d (%s)", idx, auth.LastName)
+			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", authName, curr, auth.ID))
+		} else {
+			dupID[lowerID] = fmt.Sprintf("%d (%s)", idx, auth.LastName)
+		}
+	}
+
+	return warnings
+}
+
+// referenceWarnings checks datacite references for validity and
+// returns corresponding warnings if required.
+func referenceWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
+	for idx, ref := range yada.References {
+		// Check if a reference from the YAML file uses the old "Name" field instead of "Citation"
+		// This shouldn't be an issue, but it can cause formatting issues
+		if ref.Name != "" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d uses old 'Name' field instead of 'Citation'", idx))
+		}
+
+		// Warn if reftypes are different from "IsSupplementTo"
+		if strings.ToLower(ref.RefType) != "issupplementto" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d uses refType '%s'", idx, ref.RefType))
+		}
+
+		// Warn if a reference does not provide a relatedIdentifier
+		var relIDType string
+		refIDParts := strings.SplitN(ref.ID, ":", 2)
+		if len(refIDParts) == 2 {
+			relIDType = strings.TrimSpace(refIDParts[0])
+		}
+		if relIDType == "" {
+			warnings = append(warnings, fmt.Sprintf("Reference %d has no related ID type: '%s'; excluded from XML file", idx, ref.ID))
+		}
+	}
+	return warnings
 }
 
 // DOILicense holds Name (official license title), URL (license online reference)
@@ -93,7 +165,7 @@ func licenseWarnings(yada *libgin.RepositoryYAML, repoLicenseURL string, warning
 	var licenseHeader DOILicense
 	content, err := readFileAtURL(repoLicenseURL)
 	if err != nil {
-		warnings = append(warnings, fmt.Sprintf("Could not access license file"))
+		warnings = append(warnings, "Could not access license file")
 	} else {
 		headstr := string(content)
 		fileHeader := strings.Split(strings.Replace(headstr, "\r\n", "\n", -1), "\n")

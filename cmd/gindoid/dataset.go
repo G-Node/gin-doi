@@ -332,8 +332,9 @@ func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
 	}
 	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
+		missing = deduplicateValues(missing)
 		log.Print("DOI file is missing entries")
-		return nil, fmt.Errorf(strings.Join(missing, " "))
+		return nil, fmt.Errorf(strings.Join(missing, "; "))
 	}
 	return yamlInfo, nil
 }
@@ -382,7 +383,9 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	repoMetadata, err := readRepoYAML(dataciteText)
 	if err != nil {
 		log.Print("DOI file invalid")
-		err := fmt.Errorf("%s<p><i>%s</i></p>", msgInvalidDOI, err.Error())
+		// reformat error messages
+		msgs := strings.Split(err.Error(), "; ")
+		err := fmt.Errorf("%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>", msgInvalidDOI, strings.Join(msgs, "</li><li>"))
 		return nil, err
 	}
 
@@ -390,12 +393,12 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	_, err = readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
 	if err != nil {
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())
-		return nil, fmt.Errorf(msgNoLicenseFile)
+		return nil, fmt.Errorf("<p>%s</p>", msgNoLicenseFile)
 	}
 
 	// fail registration if unsupported values have been used
 	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
-		err := fmt.Errorf("%s<i><p>%s</p></i>", msgInvalidDOI, strings.Join(msgs, "</p><p>"))
+		err := fmt.Errorf("%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>", msgInvalidDOI, strings.Join(msgs, "</li><li>"))
 		return nil, err
 	}
 
