@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,6 +33,15 @@ func randAlnum(n int) string {
 	}
 
 	return string(chrs)
+}
+
+// isURL returns true if a URL scheme part can be identfied
+// within a passed string. Returns false in any other case.
+func isURL(str string) bool {
+	if purl, err := url.Parse(str); err == nil {
+		return purl.Scheme != ""
+	}
+	return false
 }
 
 // Global function map for the templates that render the DOI information

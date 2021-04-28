@@ -18,16 +18,6 @@ const (
 	defstoreurl = "https://doid.gin.g-node.org"
 )
 
-func isURL(str string) bool {
-	if purl, err := url.Parse(str); err == nil {
-		if purl.Scheme == "" {
-			return false
-		}
-		return true
-	}
-	return false
-}
-
 func readFileAtPath(path string) ([]byte, error) {
 	fp, err := os.Open(path)
 	if err != nil {
