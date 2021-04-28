@@ -248,15 +248,15 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 		log.Printf("Failed to create issue or comment on XML repo: %s", posterr.Error())
 		return -1, posterr
 	} else if resp.StatusCode != http.StatusCreated {
-		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
-			errmsg := fmt.Sprintf("Failed to create issue or comment on XML repo: [%d] %s", resp.StatusCode, msg)
-			log.Printf(errmsg)
-			return -1, fmt.Errorf(errmsg)
+		var errmsg string
+		msg, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errmsg = fmt.Sprintf("Failed to open issue on XML repo: [%d] failed to read response body: %s", resp.StatusCode, err.Error())
 		} else {
-			msg := fmt.Sprintf("Failed to open issue on XML repo: [%d] failed to read response body: %s", resp.StatusCode, err.Error())
-			log.Print(msg)
-			return -1, fmt.Errorf(msg)
+			errmsg = fmt.Sprintf("Failed to create issue or comment on XML repo: [%d] %s", resp.StatusCode, msg)
 		}
+		log.Print(errmsg)
+		return -1, fmt.Errorf(errmsg)
 	}
 	if existingIssue > 0 {
 		return existingIssue, nil
