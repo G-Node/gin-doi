@@ -449,7 +449,7 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 	for _, tName := range templateNames {
 		tContent, ok := templateMap[tName]
 		if !ok {
-			return nil, fmt.Errorf("Unknown template with name %q", tName)
+			return nil, fmt.Errorf("unknown template with name %q", tName)
 		}
 		tmpl, err = tmpl.New(tName).Parse(tContent)
 		if err != nil {

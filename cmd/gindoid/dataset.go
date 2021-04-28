@@ -116,7 +116,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	log.Print("Start clone and zip")
 	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
 	if err := os.MkdirAll(preppath, 0777); err != nil {
-		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
+		errmsg := fmt.Sprintf("failed to create temporary clone directory: %s", tmpdir)
 		log.Print(errmsg)
 		return "", -1, fmt.Errorf(errmsg)
 	}
@@ -124,7 +124,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	// Clone repository at the preparation path
 	if err := cloneRepo(repopath, preppath, conf); err != nil {
 		log.Print("Repository cloning failed")
-		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
+		return "", -1, fmt.Errorf("failed to clone repository '%s': %v", repopath, err)
 	}
 
 	// Zip repository content to the target path
@@ -141,7 +141,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	zipsize, err := runzip(repodir, zipfilename, exclude)
 	if err != nil {
 		log.Print("Could not zip the data")
-		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
+		return "", -1, fmt.Errorf("failed to create the zip file: %v", err)
 	}
 	log.Printf("Archive size: %d", zipsize)
 	return zipbasename, zipsize, nil
@@ -314,7 +314,7 @@ func readFileAtURL(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Request returned non-OK status: %s", resp.Status)
+		return nil, fmt.Errorf("request returned non-OK status: %s", resp.Status)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -503,7 +503,7 @@ func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 	// check sources
 	for _, src := range source {
 		if _, err := os.Stat(src); err != nil {
-			return fmt.Errorf("Cannot access '%s': %s", src, err.Error())
+			return fmt.Errorf("cannot access '%s': %s", src, err.Error())
 		}
 	}
 
@@ -576,7 +576,7 @@ func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 	for _, src := range source {
 		err := filepath.Walk(src, walker)
 		if err != nil {
-			return fmt.Errorf("Error adding %s to zip file: %s", src, err.Error())
+			return fmt.Errorf("error adding %s to zip file: %s", src, err.Error())
 		}
 	}
 	return nil

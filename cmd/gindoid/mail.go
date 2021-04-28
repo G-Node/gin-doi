@@ -126,7 +126,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	if issueErr != nil && mailErr != nil {
 		// both failed; return error to let the user know that the request failed
 		// The underlying errors are already logged
-		return fmt.Errorf("Failed to notify admins of new request: %s (%s)", job.Metadata.SourceRepository, job.Metadata.Identifier.ID)
+		return fmt.Errorf("failed to notify admins of new request: %s (%s)", job.Metadata.SourceRepository, job.Metadata.Identifier.ID)
 	}
 	return nil
 }

@@ -119,11 +119,11 @@ func fetchAndParse(ginurl string, repopath string) (*libgin.RepositoryYAML, erro
 	fmt.Printf("Fetching metadata from %s\n", repourl.String())
 	infoyml, err := readFileAtURL(repourl.String())
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read metadata for repository %q\n", repopath)
+		return nil, fmt.Errorf("failed to read metadata for repository %q", repopath)
 	}
 	doiInfo, err := readRepoYAML(infoyml)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse metadata for repository %q\n", repopath)
+		return nil, fmt.Errorf("failed to parse metadata for repository %q", repopath)
 	}
 	return doiInfo, nil
 }
