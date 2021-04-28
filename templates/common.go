@@ -20,6 +20,7 @@ const Nav = `
 			</div>
 `
 
+// Footer is the template for every page footer
 const Footer = `
 		<footer>
 			<div class="ui container">

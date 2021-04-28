@@ -31,6 +31,8 @@ func newWorker(id int, workerPool chan chan *RegistrationJob) Worker {
 	}
 }
 
+// Worker holds a JobQueue that will accept and handle incoming
+// DOI registration jobs.
 type Worker struct {
 	ID         int
 	JobQueue   chan *RegistrationJob
@@ -77,6 +79,8 @@ func newDispatcher(jobQueue chan *RegistrationJob, maxWorkers int) *Dispatcher {
 	}
 }
 
+// Dispatcher holds waiting jobs and sends the next job in the queue to
+// the first available worker.
 type Dispatcher struct {
 	workerPool chan chan *RegistrationJob
 	maxWorkers int

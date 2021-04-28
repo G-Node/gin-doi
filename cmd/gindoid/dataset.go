@@ -357,11 +357,18 @@ type RegistrationRequest struct {
 	ErrorMessages []string
 }
 
+// GetDOIURI replaces scheme and path of the RegistrationRequest.Repository
+// up until the final slash with 'doi/' and returns the string.
+// This method is currently not used in any project and should be
+// considered deprecated.
 func (d *RegistrationRequest) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
 	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
 }
 
+// AsHTML returns an HTML encapsulated RegistrationRequest.Message.
+// This method is currently not used in any project and should be
+// considered deprecated.
 func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
 }

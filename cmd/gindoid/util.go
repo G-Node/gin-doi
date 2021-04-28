@@ -18,6 +18,7 @@ import (
 	"github.com/G-Node/libgin/libgin"
 )
 
+// ALNUM provides characters for the randAlnum function.
 const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
 
 // randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
@@ -460,6 +461,8 @@ func prepareTemplates(templateNames ...string) (*template.Template, error) {
 	return tmpl, nil
 }
 
+// NewVersionNotice returns an HTML template containing links to a newer version
+// of a given dataset if it exists.
 func NewVersionNotice(md *libgin.RepositoryMetadata) template.HTML {
 	for _, relid := range md.RelatedIdentifiers {
 		if relid.RelationType == "IsOldVersionOf" {
@@ -476,6 +479,8 @@ func NewVersionNotice(md *libgin.RepositoryMetadata) template.HTML {
 	return ""
 }
 
+// OldVersionLink returns an HTML template containing links to a previous version
+// of a given dataset if it exists.
 func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
 	for _, relid := range md.RelatedIdentifiers {
 		if relid.RelationType == "IsNewVersionOf" {

@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	MAILLOG   = "MailServer"
-	DEFAULTTO = "gin@g-node.org" // Fallback email address to notify in case of error
+	// MAILLOG is currently not used in any project and should be considered deprecated.
+	MAILLOG = "MailServer"
+	// DEFAULTTO is a fallback email address to notify in case of error.
+	DEFAULTTO = "gin@g-node.org"
 )
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
