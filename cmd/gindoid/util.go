@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/xml"
 	"fmt"
 	"html/template"
@@ -59,14 +57,6 @@ var tmplfuncs = template.FuncMap{
 	"NewVersionNotice": NewVersionNotice,
 	"OldVersionLink":   OldVersionLink,
 	"GINServerURL":     GINServerURL,
-}
-
-func makeUUID(URI string) string {
-	if doi, ok := libgin.UUIDMap[URI]; ok {
-		return doi
-	}
-	currMd5 := md5.Sum([]byte(URI))
-	return hex.EncodeToString(currMd5[:])
 }
 
 // deduplicateValues checks a string slice for duplicate
