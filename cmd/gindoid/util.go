@@ -7,10 +7,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -61,12 +59,6 @@ var tmplfuncs = template.FuncMap{
 	"NewVersionNotice": NewVersionNotice,
 	"OldVersionLink":   OldVersionLink,
 	"GINServerURL":     GINServerURL,
-}
-
-func readBody(r *http.Request) (*string, error) {
-	body, err := ioutil.ReadAll(r.Body)
-	x := string(body)
-	return &x, err
 }
 
 func makeUUID(URI string) string {
