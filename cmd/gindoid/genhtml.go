@@ -12,12 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defginurl   = "https://gin.g-node.org"
-	defdoibase  = "10.12751/g-node."
-	defstoreurl = "https://doid.gin.g-node.org"
-)
-
 func readFileAtPath(path string) ([]byte, error) {
 	fp, err := os.Open(path)
 	if err != nil {
