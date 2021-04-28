@@ -226,7 +226,7 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 
 	var resp *http.Response
 	var posterr error
-	var existingIssue int64 = 0
+	var existingIssue int64
 	if issueID, err := getIssueID(client, xmlrepo, title); err == nil {
 		if issueID > 0 {
 			// Issue exists: Add comment
