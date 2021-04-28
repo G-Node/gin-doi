@@ -3,9 +3,7 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"net/url"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -94,20 +92,4 @@ func mkhtml(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Printf("%d/%d jobs completed successfully\n", success, len(args))
-}
-
-func fetchAndParse(ginurl string, repopath string) (*libgin.RepositoryYAML, error) {
-	repourl, _ := url.Parse(ginurl)
-	repoDatacitePath := path.Join(repopath, "raw", "master", "datacite.yml")
-	repourl.Path = repoDatacitePath
-	fmt.Printf("Fetching metadata from %s\n", repourl.String())
-	infoyml, err := readFileAtURL(repourl.String())
-	if err != nil {
-		return nil, fmt.Errorf("failed to read metadata for repository %q", repopath)
-	}
-	doiInfo, err := readRepoYAML(infoyml)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse metadata for repository %q", repopath)
-	}
-	return doiInfo, nil
 }
