@@ -116,3 +116,16 @@ func TestFunderName(t *testing.T) {
 		t.Fatalf("Fundername 'issues' parse error: (in) '%s' (out) '%s' (expect) '%s'", instr, outstr, subnameclean)
 	}
 }
+
+// TestIsURL tests proper URL identification via util.isURL.
+func TestIsURL(t *testing.T) {
+	testURL := "i/am/no/url"
+	if isURL(testURL) {
+		t.Fatalf("isURL returned true for test string %q", testURL)
+	}
+
+	testURL = "https://i/could/be/a/url"
+	if !isURL(testURL) {
+		t.Fatalf("isURL returned false for test string %q", testURL)
+	}
+}
