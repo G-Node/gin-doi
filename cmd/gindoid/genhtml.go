@@ -10,23 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func readFileAtPath(path string) ([]byte, error) {
-	fp, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	defer fp.Close()
-
-	stat, err := fp.Stat()
-	if err != nil {
-		return nil, err
-	}
-	contents := make([]byte, stat.Size())
-	_, err = fp.Read(contents)
-	return contents, err
-}
-
 // mkhtml reads the provided XML files or URLs and generates the HTML landing
 // page for each.
 func mkhtml(cmd *cobra.Command, args []string) {

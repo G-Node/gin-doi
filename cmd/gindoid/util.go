@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -53,6 +54,24 @@ func deduplicateValues(dupvals []string) []string {
 		}
 	}
 	return vals
+}
+
+// readFileAtPath returns the content of a file at a given path.
+func readFileAtPath(path string) ([]byte, error) {
+	fp, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer fp.Close()
+
+	stat, err := fp.Stat()
+	if err != nil {
+		return nil, err
+	}
+	contents := make([]byte, stat.Size())
+	_, err = fp.Read(contents)
+	return contents, err
 }
 
 // EscXML runs a string through xml.EscapeText.
