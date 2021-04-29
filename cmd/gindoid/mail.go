@@ -175,7 +175,7 @@ func sendMail(to []string, subject, body string, conf *Configuration) error {
 	// Set the sender and recipient.
 	c.Mail(conf.Email.From)
 	message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
-	if to != nil && len(to) > 0 {
+	if len(to) > 0 {
 		for _, address := range to {
 			address = strings.TrimSpace(address)
 			log.Printf("To: %s", address)
