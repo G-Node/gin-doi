@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -300,28 +299,6 @@ func repoFileURL(conf *Configuration, repopath string, filename string) string {
 	fetchRepoPath := fmt.Sprintf("%s/raw/master/%s", repopath, filename)
 	u.Path = fetchRepoPath
 	return u.String()
-}
-
-// readFileAtURL returns the contents of a file at a given URL.
-func readFileAtURL(url string) ([]byte, error) {
-	client := &http.Client{}
-	log.Printf("Fetching file at %q", url)
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Request failed: %s", err.Error())
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("request returned non-OK status: %s", resp.Status)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Could not read file contents: %s", err.Error())
-		return nil, err
-	}
-	return body, nil
 }
 
 // readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.

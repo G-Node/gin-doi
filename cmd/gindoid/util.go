@@ -5,8 +5,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -72,6 +74,28 @@ func readFileAtPath(path string) ([]byte, error) {
 	contents := make([]byte, stat.Size())
 	_, err = fp.Read(contents)
 	return contents, err
+}
+
+// readFileAtURL returns the contents of a file at a given URL.
+func readFileAtURL(url string) ([]byte, error) {
+	client := &http.Client{}
+	log.Printf("Fetching file at %q", url)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Request failed: %s", err.Error())
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request returned non-OK status: %s", resp.Status)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Could not read file contents: %s", err.Error())
+		return nil, err
+	}
+	return body, nil
 }
 
 // EscXML runs a string through xml.EscapeText.
