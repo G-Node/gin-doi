@@ -2,9 +2,41 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
+
+func TestReadFileAtPath(t *testing.T) {
+	_, err := readFileAtPath("I/do/not/exist")
+	if err == nil {
+		t.Fatal("Missing error opening non existant file.")
+	}
+
+	tmpDir, err := ioutil.TempDir("", "test_gindoi_licfromfile")
+	if err != nil {
+		t.Fatalf("Error creating tmp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpfile := filepath.Join(tmpDir, "tmp.json")
+	tmpcont := `[{"some": "data"}]`
+	err = writeTmpFile(tmpfile, tmpcont)
+	if err != nil {
+		t.Fatalf("Error creating tmp file: %q", err.Error())
+	}
+
+	cont, err := readFileAtPath(tmpfile)
+	if err != nil {
+		t.Fatalf("Error reading tmp file: %q", err.Error())
+	}
+	if strings.Compare(tmpcont, string(cont)) != 0 {
+		t.Fatalf("Issues reading file content: %q", cont)
+	}
+}
 
 func TestDeduplicateValues(t *testing.T) {
 	// check empty
