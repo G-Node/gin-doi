@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -35,6 +38,46 @@ func TestReadFileAtPath(t *testing.T) {
 	}
 	if strings.Compare(tmpcont, string(cont)) != 0 {
 		t.Fatalf("Issues reading file content: %q", cont)
+	}
+}
+
+func TestReadFileAtURL(t *testing.T) {
+	_, err := readFileAtURL("https://I/do/not/exist")
+	if err == nil {
+		t.Fatal("Missing error opening non existant URL.")
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/invalid", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusNotFound)
+		rw.Write([]byte(`non-OK`))
+	})
+	mux.HandleFunc("/valid", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte(`OK`))
+	})
+
+	// Start local test server
+	server := httptest.NewServer(mux)
+	// Close the server when test finishes
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+	testURL := fmt.Sprintf("%s/invalid", server.URL)
+	_, err = readFileAtURL(testURL)
+	if err == nil || !strings.Contains(err.Error(), "non-OK status") {
+		t.Fatalf("Missing non-OK status error: '%v'", err)
+	}
+	testURL = fmt.Sprintf("%s/valid", server.URL)
+	body, err := readFileAtURL(testURL)
+	if err != nil {
+		t.Fatalf("Error opening existing file: %q", err.Error())
+	}
+	if strings.Compare("OK", string(body)) != 0 {
+		t.Fatalf("Issues reading file content: %q", string(body))
 	}
 }
 
