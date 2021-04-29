@@ -77,7 +77,11 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	}
 
 	dynurl := GetGINURL(conf)
-	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"), dynurl)
+	err = createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"), dynurl)
+	if err != nil {
+		// Landing page creation failed; append the error for reporting and continue with the XML prep
+		preperrors = append(preperrors, fmt.Sprintf("Failed to create the landing page: %q", err.Error()))
+	}
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
