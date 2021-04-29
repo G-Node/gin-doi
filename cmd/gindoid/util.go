@@ -167,7 +167,7 @@ func GetGINURL(conf *Configuration) string {
 		return address
 	}
 	scheme := address[:schemeSepIdx]
-	port := address[portSepIdx:len(address)]
+	port := address[portSepIdx:]
 	if (scheme == "http" && port == ":80") ||
 		(scheme == "https" && port == ":443") {
 		// port is standard for scheme: slice it off
