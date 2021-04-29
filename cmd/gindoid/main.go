@@ -78,5 +78,8 @@ func main() {
 	rootCmd.SetVersionTemplate("{{.Version}}")
 
 	// Engage
-	rootCmd.Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		fmt.Printf("Error running gin-doi: %q", err.Error())
+	}
 }
