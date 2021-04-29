@@ -141,7 +141,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}
 		// Overwrite default GIN server URL with config GIN server URL
 		tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
-		tmpl.Execute(w, regRequest)
+		err = tmpl.Execute(w, regRequest)
+		if err != nil {
+			log.Printf("Failed to execute RequestFailurePage template: %q", err.Error())
+		}
 		return
 	}
 
@@ -162,7 +165,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}
 		// Overwrite default GIN server URL with config GIN server URL
 		tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
-		tmpl.Execute(w, regRequest)
+		err = tmpl.Execute(w, regRequest)
+		if err != nil {
+			log.Printf("Failed to execute RequestFailurePage template: %q", err.Error())
+		}
 		return
 	}
 

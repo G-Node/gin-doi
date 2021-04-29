@@ -23,7 +23,10 @@ func TestInjectDynamicGINURL(t *testing.T) {
 		t.Fatalf("Failed to parse test template: %s", err.Error())
 	}
 	tmpl = injectDynamicGINURL(tmpl, "")
-	tmpl.Execute(&b, data)
+	err = tmpl.Execute(&b, data)
+	if err != nil {
+		t.Fatalf("Failed to execute test template: %s", err.Error())
+	}
 	if checkurl != b.String() {
 		t.Fatalf("Error default URL; got: '%s'", b.String())
 	}
@@ -38,7 +41,10 @@ func TestInjectDynamicGINURL(t *testing.T) {
 		t.Fatalf("Failed to parse test template: %s", err.Error())
 	}
 	tmpl = injectDynamicGINURL(tmpl, dynamicurl)
-	tmpl.Execute(&b, data)
+	err = tmpl.Execute(&b, data)
+	if err != nil {
+		t.Fatalf("Failed to execute test template: %s", err.Error())
+	}
 	if checkurl != b.String() {
 		t.Fatalf("Error dynamic URL; got: '%s'", b.String())
 	}
