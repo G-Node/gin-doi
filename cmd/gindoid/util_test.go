@@ -50,11 +50,17 @@ func TestReadFileAtURL(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/invalid", func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusNotFound)
-		rw.Write([]byte(`non-OK`))
+		_, err := rw.Write([]byte(`non-OK`))
+		if err != nil {
+			t.Fatalf("Could not write invalid response: %q", err.Error())
+		}
 	})
 	mux.HandleFunc("/valid", func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte(`OK`))
+		_, err := rw.Write([]byte(`OK`))
+		if err != nil {
+			t.Fatalf("Could not write valid response: %q", err.Error())
+		}
 	})
 
 	// Start local test server
