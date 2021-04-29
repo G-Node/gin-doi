@@ -62,13 +62,6 @@ func (w *Worker) start() {
 	}()
 }
 
-// stop the worker.
-func (w *Worker) stop() {
-	go func() {
-		w.QuitChan <- true
-	}()
-}
-
 // newDispatcher creates and returns a new Dispatcher object that holds all
 // waiting jobs and sends the next job in the queue to the first available
 // worker.
@@ -102,6 +95,7 @@ func (d *Dispatcher) run(makeWorker func(int, chan chan *RegistrationJob) Worker
 }
 
 func (d *Dispatcher) dispatch() {
+	//lint:ignore S1000 rewrite to suggested range syntax leads to loop variable i captured by func literal issue.
 	for {
 		select {
 		case job := <-d.jobQueue:
