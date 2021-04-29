@@ -543,10 +543,10 @@ func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 
 		// open files for zipping
 		f, err := os.Open(path)
-		defer f.Close()
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 
 		// copy file data into zip writer
 		if _, err := io.Copy(w, f); err != nil {
