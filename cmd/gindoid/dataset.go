@@ -36,10 +36,13 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	repopath := job.Metadata.SourceRepository
 	jobname := job.Metadata.Identifier.ID
 
-	prepDir(job)
+	preperrors := make([]string, 0, 7)
+	err := prepDir(job)
+	if err != nil {
+		preperrors = append(preperrors, fmt.Sprintf("Error preparing data directory : %q", err.Error()))
+	}
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
-	preperrors := make([]string, 0, 5)
 
 	ginurl, err := url.Parse(GetGINURL(conf))
 	if err != nil {
