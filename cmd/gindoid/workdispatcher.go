@@ -48,8 +48,11 @@ func (w *Worker) start() {
 			w.WorkerPool <- w.JobQueue
 			select {
 			case job := <-w.JobQueue:
-				// Dispatcher has added a job to my jobQueue.
-				createRegisteredDataset(job)
+				// Dispatcher has added a job to my jobQueue
+				err := createRegisteredDataset(job)
+				if err != nil {
+					log.Printf("Encountered issue handling request: %q", err.Error())
+				}
 				log.Printf("Worker %d Completed %q!", w.ID, job.Metadata.SourceRepository)
 			case <-w.QuitChan:
 				// We have been asked to stop.
