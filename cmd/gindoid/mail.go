@@ -173,19 +173,32 @@ func sendMail(to []string, subject, body string, conf *Configuration) error {
 	}
 	defer c.Close()
 	// Set the sender and recipient.
-	c.Mail(conf.Email.From)
+	err = c.Mail(conf.Email.From)
+	if err != nil {
+		// Missing sender is not too bad, log but carry on.
+		log.Printf("Error: Could not add mail sender: %q", err.Error())
+	}
+
 	message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
 	if len(to) > 0 {
 		for _, address := range to {
 			address = strings.TrimSpace(address)
 			log.Printf("To: %s", address)
-			c.Rcpt(address)
+			err = c.Rcpt(address)
+			if err != nil {
+				// Log but continue in case other recipients work out.
+				log.Printf("Error: Could not add mail recipient: %q", err.Error())
+			}
 			message = fmt.Sprintf("%s\nTo: %s", message, address)
 		}
 	} else {
 		log.Print("Potential error: Mail server configured but no recipients specified.")
 		log.Printf("Notifying %q", DEFAULTTO)
-		c.Rcpt(DEFAULTTO)
+		err = c.Rcpt(DEFAULTTO)
+		if err != nil {
+			log.Printf("Error: Could not add mail recipient: %q", err.Error())
+			return err
+		}
 		message = fmt.Sprintf("%s\nTo: %s", message, DEFAULTTO)
 		body = fmt.Sprintf("Potential error: The following message had no specified recipients\n\n%s", body)
 	}
