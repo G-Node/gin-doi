@@ -57,17 +57,15 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		// if no DOI found in file, just fall back to the argument number
-		err = os.MkdirAll(metadata.Identifier.ID, 0777)
-		if err != nil {
-			// log and continue with next file
-			fmt.Printf("WARNING: could not create directory %q: %q", metadata.Identifier.ID, err.Error())
-			continue
-		}
 		fname := fmt.Sprintf("%s/index.html", metadata.Identifier.ID)
+		// If no DOI was found in the file do not create directory and
+		// fall back to the argument number.
 		if metadata.Identifier.ID == "" {
 			fmt.Println("WARNING: Couldn't determine DOI. Using generic filename.")
 			fname = fmt.Sprintf("%03d-index.html", idx)
+		} else if err = os.MkdirAll(metadata.Identifier.ID, 0777); err != nil {
+			fmt.Printf("WARNING: Could not create directory: %q", err.Error())
+			fname = fmt.Sprintf("%s-index.html", metadata.Identifier.ID)
 		}
 		if err := createLandingPage(metadata, fname, ""); err != nil {
 			fmt.Printf("Failed to render landing page for %q: %s\n", filearg, err.Error())
