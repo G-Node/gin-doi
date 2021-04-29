@@ -54,7 +54,11 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		if err != nil {
 			continue
 		}
-		os.MkdirAll(kw, 0777)
+		err = os.MkdirAll(kw, 0777)
+		if err != nil {
+			log.Printf("Could not create the keyword page dir: %s", err.Error())
+			continue
+		}
 
 		fp, err := os.Create(fmt.Sprintf("%s/index.html", kw))
 		if err != nil {
