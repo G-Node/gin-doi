@@ -141,7 +141,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}
 		// Overwrite default GIN server URL with config GIN server URL
 		tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
-		tmpl.Execute(w, regRequest)
+		err = tmpl.Execute(w, regRequest)
+		if err != nil {
+			log.Printf("Failed to execute RequestFailurePage template: %q", err.Error())
+		}
 		return
 	}
 
@@ -162,7 +165,10 @@ func renderRequestPage(w http.ResponseWriter, r *http.Request, conf *Configurati
 		}
 		// Overwrite default GIN server URL with config GIN server URL
 		tmpl = injectDynamicGINURL(tmpl, GetGINURL(conf))
-		tmpl.Execute(w, regRequest)
+		err = tmpl.Execute(w, regRequest)
+		if err != nil {
+			log.Printf("Failed to execute RequestFailurePage template: %q", err.Error())
+		}
 		return
 	}
 
@@ -331,7 +337,10 @@ func renderResult(w http.ResponseWriter, resData *reqResultData, conf *Configura
 		log.Printf("Failed to parse requestresult template: %s", err.Error())
 		log.Printf("Request data: %+v", resData)
 		// failed to render result template; just show the message wrapped in html tags
-		w.Write([]byte("<html>" + resData.Message + "</html>"))
+		_, err = w.Write([]byte("<html>" + resData.Message + "</html>"))
+		if err != nil {
+			log.Printf("Failed to write fallback page: %s", err.Error())
+		}
 		return
 	}
 	// Overwrite default GIN server URL with config GIN server URL

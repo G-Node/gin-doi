@@ -39,7 +39,7 @@ func TestMakeZip(t *testing.T) {
 			if err != nil {
 				return fmt.Errorf("Error creating file %s: %v", currfile, err)
 			}
-			fp.Close()
+			defer fp.Close()
 			return nil
 		}
 		// Create files

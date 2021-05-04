@@ -153,7 +153,7 @@ func TestLicFromName(t *testing.T) {
 	}
 }
 
-func TestCleanupcompstr(t *testing.T) {
+func TestCleancompstr(t *testing.T) {
 	instr := "  aLLcasEs  "
 	expected := "allcases"
 	outstr := cleancompstr(instr)

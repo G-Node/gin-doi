@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -37,10 +36,13 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	repopath := job.Metadata.SourceRepository
 	jobname := job.Metadata.Identifier.ID
 
-	prepDir(job)
+	preperrors := make([]string, 0, 7)
+	err := prepDir(job)
+	if err != nil {
+		preperrors = append(preperrors, fmt.Sprintf("Error preparing data directory : %q", err.Error()))
+	}
 
 	targetpath := filepath.Join(conf.Storage.TargetDirectory, jobname)
-	preperrors := make([]string, 0, 5)
 
 	ginurl, err := url.Parse(GetGINURL(conf))
 	if err != nil {
@@ -75,14 +77,21 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	}
 
 	dynurl := GetGINURL(conf)
-	createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"), dynurl)
+	err = createLandingPage(job.Metadata, filepath.Join(conf.Storage.TargetDirectory, job.Metadata.Identifier.ID, "index.html"), dynurl)
+	if err != nil {
+		// Landing page creation failed; append the error for reporting and continue with the XML prep
+		preperrors = append(preperrors, fmt.Sprintf("Failed to create the landing page: %q", err.Error()))
+	}
 
 	fp, err := os.Create(filepath.Join(targetpath, "doi.xml"))
 	if err != nil {
 		log.Print("Could not create the metadata template")
 		// XML Creation failed; return with error
 		preperrors = append(preperrors, fmt.Sprintf("Failed to create the XML metadata template: %s", err))
-		notifyAdmin(job, preperrors, nil, false)
+		mailerr := notifyAdmin(job, preperrors, nil, false)
+		if mailerr != nil {
+			log.Printf("Failed to send notification email: %s", mailerr.Error())
+		}
 		return err
 	}
 	defer fp.Close()
@@ -91,7 +100,10 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	if err != nil {
 		log.Print("Could not render the metadata file")
 		preperrors = append(preperrors, fmt.Sprintf("Failed to render the XML metadata: %s", err))
-		notifyAdmin(job, preperrors, nil, false)
+		mailerr := notifyAdmin(job, preperrors, nil, false)
+		if mailerr != nil {
+			log.Printf("Failed to send notification email: %s", mailerr.Error())
+		}
 		return err
 	}
 	_, err = fp.Write([]byte(data))
@@ -104,7 +116,10 @@ func createRegisteredDataset(job *RegistrationJob) error {
 
 	if len(preperrors)+len(warnings) > 0 {
 		// Resend email with errors if any occurred
-		notifyAdmin(job, preperrors, warnings, false)
+		mailerr := notifyAdmin(job, preperrors, warnings, false)
+		if mailerr != nil {
+			log.Printf("Failed to send notification email: %s", mailerr.Error())
+		}
 	}
 	return err
 }
@@ -116,7 +131,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	log.Print("Start clone and zip")
 	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
 	if err := os.MkdirAll(preppath, 0777); err != nil {
-		errmsg := fmt.Sprintf("Failed to create temporary clone directory: %s", tmpdir)
+		errmsg := fmt.Sprintf("failed to create temporary clone directory: %s", tmpdir)
 		log.Print(errmsg)
 		return "", -1, fmt.Errorf(errmsg)
 	}
@@ -124,7 +139,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	// Clone repository at the preparation path
 	if err := cloneRepo(repopath, preppath, conf); err != nil {
 		log.Print("Repository cloning failed")
-		return "", -1, fmt.Errorf("Failed to clone repository '%s': %v", repopath, err)
+		return "", -1, fmt.Errorf("failed to clone repository '%s': %v", repopath, err)
 	}
 
 	// Zip repository content to the target path
@@ -141,7 +156,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	zipsize, err := runzip(repodir, zipfilename, exclude)
 	if err != nil {
 		log.Print("Could not zip the data")
-		return "", -1, fmt.Errorf("Failed to create the zip file: %v", err)
+		return "", -1, fmt.Errorf("failed to create the zip file: %v", err)
 	}
 	log.Printf("Archive size: %d", zipsize)
 	return zipbasename, zipsize, nil
@@ -302,28 +317,6 @@ func repoFileURL(conf *Configuration, repopath string, filename string) string {
 	return u.String()
 }
 
-// readFileAtURL returns the contents of a file at a given URL.
-func readFileAtURL(url string) ([]byte, error) {
-	client := &http.Client{}
-	log.Printf("Fetching file at %q", url)
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Request failed: %s", err.Error())
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Request returned non-OK status: %s", resp.Status)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Could not read file contents: %s", err.Error())
-		return nil, err
-	}
-	return body, nil
-}
-
 // readRepoYAML parses the DOI registration info and returns a filled DOIRegInfo struct.
 func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 	yamlInfo := &libgin.RepositoryYAML{}
@@ -357,11 +350,18 @@ type RegistrationRequest struct {
 	ErrorMessages []string
 }
 
+// GetDOIURI replaces scheme and path of the RegistrationRequest.Repository
+// up until the final slash with 'doi/' and returns the string.
+// This method is currently not used in any project and should be
+// considered deprecated.
 func (d *RegistrationRequest) GetDOIURI() string {
 	var re = regexp.MustCompile(`(.+)\/`)
 	return string(re.ReplaceAll([]byte(d.Repository), []byte("doi/")))
 }
 
+// AsHTML returns an HTML encapsulated RegistrationRequest.Message.
+// This method is currently not used in any project and should be
+// considered deprecated.
 func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
 }
@@ -503,7 +503,7 @@ func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 	// check sources
 	for _, src := range source {
 		if _, err := os.Stat(src); err != nil {
-			return fmt.Errorf("Cannot access '%s': %s", src, err.Error())
+			return fmt.Errorf("cannot access '%s': %s", src, err.Error())
 		}
 	}
 
@@ -559,10 +559,10 @@ func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 
 		// open files for zipping
 		f, err := os.Open(path)
-		defer f.Close()
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 
 		// copy file data into zip writer
 		if _, err := io.Copy(w, f); err != nil {
@@ -576,7 +576,7 @@ func MakeZip(dest io.Writer, exclude []string, source ...string) error {
 	for _, src := range source {
 		err := filepath.Walk(src, walker)
 		if err != nil {
-			return fmt.Errorf("Error adding %s to zip file: %s", src, err.Error())
+			return fmt.Errorf("error adding %s to zip file: %s", src, err.Error())
 		}
 	}
 	return nil

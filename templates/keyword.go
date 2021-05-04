@@ -1,5 +1,7 @@
 package gdtmpl
 
+// Keyword is the template for an HTML page
+// linking DOI pages featuring a specifc keyword.
 const Keyword = `<!DOCTYPE html>
 <html lang="en">
 	<head>

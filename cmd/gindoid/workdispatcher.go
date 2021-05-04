@@ -31,6 +31,8 @@ func newWorker(id int, workerPool chan chan *RegistrationJob) Worker {
 	}
 }
 
+// Worker holds a JobQueue that will accept and handle incoming
+// DOI registration jobs.
 type Worker struct {
 	ID         int
 	JobQueue   chan *RegistrationJob
@@ -46,21 +48,17 @@ func (w *Worker) start() {
 			w.WorkerPool <- w.JobQueue
 			select {
 			case job := <-w.JobQueue:
-				// Dispatcher has added a job to my jobQueue.
-				createRegisteredDataset(job)
+				// Dispatcher has added a job to my jobQueue
+				err := createRegisteredDataset(job)
+				if err != nil {
+					log.Printf("Encountered issue handling request: %q", err.Error())
+				}
 				log.Printf("Worker %d Completed %q!", w.ID, job.Metadata.SourceRepository)
 			case <-w.QuitChan:
 				// We have been asked to stop.
 				return
 			}
 		}
-	}()
-}
-
-// stop the worker.
-func (w *Worker) stop() {
-	go func() {
-		w.QuitChan <- true
 	}()
 }
 
@@ -77,6 +75,8 @@ func newDispatcher(jobQueue chan *RegistrationJob, maxWorkers int) *Dispatcher {
 	}
 }
 
+// Dispatcher holds waiting jobs and sends the next job in the queue to
+// the first available worker.
 type Dispatcher struct {
 	workerPool chan chan *RegistrationJob
 	maxWorkers int
@@ -95,6 +95,7 @@ func (d *Dispatcher) run(makeWorker func(int, chan chan *RegistrationJob) Worker
 }
 
 func (d *Dispatcher) dispatch() {
+	//lint:ignore S1000 rewrite to suggested range syntax leads to loop variable i captured by func literal issue.
 	for {
 		select {
 		case job := <-d.jobQueue:

@@ -1,5 +1,7 @@
 package gdtmpl
 
+// KeywordIndex is the template for an HTML page listing links
+// to all available keyword pages.
 const KeywordIndex = `<!DOCTYPE html>
 <html lang="en">
 	<head>

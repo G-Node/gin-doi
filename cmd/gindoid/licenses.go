@@ -53,6 +53,7 @@ const defaultLicensesJSON = `[
 	"Name":  "Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License",
 	"Alias": [
 	"Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License",
+	"Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International",
 	"Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)",
 	"Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)",
 	"Attribution-NonCommercial-ShareAlike 4.0 International",
@@ -65,6 +66,7 @@ const defaultLicensesJSON = `[
 	"Name":  "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License",
 	"Alias": [
 	"Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License",
+	"Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International",
 	"Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)",
 	"CC-BY-NC-ND 4.0",
 	"CC-BY-NC-ND"
@@ -75,6 +77,7 @@ const defaultLicensesJSON = `[
 	"Name":  "Creative Commons Attribution-NonCommercial 4.0 International Public License",
 	"Alias": [
 	"Creative Commons Attribution-NonCommercial 4.0 International Public License",
+	"Creative Commons Attribution-NonCommercial 4.0 International",
 	"Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)",
 	"CC BY-NC 4.0",
 	"CC BY-NC"
@@ -85,6 +88,7 @@ const defaultLicensesJSON = `[
 	"Name":  "Creative Commons Attribution-ShareAlike 4.0 International Public License",
 	"Alias": [
 	"Creative Commons Attribution-ShareAlike 4.0 International Public License",
+	"Creative Commons Attribution-ShareAlike 4.0 International",
 	"Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)",
 	"Creative Commons Attribution-ShareAlike 4.0",
 	"CC BY-SA 4.0",
@@ -97,6 +101,7 @@ const defaultLicensesJSON = `[
 	"Alias": [
 	"Creative Commons Attribution 4.0 International Public License",
 	"Creative Commons Attribution 4.0 International License",
+	"Creative Commons Attribution 4.0 International",
 	"Attribution 4.0 International (CC BY 4.0)",
 	"CC BY 4.0",
 	"CC BY"

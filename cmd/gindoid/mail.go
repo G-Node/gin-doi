@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	MAILLOG   = "MailServer"
-	DEFAULTTO = "gin@g-node.org" // Fallback email address to notify in case of error
+	// MAILLOG is currently not used in any project and should be considered deprecated.
+	MAILLOG = "MailServer"
+	// DEFAULTTO is a fallback email address to notify in case of error.
+	DEFAULTTO = "gin@g-node.org"
 )
 
 // notifyAdmin prepares an email notification for new jobs and then calls the
@@ -126,7 +128,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	if issueErr != nil && mailErr != nil {
 		// both failed; return error to let the user know that the request failed
 		// The underlying errors are already logged
-		return fmt.Errorf("Failed to notify admins of new request: %s (%s)", job.Metadata.SourceRepository, job.Metadata.Identifier.ID)
+		return fmt.Errorf("failed to notify admins of new request: %s (%s)", job.Metadata.SourceRepository, job.Metadata.Identifier.ID)
 	}
 	return nil
 }
@@ -171,19 +173,32 @@ func sendMail(to []string, subject, body string, conf *Configuration) error {
 	}
 	defer c.Close()
 	// Set the sender and recipient.
-	c.Mail(conf.Email.From)
+	err = c.Mail(conf.Email.From)
+	if err != nil {
+		// Missing sender is not too bad, log but carry on.
+		log.Printf("Error: Could not add mail sender: %q", err.Error())
+	}
+
 	message := fmt.Sprintf("From: %s\nSubject: %s", conf.Email.From, subject)
-	if to != nil && len(to) > 0 {
+	if len(to) > 0 {
 		for _, address := range to {
 			address = strings.TrimSpace(address)
 			log.Printf("To: %s", address)
-			c.Rcpt(address)
+			err = c.Rcpt(address)
+			if err != nil {
+				// Log but continue in case other recipients work out.
+				log.Printf("Error: Could not add mail recipient: %q", err.Error())
+			}
 			message = fmt.Sprintf("%s\nTo: %s", message, address)
 		}
 	} else {
 		log.Print("Potential error: Mail server configured but no recipients specified.")
 		log.Printf("Notifying %q", DEFAULTTO)
-		c.Rcpt(DEFAULTTO)
+		err = c.Rcpt(DEFAULTTO)
+		if err != nil {
+			log.Printf("Error: Could not add mail recipient: %q", err.Error())
+			return err
+		}
 		message = fmt.Sprintf("%s\nTo: %s", message, DEFAULTTO)
 		body = fmt.Sprintf("Potential error: The following message had no specified recipients\n\n%s", body)
 	}
@@ -224,7 +239,7 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 
 	var resp *http.Response
 	var posterr error
-	var existingIssue int64 = 0
+	var existingIssue int64
 	if issueID, err := getIssueID(client, xmlrepo, title); err == nil {
 		if issueID > 0 {
 			// Issue exists: Add comment
@@ -246,15 +261,15 @@ func createIssue(job *RegistrationJob, content string, conf *Configuration) (int
 		log.Printf("Failed to create issue or comment on XML repo: %s", posterr.Error())
 		return -1, posterr
 	} else if resp.StatusCode != http.StatusCreated {
-		if msg, err := ioutil.ReadAll(resp.Body); err == nil {
-			errmsg := fmt.Sprintf("Failed to create issue or comment on XML repo: [%d] %s", resp.StatusCode, msg)
-			log.Printf(errmsg)
-			return -1, fmt.Errorf(errmsg)
+		var errmsg string
+		msg, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errmsg = fmt.Sprintf("Failed to open issue on XML repo: [%d] failed to read response body: %s", resp.StatusCode, err.Error())
 		} else {
-			msg := fmt.Sprintf("Failed to open issue on XML repo: [%d] failed to read response body: %s", resp.StatusCode, err.Error())
-			log.Print(msg)
-			return -1, fmt.Errorf(msg)
+			errmsg = fmt.Sprintf("Failed to create issue or comment on XML repo: [%d] %s", resp.StatusCode, msg)
 		}
+		log.Print(errmsg)
+		return -1, fmt.Errorf(errmsg)
 	}
 	if existingIssue > 0 {
 		return existingIssue, nil

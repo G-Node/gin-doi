@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/xml"
 	"fmt"
 	"html/template"
@@ -11,6 +9,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/G-Node/libgin/libgin"
 )
 
+// ALNUM provides characters for the randAlnum function.
 const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
 
 // randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
@@ -33,37 +34,13 @@ func randAlnum(n int) string {
 	return string(chrs)
 }
 
-// Global function map for the templates that render the DOI information
-// (request page and landing page).
-var tmplfuncs = template.FuncMap{
-	"Upper":            strings.ToUpper,
-	"FunderName":       FunderName,
-	"AwardNumber":      AwardNumber,
-	"AuthorBlock":      AuthorBlock,
-	"JoinComma":        JoinComma,
-	"Replace":          strings.ReplaceAll,
-	"FormatReferences": FormatReferences,
-	"FormatCitation":   FormatCitation,
-	"FormatIssuedDate": FormatIssuedDate,
-	"KeywordPath":      KeywordPath,
-	"FormatAuthorList": FormatAuthorList,
-	"NewVersionNotice": NewVersionNotice,
-	"OldVersionLink":   OldVersionLink,
-	"GINServerURL":     GINServerURL,
-}
-
-func readBody(r *http.Request) (*string, error) {
-	body, err := ioutil.ReadAll(r.Body)
-	x := string(body)
-	return &x, err
-}
-
-func makeUUID(URI string) string {
-	if doi, ok := libgin.UUIDMap[URI]; ok {
-		return doi
+// isURL returns true if a URL scheme part can be identfied
+// within a passed string. Returns false in any other case.
+func isURL(str string) bool {
+	if purl, err := url.Parse(str); err == nil {
+		return purl.Scheme != ""
 	}
-	currMd5 := md5.Sum([]byte(URI))
-	return hex.EncodeToString(currMd5[:])
+	return false
 }
 
 // deduplicateValues checks a string slice for duplicate
@@ -79,6 +56,46 @@ func deduplicateValues(dupvals []string) []string {
 		}
 	}
 	return vals
+}
+
+// readFileAtPath returns the content of a file at a given path.
+func readFileAtPath(path string) ([]byte, error) {
+	fp, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer fp.Close()
+
+	stat, err := fp.Stat()
+	if err != nil {
+		return nil, err
+	}
+	contents := make([]byte, stat.Size())
+	_, err = fp.Read(contents)
+	return contents, err
+}
+
+// readFileAtURL returns the contents of a file at a given URL.
+func readFileAtURL(url string) ([]byte, error) {
+	client := &http.Client{}
+	log.Printf("Fetching file at %q", url)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Request failed: %s", err.Error())
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request returned non-OK status: %s", resp.Status)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Could not read file contents: %s", err.Error())
+		return nil, err
+	}
+	return body, nil
 }
 
 // EscXML runs a string through xml.EscapeText.
@@ -131,6 +148,91 @@ func ReferenceID(ref libgin.Reference) string {
 		return EscXML(idparts[0])
 	}
 	return EscXML(idparts[1])
+}
+
+// GetGINURL returns the full URL to the configured GIN server. If it's
+// configured with a non-standard port, the port number is included.
+func GetGINURL(conf *Configuration) string {
+	address := conf.GIN.Session.WebAddress()
+	// get scheme
+	schemeSepIdx := strings.Index(address, "://")
+	if schemeSepIdx == -1 {
+		// no scheme; return as is
+		return address
+	}
+	// get port
+	portSepIdx := strings.LastIndex(address, ":")
+	if portSepIdx == -1 {
+		// no port; return as is
+		return address
+	}
+	scheme := address[:schemeSepIdx]
+	port := address[portSepIdx:]
+	if (scheme == "http" && port == ":80") ||
+		(scheme == "https" && port == ":443") {
+		// port is standard for scheme: slice it off
+		address = address[0:portSepIdx]
+	}
+	return address
+}
+
+var templateMap = map[string]string{
+	"Nav":                gdtmpl.Nav,
+	"Footer":             gdtmpl.Footer,
+	"RequestFailurePage": gdtmpl.RequestFailurePage,
+	"RequestPage":        gdtmpl.RequestPage,
+	"RequestResult":      gdtmpl.RequestResult,
+	"DOIInfo":            gdtmpl.DOIInfo,
+	"LandingPage":        gdtmpl.LandingPage,
+	"KeywordIndex":       gdtmpl.KeywordIndex,
+	"Keyword":            gdtmpl.Keyword,
+}
+
+// prepareTemplates initialises and parses a sequence of templates in the order
+// they appear in the arguments.  It always adds the Nav template first and
+// includes the common template functions in tmplfuncs.
+func prepareTemplates(templateNames ...string) (*template.Template, error) {
+	tmpl, err := template.New("Nav").Funcs(tmplfuncs).Parse(templateMap["Nav"])
+	if err != nil {
+		log.Printf("Could not parse the \"Nav\" template: %s", err.Error())
+		return nil, err
+	}
+	tmpl, err = tmpl.New("Footer").Parse(templateMap["Footer"])
+	if err != nil {
+		log.Printf("Could not parse the \"Footer\" template: %s", err.Error())
+		return nil, err
+	}
+	for _, tName := range templateNames {
+		tContent, ok := templateMap[tName]
+		if !ok {
+			return nil, fmt.Errorf("unknown template with name %q", tName)
+		}
+		tmpl, err = tmpl.New(tName).Parse(tContent)
+		if err != nil {
+			log.Printf("Could not parse the %q template: %s", tName, err.Error())
+			return nil, err
+		}
+	}
+	return tmpl, nil
+}
+
+// Global function map for the templates that render the DOI information
+// (request page and landing page).
+var tmplfuncs = template.FuncMap{
+	"Upper":            strings.ToUpper,
+	"FunderName":       FunderName,
+	"AwardNumber":      AwardNumber,
+	"AuthorBlock":      AuthorBlock,
+	"JoinComma":        JoinComma,
+	"Replace":          strings.ReplaceAll,
+	"FormatReferences": FormatReferences,
+	"FormatCitation":   FormatCitation,
+	"FormatIssuedDate": FormatIssuedDate,
+	"KeywordPath":      KeywordPath,
+	"FormatAuthorList": FormatAuthorList,
+	"NewVersionNotice": NewVersionNotice,
+	"OldVersionLink":   OldVersionLink,
+	"GINServerURL":     GINServerURL,
 }
 
 // FunderName splits the funder name from a funding string of the form <FunderName>; <AwardNumber>.
@@ -246,54 +348,6 @@ func JoinComma(lst []string) string {
 	return strings.Join(lst, ", ")
 }
 
-// GetGINURL returns the full URL to the configured GIN server. If it's
-// configured with a non-standard port, the port number is included.
-func GetGINURL(conf *Configuration) string {
-	address := conf.GIN.Session.WebAddress()
-	// get scheme
-	schemeSepIdx := strings.Index(address, "://")
-	if schemeSepIdx == -1 {
-		// no scheme; return as is
-		return address
-	}
-	// get port
-	portSepIdx := strings.LastIndex(address, ":")
-	if portSepIdx == -1 {
-		// no port; return as is
-		return address
-	}
-	scheme := address[:schemeSepIdx]
-	port := address[portSepIdx:len(address)]
-	if (scheme == "http" && port == ":80") ||
-		(scheme == "https" && port == ":443") {
-		// port is standard for scheme: slice it off
-		address = address[0:portSepIdx]
-	}
-	return address
-}
-
-// FormatCitation returns the formatted citation string for a given dataset.
-func FormatCitation(md *libgin.RepositoryMetadata) string {
-	authors := make([]string, len(md.Creators))
-	for idx, author := range md.Creators {
-		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
-		if len(namesplit) != 2 {
-			// No comma: Bad input, mononym, or empty field.
-			// Trim, add continue.
-			authors[idx] = strings.TrimSpace(author.Name)
-			continue
-		}
-		// render as LastName Initials, ...
-		firstnames := strings.Fields(namesplit[1])
-		var initials string
-		for _, name := range firstnames {
-			initials += string(name[0])
-		}
-		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
-	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
-}
-
 // FormatReferences returns the references cited by a dataset.  If the references
 // are already populated in the YAMLData field they are returned as is.  If
 // they are not, they are reconstructed to the YAML format from the DataCite
@@ -378,6 +432,28 @@ func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 	return refs
 }
 
+// FormatCitation returns the formatted citation string for a given dataset.
+func FormatCitation(md *libgin.RepositoryMetadata) string {
+	authors := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		if len(namesplit) != 2 {
+			// No comma: Bad input, mononym, or empty field.
+			// Trim, add continue.
+			authors[idx] = strings.TrimSpace(author.Name)
+			continue
+		}
+		// render as LastName Initials, ...
+		firstnames := strings.Fields(namesplit[1])
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
+	}
+	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
+}
+
 // FormatIssuedDate returns the issued date of the dataset in the format DD Mon.
 // YYYY for adding to the preparation and landing pages.
 func FormatIssuedDate(md *libgin.RepositoryMetadata) string {
@@ -420,46 +496,8 @@ func FormatAuthorList(md *libgin.RepositoryMetadata) string {
 	return authors
 }
 
-var templateMap = map[string]string{
-	"Nav":                gdtmpl.Nav,
-	"Footer":             gdtmpl.Footer,
-	"RequestFailurePage": gdtmpl.RequestFailurePage,
-	"RequestPage":        gdtmpl.RequestPage,
-	"RequestResult":      gdtmpl.RequestResult,
-	"DOIInfo":            gdtmpl.DOIInfo,
-	"LandingPage":        gdtmpl.LandingPage,
-	"KeywordIndex":       gdtmpl.KeywordIndex,
-	"Keyword":            gdtmpl.Keyword,
-}
-
-// prepareTemplates initialises and parses a sequence of templates in the order
-// they appear in the arguments.  It always adds the Nav template first and
-// includes the common template functions in tmplfuncs.
-func prepareTemplates(templateNames ...string) (*template.Template, error) {
-	tmpl, err := template.New("Nav").Funcs(tmplfuncs).Parse(templateMap["Nav"])
-	if err != nil {
-		log.Printf("Could not parse the \"Nav\" template: %s", err.Error())
-		return nil, err
-	}
-	tmpl, err = tmpl.New("Footer").Parse(templateMap["Footer"])
-	if err != nil {
-		log.Printf("Could not parse the \"Footer\" template: %s", err.Error())
-		return nil, err
-	}
-	for _, tName := range templateNames {
-		tContent, ok := templateMap[tName]
-		if !ok {
-			return nil, fmt.Errorf("Unknown template with name %q", tName)
-		}
-		tmpl, err = tmpl.New(tName).Parse(tContent)
-		if err != nil {
-			log.Printf("Could not parse the %q template: %s", tName, err.Error())
-			return nil, err
-		}
-	}
-	return tmpl, nil
-}
-
+// NewVersionNotice returns an HTML template containing links to a newer version
+// of a given dataset if it exists.
 func NewVersionNotice(md *libgin.RepositoryMetadata) template.HTML {
 	for _, relid := range md.RelatedIdentifiers {
 		if relid.RelationType == "IsOldVersionOf" {
@@ -476,6 +514,8 @@ func NewVersionNotice(md *libgin.RepositoryMetadata) template.HTML {
 	return ""
 }
 
+// OldVersionLink returns an HTML template containing links to a previous version
+// of a given dataset if it exists.
 func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
 	for _, relid := range md.RelatedIdentifiers {
 		if relid.RelationType == "IsNewVersionOf" {

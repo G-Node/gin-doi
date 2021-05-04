@@ -69,7 +69,10 @@ func loadconfig() (*Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
-	os.Setenv("GIN_CONFIG_DIR", confdir)
+	err = os.Setenv("GIN_CONFIG_DIR", confdir)
+	if err != nil {
+		log.Printf("Could not set GIN_CONFIG_DIR env: %q", err.Error())
+	}
 
 	cfg.DOIBase = libgin.ReadConf("doibase")
 
@@ -132,7 +135,10 @@ func loadconfig() (*Configuration, error) {
 	}
 	srvcfg.Git.HostKey = hostkeystr
 	log.Printf("Got hostkey with fingerprint:\n%s", fingerprint)
-	config.AddServerConf("gin", srvcfg)
+	err = config.AddServerConf("gin", srvcfg)
+	if err != nil {
+		log.Printf("Could not add gin-cli server config: %q", err.Error())
+	}
 	// Update known hosts file
 	err = git.WriteKnownHosts()
 	if err != nil {

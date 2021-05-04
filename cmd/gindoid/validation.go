@@ -313,7 +313,7 @@ func checkMissingValues(info *libgin.RepositoryYAML) []string {
 
 func contains(list []string, value string) bool {
 	for _, valid := range list {
-		if strings.ToLower(valid) == strings.ToLower(value) {
+		if strings.EqualFold(valid, value) {
 			return true
 		}
 	}

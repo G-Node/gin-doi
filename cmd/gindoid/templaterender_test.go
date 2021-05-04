@@ -36,6 +36,9 @@ func TestRequestPageTemplate(t *testing.T) {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
 	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
+		t.Fatalf("Failed to read datacite.yaml")
+	}
 	regRequest := new(RegistrationRequest)
 	regRequest.DOIRequestData = &libgin.DOIRequestData{
 		Username:   "testuser",
@@ -111,6 +114,9 @@ func TestLandingPageTemplate(t *testing.T) {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
 	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
+		t.Fatalf("Failed to read datacite.yml")
+	}
 	metadata := new(libgin.RepositoryMetadata)
 	metadata.YAMLData = doiInfo
 	metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
@@ -136,6 +142,9 @@ func TestKeywordIndexTemplate(t *testing.T) {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
 	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
+		t.Fatalf("Failed to read datacite.yml")
+	}
 	metadata := new(libgin.RepositoryMetadata)
 	metadata.YAMLData = doiInfo
 	metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
@@ -169,6 +178,9 @@ func TestKeywordTemplate(t *testing.T) {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
 	doiInfo, err := readRepoYAML(infoyml)
+	if err != nil {
+		t.Fatalf("Failed to read datatcite.yml")
+	}
 	metadata := new(libgin.RepositoryMetadata)
 	metadata.YAMLData = doiInfo
 	metadata.DataCite = libgin.NewDataCiteFromYAML(doiInfo)
