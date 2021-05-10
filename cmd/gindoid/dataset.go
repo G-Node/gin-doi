@@ -292,12 +292,25 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 		}
 	}
 
+	log.Print("Downloading annex file content")
 	downloadchan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
 		log.Print(stat)
 		if stat.Err != nil {
 			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
+			return stat.Err
+		}
+	}
+
+	log.Print("Unlocking annex files")
+	// Make sure the content of all files is unlocked for later zip creation
+	unlockchan := make(chan git.RepoFileStatus)
+	go conf.GIN.Session.UnlockContent(nil, unlockchan)
+	for stat := range unlockchan {
+		log.Print(stat)
+		if stat.Err != nil {
+			log.Printf("Repository cloning failed during file unlock: %s", stat.Err)
 			return stat.Err
 		}
 	}
