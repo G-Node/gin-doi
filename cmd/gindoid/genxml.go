@@ -4,10 +4,25 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
+
+// cleanupGINURL returns owner and repository of a GIN
+// repository datacite URL string. Example:
+// https://gin.g-node.org/G-Node/doi_deployment_test/raw/master/datacite.yml
+func cleanupGINURL(input string) (string, error) {
+	cleanstr := strings.Replace(input, "https://gin.g-node.org/", "", -1)
+	cleanstr = strings.Replace(cleanstr, "/raw/master/datacite.yml", "", -1)
+	out := strings.Split(cleanstr, "/")
+
+	if len(out) != 2 {
+		return "", fmt.Errorf("could not parse URL: %s", input)
+	}
+	return out[1], nil
+}
 
 // mkxml reads one or more datacite YAML files from GIN, a provided URL or from 
 // a direct file and generates a Datacite XML file for each.
@@ -22,6 +37,10 @@ func mkxml(cmd *cobra.Command, args []string) {
 		var err error
 		var repoName string
 		if isURL(filearg) {
+			repoName, err = cleanupGINURL(filearg)
+			if err != nil {
+				fmt.Printf("failed to cleanup GIN datacite URL: %s", err.Error())
+			}
 			contents, err = readFileAtURL(filearg)
 		} else {
 			contents, err = readFileAtPath(filearg)
