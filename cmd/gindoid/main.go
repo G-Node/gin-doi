@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 4)
+	cmds := make([]*cobra.Command, 5)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -66,6 +66,17 @@ Previously generated pages are overwritten, so this command only makes sense if 
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[4] = &cobra.Command{
+		Use:   "make-doi-xml <yml file>...",
+		Short: "Generate the doi.xml file from one or more DataCite YAML files",
+		Long: `Generate the doi.xml file from one or more DataCite YAML files.
+
+The command accepts file paths and URLs (mixing allowed) and will generate one XML file for each YAML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the file is still generated with the available information. Contextual information like size or date have to be added manually.`,
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mkxml,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
 
 	rootCmd.AddCommand(cmds...)
 	return rootCmd
@@ -80,6 +91,6 @@ func main() {
 	// Engage
 	err := rootCmd.Execute()
 	if err != nil {
-		fmt.Printf("Error running gin-doi: %q", err.Error())
+		fmt.Printf("Error running gin-doi: %q\n", err.Error())
 	}
 }
