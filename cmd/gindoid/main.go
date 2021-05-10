@@ -71,7 +71,7 @@ Previously generated pages are overwritten, so this command only makes sense if 
 		Short: "Generate the doi.xml file from one or more DataCite YAML files",
 		Long: `Generate the doi.xml file from one or more DataCite YAML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one XML file for each YAML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the file is still generated with the available information. Contextual information like size or date have to be added manually.`,
+The command accepts GIN repositories of format "GIN:owner/repository", yaml file paths and URLs to yaml files (mixing allowed) and will generate one XML file for each YAML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the file is still generated with the available information. Contextual information like size or date have to be added manually.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkxml,
 		Version:               verstr,
