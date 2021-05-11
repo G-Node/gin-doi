@@ -107,5 +107,5 @@ func mkxml(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Printf("%d/%d jobs completed successfully\n", success, len(args))
-	fmt.Print("Check and adjust sizes and publication dates\n")
+	fmt.Print("\nRemember to add the G-Node identifier and check and adjust sizes and publication dates\n")
 }
