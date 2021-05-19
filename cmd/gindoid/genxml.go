@@ -66,8 +66,13 @@ func mkxml(cmd *cobra.Command, args []string) {
 
 		dataciteContent, err := readRepoYAML(contents)
 		if err != nil {
-			fmt.Print("DOI file invalid\n")
+			fmt.Printf("DOI file invalid: %s\n", err.Error())
 			continue
+		}
+
+		// Add datacite quality checks and notify but carry on
+		if msgs := validateDataCite(dataciteContent); len(msgs) > 0 {
+			fmt.Printf("DOI file contains validation issues: %s\n", strings.Join(msgs, "; "))
 		}
 
 		datacite := libgin.NewDataCiteFromYAML(dataciteContent)
