@@ -67,7 +67,7 @@ Previously generated pages are overwritten, so this command only makes sense if 
 		DisableFlagsInUseLine: true,
 	}
 	cmds[4] = &cobra.Command{
-		Use:   "make-doi-xml <yml file>...",
+		Use:   "make-xml <yml file>...",
 		Short: "Generate the doi.xml file from one or more DataCite YAML files",
 		Long: `Generate the doi.xml file from one or more DataCite YAML files.
 
