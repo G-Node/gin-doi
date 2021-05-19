@@ -361,40 +361,45 @@ func (d *RegistrationRequest) AsHTML() template.HTML {
 	return template.HTML(d.Message)
 }
 
-// readAndValidate loads the datacite.yml file at the given URL, validates it
+// readAndValidate loads and checks LICENSE file and datacite.yml file for a
+// given repository. The function tries to collect as many issues as possible
 // and returns the RepositoryYAML struct or an error message if the retrieval,
 // parsing, or validation fails.  The message is appropriate for display to the
 // user.
 func readAndValidate(conf *Configuration, repository string) (*libgin.RepositoryYAML, error) {
-	// fail registration on missing datacite.yaml file
-	dataciteText, err := readFileAtURL(repoFileURL(conf, repository, "datacite.yml"))
-	if err != nil {
-		// Can happen if the datacite.yml file is removed and the user clicks the register button on a stale page
-		err := fmt.Errorf("%s <p><i>No datacite.yml file found in repository</i></p>", msgInvalidDOI)
-		return nil, err
-	}
-
-	// fail registration on invalid datacite.yaml file
-	repoMetadata, err := readRepoYAML(dataciteText)
-	if err != nil {
-		log.Print("DOI file invalid")
-		// reformat error messages
-		msgs := strings.Split(err.Error(), "; ")
-		err := fmt.Errorf("%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>", msgInvalidDOI, strings.Join(msgs, "</li><li>"))
-		return nil, err
-	}
-
-	// fail registration on missing LICENSE file
-	_, err = readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
+	// Fail registration on missing LICENSE file; do not yet return and check datacite.yml
+	collecterr := make([]string, 0)
+	_, err := readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
 	if err != nil {
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())
-		return nil, fmt.Errorf("<p>%s</p>", msgNoLicenseFile)
+		collecterr = append(collecterr, fmt.Sprintf("<p>%s</p>", msgNoLicenseFile))
 	}
 
-	// fail registration if unsupported values have been used
-	if msgs := validateDataCiteValues(repoMetadata); len(msgs) > 0 {
-		err := fmt.Errorf("%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>", msgInvalidDOI, strings.Join(msgs, "</li><li>"))
-		return nil, err
+	// Fail registration on missing datacite.yaml file; can happen if the datacite.yml file
+	// is removed and the user clicks the register button on a stale page
+	dataciteText, err := readFileAtURL(repoFileURL(conf, repository, "datacite.yml"))
+	if err != nil {
+		log.Printf("Failed to fetch datacite.yml: %s", err.Error())
+		collecterr = append(collecterr, fmt.Sprintf("<p>%s</p>", msgInvalidDOI))
+		return nil, fmt.Errorf(strings.Join(collecterr, "<br>"))
+	}
+
+	// Fail registration on invalid datacite.yaml file
+	repoMetadata, err := readRepoYAML(dataciteText)
+	if err != nil {
+		log.Printf("DOI file invalid: %s", err.Error())
+		collecterr = append(collecterr, fmt.Sprintf("<p>%s<i>%s</i></p>", msgInvalidDOI, err.Error()))
+		return nil, fmt.Errorf(strings.Join(collecterr, "<br>"))
+	}
+	// Fail registration if any required validation fails
+	if msgs := validateDataCite(repoMetadata); len(msgs) > 0 {
+		log.Print("DOI file contains validation issues")
+		fmtstring := "%s<div align='left' style='padding-left: 50px;'><i><ul><li>%s</li></ul></i></div>"
+		collecterr = append(collecterr, fmt.Sprintf(fmtstring, msgInvalidDOI, strings.Join(msgs, "</li><li>")))
+	}
+
+	if len(collecterr) > 0 {
+		return nil, fmt.Errorf(strings.Join(collecterr, "<br>"))
 	}
 
 	return repoMetadata, nil
