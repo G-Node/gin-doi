@@ -324,11 +324,6 @@ func readRepoYAML(infoyml []byte) (*libgin.RepositoryYAML, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while reading DOI info: %s", err.Error())
 	}
-	if missing := checkMissingValues(yamlInfo); len(missing) > 0 {
-		missing = deduplicateValues(missing)
-		log.Print("DOI file is missing entries")
-		return nil, fmt.Errorf(strings.Join(missing, "; "))
-	}
 	return yamlInfo, nil
 }
 
