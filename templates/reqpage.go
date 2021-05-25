@@ -79,6 +79,7 @@ const RequestPage = `<!DOCTYPE html>
 								</ul>
 							</div>
 							<p><b>Please be aware that the entire repository will be published.</b></p>
+							<p><b>Please note that content linked via git submodules will not be included in the published dataset.</b></p>
 							<p><b>Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.</b></p>
 							<p><b>All contents of the repository will be part of the public archive!</b></p>
 						</div>
