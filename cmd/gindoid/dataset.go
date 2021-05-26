@@ -388,7 +388,7 @@ func readAndValidate(conf *Configuration, repository string) (*libgin.Repository
 	repoMetadata, err := readRepoYAML(dataciteText)
 	if err != nil {
 		log.Printf("DOI file invalid: %s", err.Error())
-		collecterr = append(collecterr, fmt.Sprintf("<p>%s<i>%s</i></p>", msgInvalidDOI, err.Error()))
+		collecterr = append(collecterr, fmt.Sprintf("<p>%s<br>Error details: <i>%s</i></p>", msgInvalidDOI, err.Error()))
 		return nil, fmt.Errorf(strings.Join(collecterr, "<br>"))
 	}
 	// Fail registration if any required validation fails
