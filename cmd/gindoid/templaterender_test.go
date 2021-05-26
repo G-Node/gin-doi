@@ -13,6 +13,7 @@ func TestRequestFailureTemplate(t *testing.T) {
 	regRequest := new(RegistrationRequest)
 	regRequest.Message = template.HTML(msgInvalidRequest)
 	regRequest.Metadata = new(libgin.RepositoryMetadata)
+	regRequest.DOIRequestData = new(libgin.DOIRequestData) // Source repo required to render fail page
 	tmpl, err := prepareTemplates("RequestFailurePage")
 	if err != nil {
 		t.Fatalf("Failed to parse RequestFailureP template: %s", err.Error())

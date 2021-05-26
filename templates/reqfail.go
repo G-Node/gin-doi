@@ -41,7 +41,7 @@ const RequestFailurePage = `<!DOCTYPE html>
 								<a class="item brand" href="{{GINServerURL}}/">
 									<img class="ui mini image" src="/assets/img/favicon.png">
 								</a>
-								<a class="item active" href="{{GINServerURL}}/">Back to GIN</a>
+								<a class="item active" href="{{GINServerURL}}/{{.Repository}}">Back to GIN</a>
 							</div>
 						</div>
 					</div>
