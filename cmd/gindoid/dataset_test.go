@@ -142,3 +142,16 @@ func TestMakeZip(t *testing.T) {
 		t.Fatalf("Zip does not include correct number of elements: %v/%v\n%v", len(includedCounter), len(incl), includedCounter)
 	}
 }
+
+func TestReadRepoYAML(t *testing.T) {
+	invalid := "<xml>I am not a yaml file</xml>"
+	_, err := readRepoYAML([]byte(invalid))
+	if err == nil {
+		t.Fatalf("Expected YAML read error")
+	}
+	valid := "key: value"
+	_, err = readRepoYAML([]byte(valid))
+	if err != nil {
+		t.Fatalf("Could not read YAML")
+	}
+}
