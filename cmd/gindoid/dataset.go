@@ -292,7 +292,21 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 		}
 	}
 
+	log.Print("Primary annex content download")
 	downloadchan := make(chan git.RepoFileStatus)
+	go conf.GIN.Session.GetContent(nil, downloadchan)
+	for stat := range downloadchan {
+		log.Print(stat)
+		if stat.Err != nil {
+			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
+			return stat.Err
+		}
+	}
+
+	// Add a second round of content get since git annex can stop
+	// content download silently if the download rate drops too low.
+	log.Print("Secondary annex content download")
+	downloadchan = make(chan git.RepoFileStatus)
 	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
 		log.Print(stat)
