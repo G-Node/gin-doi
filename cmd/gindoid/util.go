@@ -233,6 +233,7 @@ var tmplfuncs = template.FuncMap{
 	"NewVersionNotice": NewVersionNotice,
 	"OldVersionLink":   OldVersionLink,
 	"GINServerURL":     GINServerURL,
+	"HasGitModules":    HasGitModules,
 }
 
 // FunderName splits the funder name from a funding string of the form <FunderName>; <AwardNumber>.
@@ -550,4 +551,13 @@ func URLexists(url string) bool {
 	}
 
 	return false
+}
+
+// HasGitModules checks whether a repository on the defined GIN
+// server features a '.gitmodules' file and returns the result as boolean.
+func HasGitModules(ginurl string, repo string) bool {
+	moduleurl := fmt.Sprintf("%s/%s/src/master/.gitmodules", ginurl, repo)
+	log.Printf("HasGitModules: checking url %s", moduleurl)
+
+	return URLexists(moduleurl)
 }
