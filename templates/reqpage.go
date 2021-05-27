@@ -53,6 +53,16 @@ const RequestPage = `<!DOCTYPE html>
 					<div class="column center">
 						<h1>Welcome to the GIN DOI service <i class="mega-octicon octicon octicon-squirrel"></i></h1>
 					</div>
+
+					{{if HasGitModules GINServerURL .Repository}}
+					<div class="ui negative message" id="gitmodulewarning">
+						<div id="gitmodulebox">
+							<div class="header">Your repository appears to contain git submodules</div>
+							<p><b>Please note that content linked via git submodules will not be included in the published dataset.</b></p>
+						</div>
+					</div>
+					{{end}}
+
 					<div class="ui info message" id="infotable">
 						<div id="infobox">
 							The following <strong>preview</strong> shows the information that will be published in the DOI registry and will be presented permanently alongside the data in your repository.
