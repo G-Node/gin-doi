@@ -535,3 +535,19 @@ func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
 func GINServerURL() string {
 	return "https://gin.g-node.org"
 }
+
+// URLexists runs a GET against an URL, returns true if
+// the return code is 200 and false otherwise.
+func URLexists(url string) bool {
+	response, err := http.Get(url)
+	if err != nil {
+		log.Printf("URLexists: error accessing url %s: %s", url, err.Error())
+		return false
+	}
+
+	if response.StatusCode == http.StatusOK {
+		return true
+	}
+
+	return false
+}
