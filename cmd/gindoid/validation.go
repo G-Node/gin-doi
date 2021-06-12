@@ -320,6 +320,16 @@ func contains(list []string, value string) bool {
 	return false
 }
 
+// validateDataCite runs all datacite checks and aggregates and
+// returns a slice with all collected and deduplicated error messages.
+// The slice is empty if all checks returned valid.
+func validateDataCite(info *libgin.RepositoryYAML) []string {
+	msgs := checkMissingValues(info)
+	msgs = deduplicateValues(msgs)
+	msgs = append(msgs, validateDataCiteValues(info)...)
+	return msgs
+}
+
 // validateDataCiteValues checks if the datacite keys that have limited value
 // options have a valid value.  Returns a slice of error messages to display to
 // the user.  The slice is empty if all values are valid.
