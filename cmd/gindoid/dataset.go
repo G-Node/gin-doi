@@ -114,13 +114,12 @@ func createRegisteredDataset(job *RegistrationJob) error {
 
 	warnings := collectWarnings(job)
 
-	if len(preperrors)+len(warnings) > 0 {
-		// Resend email with errors if any occurred
-		mailerr := notifyAdmin(job, preperrors, warnings, false)
-		if mailerr != nil {
-			log.Printf("Failed to send notification email: %s", mailerr.Error())
-		}
+	// Send email with either all errors and warnings or preparation success
+	mailerr := notifyAdmin(job, preperrors, warnings, false)
+	if mailerr != nil {
+		log.Printf("Failed to send notification email: %s", mailerr.Error())
 	}
+
 	return err
 }
 

@@ -55,22 +55,6 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
 	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
 
-	errorlist := ""
-	if len(errors) > 0 {
-		errorlist = "The following errors occurred during the dataset preparation\n"
-		for idx, msg := range errors {
-			errorlist = fmt.Sprintf("%s%d. %s\n", errorlist, idx+1, msg)
-		}
-	}
-
-	warninglist := ""
-	if len(warnings) > 0 {
-		warninglist = "The following issues were detected and may need attention\n"
-		for idx, msg := range warnings {
-			warninglist = fmt.Sprintf("%s%d. %s\n", warninglist, idx+1, msg)
-		}
-	}
-
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
 	namestr := username
@@ -91,7 +75,30 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 		body = fmt.Sprintf(infofmt, repopath, repourl, namestr, useremail, xmlurl, doitarget)
 	}
 
-	body = fmt.Sprintf("%s\n\n%s\n\n%s", body, errorlist, warninglist)
+	errorlist := ""
+	if len(errors) > 0 {
+		errorlist = "\n\nThe following errors occurred during the dataset preparation\n"
+		for idx, msg := range errors {
+			errorlist = fmt.Sprintf("%s%d. %s\n", errorlist, idx+1, msg)
+		}
+	}
+
+	warninglist := ""
+	if len(warnings) > 0 {
+		warninglist = "\n\nThe following issues were detected and may need attention\n"
+		for idx, msg := range warnings {
+			warninglist = fmt.Sprintf("%s%d. %s\n", warninglist, idx+1, msg)
+		}
+	}
+
+	// the full info is only requested as the initial notification email.
+	// If it is not the initial notification and there are no errors or warnings,
+	// send a notification that the DOI has been prepared without issues.
+	if !fullinfo && len(errors)+len(warnings) == 0 {
+		body = "The repository cloning and zip creation have finished, no issues have been identified\n"
+	}
+
+	body = fmt.Sprintf("%s%s%s", body, errorlist, warninglist)
 
 	recipients := make([]string, 0)
 	// Recipient list is read every time a sendMail() is called.
