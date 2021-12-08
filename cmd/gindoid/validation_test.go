@@ -272,7 +272,7 @@ func TestAuthorWarnings(t *testing.T) {
 	if len(checkwarn) != 1 {
 		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
 	}
-	if !strings.Contains(checkwarn[0], "has ORCID-like unspecified ID") {
+	if !strings.Contains(checkwarn[0], "has an ORCID-like unspecified ID") {
 		t.Fatalf("Expected ORCID like ID message: %v", checkwarn[0])
 	}
 
@@ -282,7 +282,7 @@ func TestAuthorWarnings(t *testing.T) {
 	if len(checkwarn) != 1 {
 		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
 	}
-	if !strings.Contains(checkwarn[0], "has unknown ID") {
+	if !strings.Contains(checkwarn[0], "has an unknown ID") {
 		t.Fatalf("Expected unknown ID message: %v", checkwarn[0])
 	}
 
@@ -292,7 +292,7 @@ func TestAuthorWarnings(t *testing.T) {
 	if len(checkwarn) != 1 {
 		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
 	}
-	if !strings.Contains(checkwarn[0], "has empty ID value") {
+	if !strings.Contains(checkwarn[0], "has an empty ID value") {
 		t.Fatalf("Expected empty ORCID value message: %v", checkwarn[0])
 	}
 
@@ -301,16 +301,16 @@ func TestAuthorWarnings(t *testing.T) {
 	if len(checkwarn) != 1 {
 		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
 	}
-	if !strings.Contains(checkwarn[0], "has empty ID value") {
+	if !strings.Contains(checkwarn[0], "has an empty ID value") {
 		t.Fatalf("Expected empty researcherid value message: %v", checkwarn[0])
 	}
 
 	// Check warning on duplicate ORCID, researchID, unidentifyable ID
-	yada.Authors[0].ID = "orcid:0000-0000-0000-000x"
+	yada.Authors[0].ID = "orcid:0000-0001-6744-1159"
 	auth = yada.Authors
-	auth = append(auth, libgin.Author{ID: "researcherid:a-0000-0000"})
-	auth = append(auth, libgin.Author{ID: "ORCID:0000-0000-0000-000X"})
-	auth = append(auth, libgin.Author{ID: "researcherID:A-0000-0000"})
+	auth = append(auth, libgin.Author{ID: "researcherid:k-3714-2014"})
+	auth = append(auth, libgin.Author{ID: "ORCID:0000-0001-6744-1159"})
+	auth = append(auth, libgin.Author{ID: "researcherID:K-3714-2014"})
 	yada.Authors = auth
 
 	checkwarn = authorWarnings(yada, warnings)
@@ -324,8 +324,10 @@ func TestAuthorWarnings(t *testing.T) {
 	}
 
 	// Check no warning on valid entries
-	yada.Authors[2].ID = "orcid:1111-1111-1111-1111"
-	yada.Authors[3].ID = "researcherid:A-1111-1111"
+	var cleanauth []libgin.Author
+	cleanauth = append(cleanauth, libgin.Author{ID: "researcherid:k-3714-2014"})
+	cleanauth = append(cleanauth, libgin.Author{ID: "ORCID:0000-0001-6744-1159"})
+	yada.Authors = cleanauth
 	checkwarn = authorWarnings(yada, warnings)
 	if len(checkwarn) != 0 {
 		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
