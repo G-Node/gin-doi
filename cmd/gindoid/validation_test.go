@@ -305,7 +305,25 @@ func TestAuthorWarnings(t *testing.T) {
 		t.Fatalf("Expected empty researcherid value message: %v", checkwarn[0])
 	}
 
-	// Check warning on duplicate ORCID, researchID, unidentifyable ID
+	// Check warning on false author ID entries
+	yada.Authors[0].ID = "orcid:x000-0001-2345-6789"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
+		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
+	}
+	yada.Authors[0].ID = "researcherID:x-1234-5678"
+	checkwarn = authorWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
+		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
+	}
+
+	// Check warning on duplicate ORCID, researchID
 	yada.Authors[0].ID = "orcid:0000-0001-6744-1159"
 	auth = yada.Authors
 	auth = append(auth, libgin.Author{ID: "researcherid:k-3714-2014"})
