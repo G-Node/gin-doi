@@ -29,7 +29,7 @@ const (
 // sendMail function to send it. Also opens an issue on the XMLRepo if set.
 // If fullinfo is 'false', only errors and warnings are sent in the
 // notification.
-func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool) error {
+func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool, commithash string) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -54,6 +54,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
 	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
+	hashurl := fmt.Sprintf("[%s](%s/commits/master)", commithash, repourl)
 
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
@@ -71,8 +72,9 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 - Email address: %s
 - DOI XML: %s
 - DOI target URL: %s
+- Latest commit hash: %s
 `
-		body = fmt.Sprintf(infofmt, repopath, repourl, namestr, useremail, xmlurl, doitarget)
+		body = fmt.Sprintf(infofmt, repopath, repourl, namestr, useremail, xmlurl, doitarget, hashurl)
 	}
 
 	errorlist := ""

@@ -246,10 +246,19 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 	// otherwise, unexpected repository name, so don't set ForkRepository and
 	// the cloner will notify
 
+	// Get the latest repository commit hash before the whole procedure to
+	// ensure long clone and zip processes do not obscure a commit change
+	// after the fact;
+	// on error, an empty string is returned as commithash
+	commithash, err := getRepoCommit(conf.GIN.Session, reqdata.Repository)
+	if err != nil {
+		log.Printf("%s", err.Error())
+	}
+
 	// exiting beyond this point should trigger an email notification
 	defer func() {
 		// This is the first notification, so include the entire info
-		err := notifyAdmin(regJob, errors, nil, true)
+		err := notifyAdmin(regJob, errors, nil, true, commithash)
 		if err != nil {
 			// Email send failed
 			// Log the error
