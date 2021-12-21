@@ -162,6 +162,22 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	return zipbasename, zipsize, nil
 }
 
+// getRepoCommit uses a gin client connection to query the latest commit
+// of a provided gin repository and returns either an error or
+// the commit hash as a string.
+func getRepoCommit(client *ginclient.Client, repo string) (string, error) {
+	reqpath := fmt.Sprintf("api/v1/repos/%s/commits/refs/heads/master", repo)
+	resp, err := client.Get(reqpath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get latest commit hash for %q: %s", repo, err.Error())
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read latest commit hash from response for %q: %s", repo, err.Error())
+	}
+	return string(data), nil
+}
+
 // changedirlog logs if a change directory action results in an error;
 // used to log errors when defering directory changes.
 func changedirlog(todir string, lognote string) {
