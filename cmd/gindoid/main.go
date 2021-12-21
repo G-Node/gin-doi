@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 5)
+	cmds := make([]*cobra.Command, 6)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -74,6 +74,17 @@ Previously generated pages are overwritten, so this command only makes sense if 
 The command accepts GIN repositories of format "GIN:owner/repository", yaml file paths and URLs to yaml files (mixing allowed) and will generate one XML file for each YAML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the file is still generated with the available information. Contextual information like size or date have to be added manually.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkxml,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+	cmds[5] = &cobra.Command{
+		Use:   "make-index <xml file>...",
+		Short: "Generate the index.html file from one or more DataCite XML files",
+		Long: `Generate the index.html file from one or more DataCite XML files.
+
+The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mkindex,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
