@@ -36,6 +36,11 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	submod := HasGitModules(GetGINURL(job.Config), job.Metadata.SourceRepository)
+	if submod {
+		warnings = append(warnings, fmt.Sprintln("Repository contains submodules"))
+	}
+
 	// Check authors
 	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
 
