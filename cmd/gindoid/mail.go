@@ -95,7 +95,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	// If it is not the initial notification and there are no errors or warnings,
 	// send a notification that the DOI has been prepared without issues.
 	if !fullinfo && len(errors)+len(warnings) == 0 {
-		body = "The repository cloning and zip creation have finished, no issues have been identified\n"
+		body = "Repository cloning and ZIP creation are finished; no issues have been found.\n"
 	}
 
 	body = fmt.Sprintf("%s%s%s", body, errorlist, warninglist)
