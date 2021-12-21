@@ -137,9 +137,10 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 
 	// Clone repository at the preparation path
 	if err := cloneRepo(repopath, preppath, conf); err != nil {
-		log.Print("Repository cloning failed")
+		log.Println("Repository cloning failed")
 		return "", -1, fmt.Errorf("failed to clone repository '%s': %v", repopath, err)
 	}
+	log.Println("Repository successfully cloned")
 
 	// Zip repository content to the target path
 	repoparts := strings.SplitN(repopath, "/", 2)
@@ -159,6 +160,15 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	}
 	log.Printf("Archive size: %d", zipsize)
 	return zipbasename, zipsize, nil
+}
+
+// changedirlog logs if a change directory action results in an error;
+// used to log errors when defering directory changes.
+func changedirlog(todir string, lognote string) {
+	err := os.Chdir(todir)
+	if err != nil {
+		log.Printf("%s: %s; could not change to dir %s", err.Error(), lognote, todir)
+	}
 }
 
 // runzip zips a source directory into a file with the given filename.  Any directories
@@ -184,18 +194,15 @@ func runzip(source, zipfilename string, exclude []string) (int64, error) {
 		return -1, err
 	}
 	defer zipfp.Close()
+
 	// Change into clone directory to make the paths in the zip archive repo
-	// root-relative.
-	origdir, err := os.Getwd()
-	if err != nil {
-		log.Printf("%s: Failed to get working directory in function '%s': %v", lpStorage, fn, err)
-		return -1, err
-	}
-	defer os.Chdir(origdir)
+	// root-relative. Switch back to root once done.
+	defer changedirlog("/", "runzip")
 	if err := os.Chdir(source); err != nil {
 		log.Printf("%s: Failed to change to source directory to make zip file in function '%s': %v", lpStorage, fn, err)
 		return -1, err
 	}
+	log.Printf("runzip in source dir %s", source)
 
 	if err := MakeZip(zipfp, exclude, "."); err != nil {
 		log.Printf("%s: Failed to create zip file in function '%s': %v", lpStorage, fn, err)
@@ -269,13 +276,9 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	// NOTE: cloneRepo changes the working directory to the cloned repository
 	// See: https://github.com/G-Node/gin-cli/issues/225
 	// This will need to change when that issue is fixed
-	origdir, err := os.Getwd()
-	if err != nil {
-		log.Printf("%s: Failed to get working directory when cloning repository. Was our working directory removed?", lpStorage)
-		return err
-	}
-	defer os.Chdir(origdir)
-	err = os.Chdir(destdir)
+	// Switch back to root once done.
+	defer changedirlog("/", "cloneRepo")
+	err := os.Chdir(destdir)
 	if err != nil {
 		return err
 	}
