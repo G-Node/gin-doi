@@ -53,10 +53,35 @@ func (d doilist) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
 }
 
+// fauthors returns all author names from a libgin.RepositoryMetadata
+// struct as an array of formatted names.
+// This is duplicate code from util.FormatCitation and could be removed
+// by refactoring util.FormatCitation.
+func fauthors(md *libgin.RepositoryMetadata) []string {
+	authors := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
+		if len(namesplit) != 2 {
+			// No comma: Bad input, mononym, or empty field.
+			// Trim, add continue.
+			authors[idx] = strings.TrimSpace(author.Name)
+			continue
+		}
+		// render as LastName Initials, ...
+		firstnames := strings.Fields(namesplit[1])
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
+	}
+	return authors
+}
+
 // mkindex reads the provided XML files or URLs and generates the HTML landing
 // page for each.
 func mkindex(cmd *cobra.Command, args []string) {
-	fmt.Printf("Generating %d pages\n", len(args))
+	fmt.Printf("Parsing %d files\n", len(args))
 
 	var dois []doiitem
 	for idx, filearg := range args {
@@ -82,24 +107,7 @@ func mkindex(cmd *cobra.Command, args []string) {
 		metadata := &libgin.RepositoryMetadata{
 			DataCite: datacite,
 		}
-
-		authors := make([]string, len(metadata.Creators))
-		for idx, author := range metadata.Creators {
-			namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
-			if len(namesplit) != 2 {
-				// No comma: Bad input, mononym, or empty field.
-				// Trim, add continue.
-				authors[idx] = strings.TrimSpace(author.Name)
-				continue
-			}
-			// render as LastName Initials, ...
-			firstnames := strings.Fields(namesplit[1])
-			var initials string
-			for _, name := range firstnames {
-				initials += string(name[0])
-			}
-			authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
-		}
+		authors := fauthors(metadata)
 
 		curr := doiitem{
 			Title:     metadata.Titles[0],
