@@ -4,27 +4,61 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
 
-// DOIItem provides basic DOI information required to
-// render the root index page.``
-type DOIItem struct {
+// doiitem provides basic DOI information required to
+// render the root index page.
+type doiitem struct {
 	Title     string
 	Authors   string
 	Isodate   string
 	Shorthash string
 }
 
-// mkhtml reads the provided XML files or URLs and generates the HTML landing
+// doilist is an implementation of the sort interface to
+// sort a list of doiitems descending by date and ascending
+// by title.
+type doilist []doiitem
+
+func (d doilist) Len() int {
+	return len(d)
+}
+
+// Less of the doilist implementation should provide the means
+// to sort a list of doiitems first by Isodate in descending
+// and in case of identical dates by Title in ascending order.
+func (d doilist) Less(i, j int) bool {
+	idate, err := time.Parse("2006-01-02", d[i].Isodate)
+	if err != nil {
+		fmt.Printf("Error parsing date '%s' of item '%s'", d[i].Isodate, d[i].Title)
+	}
+	jdate, err := time.Parse("2006-01-02", d[j].Isodate)
+	if err != nil {
+		fmt.Printf("Error parsing date '%s' of item '%s'", d[j].Isodate, d[j].Title)
+	}
+	if idate.Equal(jdate) {
+		return d[i].Title < d[j].Title
+	}
+
+	return idate.After(jdate)
+}
+
+func (d doilist) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
+
+// mkindex reads the provided XML files or URLs and generates the HTML landing
 // page for each.
 func mkindex(cmd *cobra.Command, args []string) {
 	fmt.Printf("Generating %d pages\n", len(args))
 
-	var curritems []DOIItem
+	var curritems []doiitem
 	for idx, filearg := range args {
 		fmt.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
@@ -67,7 +101,7 @@ func mkindex(cmd *cobra.Command, args []string) {
 			authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
 		}
 
-		curr := DOIItem{
+		curr := doiitem{
 			Title:     metadata.Titles[0],
 			Shorthash: metadata.Identifier.ID,
 			Authors:   strings.Join(authors, ", "),
@@ -89,6 +123,9 @@ func mkindex(cmd *cobra.Command, args []string) {
 		return
 	}
 	defer fp.Close()
+
+	// sorting the list of items by 1) date descending and 2) title ascending
+	sort.Sort(doilist(curritems))
 	if err := tmpl.Execute(fp, curritems); err != nil {
 		fmt.Printf("Error rendering the landing page: %s", err.Error())
 		return
