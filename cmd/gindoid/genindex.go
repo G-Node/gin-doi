@@ -58,7 +58,7 @@ func (d doilist) Swap(i, j int) {
 func mkindex(cmd *cobra.Command, args []string) {
 	fmt.Printf("Generating %d pages\n", len(args))
 
-	var curritems []doiitem
+	var dois []doiitem
 	for idx, filearg := range args {
 		fmt.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
@@ -107,7 +107,7 @@ func mkindex(cmd *cobra.Command, args []string) {
 			Authors:   strings.Join(authors, ", "),
 			Isodate:   metadata.Dates[0].Value,
 		}
-		curritems = append(curritems, curr)
+		dois = append(dois, curr)
 	}
 
 	fname := "index.html"
@@ -125,8 +125,8 @@ func mkindex(cmd *cobra.Command, args []string) {
 	defer fp.Close()
 
 	// sorting the list of items by 1) date descending and 2) title ascending
-	sort.Sort(doilist(curritems))
-	if err := tmpl.Execute(fp, curritems); err != nil {
+	sort.Sort(doilist(dois))
+	if err := tmpl.Execute(fp, dois); err != nil {
 		fmt.Printf("Error rendering the landing page: %s", err.Error())
 		return
 	}

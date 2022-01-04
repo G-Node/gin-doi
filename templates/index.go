@@ -17,7 +17,7 @@ const IndexPage = `<!DOCTYPE html>
 		<title>G-Node Open Data</title>
 	</head>
 	<body>
-		{{template "Nav"}}
+		{{ template "Nav" }}
 		<div class="ui stackable middle very relaxed page grid">
 			<div class="sixteenn wide center aligned centered column">
 				<h1>G-Node Open Data</h1>
@@ -31,7 +31,6 @@ const IndexPage = `<!DOCTYPE html>
 						</tr>
 					</thead>
 					<tbody>
-
 						{{ range . }}
 							<tr>
 								<td><a href="https://doi.org/{{ .Shorthash }}">{{ .Title }}</a>
@@ -45,6 +44,6 @@ const IndexPage = `<!DOCTYPE html>
 				More public datasets can be found at <a href="https://gin.g-node.org">gin.g-node.org</a>
 			</div>
 		</div>
-		{{template "Footer"}}
+		{{ template "Footer" }}
 	</body>
 </html>`
