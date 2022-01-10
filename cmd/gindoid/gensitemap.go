@@ -4,17 +4,58 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"sort"
+	"time"
 
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
 )
+
+// urlitem provides basic DOI information required to
+// sort a list of url items.
+type urlitem struct {
+	Title     string
+	Isodate   string
+	Shorthash string
+}
+
+// urllist is an implementation of the sort interface to
+// sort a list of urlitems ascending by date and title.
+type urllist []urlitem
+
+func (d urllist) Len() int {
+	return len(d)
+}
+
+// Less of the doilist implementation should provide the means
+// to sort a list of doiitems first by Isodate in descending
+// and in case of identical dates by Title in ascending order.
+func (d urllist) Less(i, j int) bool {
+	idate, err := time.Parse("2006-01-02", d[i].Isodate)
+	if err != nil {
+		fmt.Printf("Error parsing date '%s' of item '%s'", d[i].Isodate, d[i].Title)
+	}
+	jdate, err := time.Parse("2006-01-02", d[j].Isodate)
+	if err != nil {
+		fmt.Printf("Error parsing date '%s' of item '%s'", d[j].Isodate, d[j].Title)
+	}
+	if idate.Equal(jdate) {
+		return d[i].Title < d[j].Title
+	}
+
+	return idate.Before(jdate)
+}
+
+func (d urllist) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
 
 // mksitemap reads the provided XML files or URLs and generates a
 // google sitemap 'urls.txt' files with the corresponding links.
 func mksitemap(cmd *cobra.Command, args []string) {
 	fmt.Printf("Parsing %d files\n", len(args))
 
-	var siteurls string
+	var urls []urlitem
 	for idx, filearg := range args {
 		fmt.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
@@ -39,7 +80,20 @@ func mksitemap(cmd *cobra.Command, args []string) {
 			DataCite: datacite,
 		}
 
-		siteurls += fmt.Sprintf("https://doi.gin.g-node.org/%s/\n", metadata.Identifier.ID)
+		// required to sort list
+		curr := urlitem{
+			Title:     metadata.Titles[0],
+			Shorthash: metadata.Identifier.ID,
+			Isodate:   metadata.Dates[0].Value,
+		}
+		urls = append(urls, curr)
+	}
+	// sort by date and title ascending
+	sort.Sort(urllist(urls))
+
+	var siteurls string
+	for _, item := range urls {
+		siteurls += fmt.Sprintf("https://doi.gin.g-node.org/%s/\n", item.Shorthash)
 	}
 
 	fname := "urls.txt"
