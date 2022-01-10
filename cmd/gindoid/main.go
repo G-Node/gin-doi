@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 7)
+	cmds := make([]*cobra.Command, 8)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -99,6 +99,20 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[7] = &cobra.Command{
+		Use:   "make-all <xml file>...",
+		Short: "Generate all html files and the google sitemap file.",
+		Long: `Generate all html files and the google sitemap file.
+
+The command accepts file paths and URLs (mixing allowed) of DOI XML files 
+and will generate the root landing HTML page, the google sitemap urls.txt file, 
+the keywords html pages and all DOI html landing pages from the XML files.`,
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mkall,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+
 	rootCmd.AddCommand(cmds...)
 	return rootCmd
 }
