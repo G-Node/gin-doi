@@ -11,7 +11,7 @@ func TestURLlist(t *testing.T) {
 	titlethird := "Pickman's Model"
 
 	// test sort by date ascending
-	dois := []urlitem{
+	dois := []doiitem{
 		{
 			Title:   titlethird,
 			Isodate: "1926-09-01",
@@ -33,7 +33,7 @@ func TestURLlist(t *testing.T) {
 
 	// test secondary sort by title when dates are identical
 	dois = append(dois,
-		urlitem{
+		doiitem{
 			Title:   titlesecond,
 			Isodate: "1919-12-03",
 		})

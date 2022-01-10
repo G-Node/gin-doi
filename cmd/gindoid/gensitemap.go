@@ -11,24 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// urlitem provides basic DOI information required to
-// sort a list of url items.
-type urlitem struct {
-	Title     string
-	Isodate   string
-	Shorthash string
-}
-
 // urllist is an implementation of the sort interface to
-// sort a list of urlitems ascending by date and title.
-type urllist []urlitem
+// sort a list of doiitems ascending by date and title.
+type urllist []doiitem
 
 func (d urllist) Len() int {
 	return len(d)
 }
 
-// Less of the doilist implementation should provide the means
-// to sort a list of doiitems first by Isodate in descending
+// Less of the urllist implementation should provide the means
+// to sort a list of doiitems first by Isodate in ascending
 // and in case of identical dates by Title in ascending order.
 func (d urllist) Less(i, j int) bool {
 	idate, err := time.Parse("2006-01-02", d[i].Isodate)
@@ -51,11 +43,11 @@ func (d urllist) Swap(i, j int) {
 }
 
 // mksitemap reads the provided XML files or URLs and generates a
-// google sitemap 'urls.txt' files with the corresponding links.
+// google sitemap 'urls.txt' files containing the corresponding DOI URLs.
 func mksitemap(args []string) {
 	fmt.Printf("Parsing %d files\n", len(args))
 
-	var urls []urlitem
+	var urls []doiitem
 	for idx, filearg := range args {
 		fmt.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
@@ -81,7 +73,7 @@ func mksitemap(args []string) {
 		}
 
 		// required to sort list
-		curr := urlitem{
+		curr := doiitem{
 			Title:     metadata.Titles[0],
 			Shorthash: metadata.Identifier.ID,
 			Isodate:   metadata.Dates[0].Value,
@@ -106,7 +98,7 @@ func mksitemap(args []string) {
 
 // runmksitemap is a wrapper for the mksitemap function to
 // enable import of mksitemap by other functions
-// but keep the distinct command line function available.
+// keeping the distinct command line function available.
 func runmksitemap(cmd *cobra.Command, args []string) {
 	mksitemap(args)
 }
