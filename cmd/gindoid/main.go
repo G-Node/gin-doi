@@ -95,11 +95,10 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 
 The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   runmksitemap,
+		Run:                   mksitemap,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-
 	rootCmd.AddCommand(cmds...)
 	return rootCmd
 }

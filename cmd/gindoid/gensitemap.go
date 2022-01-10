@@ -44,7 +44,7 @@ func (d urllist) Swap(i, j int) {
 
 // mksitemap reads the provided XML files or URLs and generates a
 // google sitemap 'urls.txt' files containing the corresponding DOI URLs.
-func mksitemap(args []string) {
+func mksitemap(cmd *cobra.Command, args []string) {
 	fmt.Printf("Parsing %d files\n", len(args))
 
 	var urls []doiitem
@@ -94,11 +94,4 @@ func mksitemap(args []string) {
 	if err != nil {
 		fmt.Printf("Error writing sitemap file: %s", err.Error())
 	}
-}
-
-// runmksitemap is a wrapper for the mksitemap function to
-// enable import of mksitemap by other functions
-// keeping the distinct command line function available.
-func runmksitemap(cmd *cobra.Command, args []string) {
-	mksitemap(args)
 }
