@@ -36,6 +36,11 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		}
 	}
 
+	submod := HasGitModules(GetGINURL(job.Config), job.Metadata.SourceRepository)
+	if submod {
+		warnings = append(warnings, fmt.Sprintln("Repository contains submodules"))
+	}
+
 	// Check authors
 	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
 
@@ -73,34 +78,50 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 	var orcidRE = regexp.MustCompile(`([[:digit:]]{4}-){3}[[:digit:]]{3}[[:digit:]X]`)
 	var dupID = make(map[string]string)
+	idprefix := map[string]bool{"orcid:": true, "researcherid:": true}
+
+	orcidURL := "https://pub.orcid.org/v3.0/"
+	researcherURL := "http://publons.com/researcher/"
 
 	for idx, auth := range yada.Authors {
 		if auth.ID == "" {
 			continue
 		}
 		lowerID := strings.ToLower(auth.ID)
+		label := fmt.Sprintf("%d (%s)", idx, auth.LastName)
 
 		// Warn when not able to identify ID type
 		if !strings.HasPrefix(lowerID, "orcid") && !strings.HasPrefix(lowerID, "researcherid") {
 			if orcid := orcidRE.Find([]byte(auth.ID)); orcid != nil {
-				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has ORCID-like unspecified ID: %s", idx, auth.LastName, auth.ID))
+				warnings = append(warnings, fmt.Sprintf("Author %s has an ORCID-like unspecified ID: %s", label, auth.ID))
 			} else {
-				warnings = append(warnings, fmt.Sprintf("Author %d (%s) has unknown ID: %s", idx, auth.LastName, auth.ID))
+				warnings = append(warnings, fmt.Sprintf("Author %s has an unknown ID: %s", label, auth.ID))
 			}
 		}
 
 		// Warn on known ID type but missing value
-		idpref := map[string]bool{"orcid:": true, "researcherid:": true}
-		if _, found := idpref[strings.TrimSpace(lowerID)]; found {
-			warnings = append(warnings, fmt.Sprintf("Author %d (%s) has empty ID value: %s", idx, auth.LastName, auth.ID))
+		if _, found := idprefix[strings.TrimSpace(lowerID)]; found {
+			warnings = append(warnings, fmt.Sprintf("Author %s has an empty ID value: %s", label, auth.ID))
 		}
 
 		// Warn on dupliate ID entries
-		if authName, isduplicate := dupID[lowerID]; isduplicate {
-			curr := fmt.Sprintf("%d (%s)", idx, auth.LastName)
-			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", authName, curr, auth.ID))
+		if duplabel, isduplicate := dupID[lowerID]; isduplicate {
+			warnings = append(warnings, fmt.Sprintf("Authors %s and %s have the same ID: %s", duplabel, label, auth.ID))
 		} else {
-			dupID[lowerID] = fmt.Sprintf("%d (%s)", idx, auth.LastName)
+			dupID[lowerID] = label
+		}
+
+		// Warn on ID entries not found at the ID service
+		splitIDlist := strings.Split(auth.ID, ":")
+		if len(splitIDlist) == 2 {
+			splitID := strings.TrimSpace(splitIDlist[1])
+
+			invalORCID := strings.HasPrefix(lowerID, "orcid") && !URLexists(fmt.Sprintf("%s%s", orcidURL, splitID))
+			invalResID := strings.HasPrefix(lowerID, "researcherid") && !URLexists(fmt.Sprintf("%s%s", researcherURL, splitID))
+
+			if invalORCID || invalResID {
+				warnings = append(warnings, fmt.Sprintf("Author %s ID was not found at the ID service: %s", label, auth.ID))
+			}
 		}
 	}
 

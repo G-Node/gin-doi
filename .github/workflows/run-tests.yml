@@ -1,8 +1,5 @@
 name: run-tests
 on:
-  # Run build once a month
-  schedule:
-  - cron:  '0 0 1 * *'
   push:
     branches:
       - master

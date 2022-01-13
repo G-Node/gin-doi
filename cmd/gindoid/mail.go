@@ -29,7 +29,7 @@ const (
 // sendMail function to send it. Also opens an issue on the XMLRepo if set.
 // If fullinfo is 'false', only errors and warnings are sent in the
 // notification.
-func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool) error {
+func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool, commithash string) error {
 	urljoin := func(a, b string) string {
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
@@ -54,22 +54,7 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
 	doitarget := urljoin(conf.Storage.StoreURL, doi)
 	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
-
-	errorlist := ""
-	if len(errors) > 0 {
-		errorlist = "The following errors occurred during the dataset preparation\n"
-		for idx, msg := range errors {
-			errorlist = fmt.Sprintf("%s%d. %s\n", errorlist, idx+1, msg)
-		}
-	}
-
-	warninglist := ""
-	if len(warnings) > 0 {
-		warninglist = "The following issues were detected and may need attention\n"
-		for idx, msg := range warnings {
-			warninglist = fmt.Sprintf("%s%d. %s\n", warninglist, idx+1, msg)
-		}
-	}
+	hashurl := fmt.Sprintf("[%s](%s/commits/master)", commithash, repourl)
 
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
 
@@ -87,11 +72,35 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool)
 - Email address: %s
 - DOI XML: %s
 - DOI target URL: %s
+- Latest commit hash: %s
 `
-		body = fmt.Sprintf(infofmt, repopath, repourl, namestr, useremail, xmlurl, doitarget)
+		body = fmt.Sprintf(infofmt, repopath, repourl, namestr, useremail, xmlurl, doitarget, hashurl)
 	}
 
-	body = fmt.Sprintf("%s\n\n%s\n\n%s", body, errorlist, warninglist)
+	errorlist := ""
+	if len(errors) > 0 {
+		errorlist = "\n\nThe following errors occurred during the dataset preparation\n"
+		for idx, msg := range errors {
+			errorlist = fmt.Sprintf("%s%d. %s\n", errorlist, idx+1, msg)
+		}
+	}
+
+	warninglist := ""
+	if len(warnings) > 0 {
+		warninglist = "\n\nThe following issues were detected and may need attention\n"
+		for idx, msg := range warnings {
+			warninglist = fmt.Sprintf("%s%d. %s\n", warninglist, idx+1, msg)
+		}
+	}
+
+	// the full info is only requested as the initial notification email.
+	// If it is not the initial notification and there are no errors or warnings,
+	// send a notification that the DOI has been prepared without issues.
+	if !fullinfo && len(errors)+len(warnings) == 0 {
+		body = "Repository cloning and ZIP creation are finished; no issues have been found.\n"
+	}
+
+	body = fmt.Sprintf("%s%s%s", body, errorlist, warninglist)
 
 	recipients := make([]string, 0)
 	// Recipient list is read every time a sendMail() is called.
