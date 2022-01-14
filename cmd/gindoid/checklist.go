@@ -216,6 +216,28 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 	return cl, nil
 }
 
+// mkchecklistserver handles a checklist request via the DOI server. It creates
+// a checklist config yaml file and a checklist markdown file in the preparation
+// directory.
+func mkchecklistserver(md *libgin.RepositoryMetadata, preppath string, doihost string) error {
+	cl, err := checklistFromMetadata(md, doihost)
+	if err != nil {
+		return fmt.Errorf("error parsing checklist information: %s", err.Error())
+	}
+
+	err = writeChecklistConfigYAML(cl, preppath)
+	if err != nil {
+		return err
+	}
+
+	err = mkchecklist(cl, preppath)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // readChecklistConfigYAML parses config information from a provided yaml file and
 // returns a checklist struct containing the config information.
 func readChecklistConfigYAML(yamlInfo *checklist, confile string) (*checklist, error) {
