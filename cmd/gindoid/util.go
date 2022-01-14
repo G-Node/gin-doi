@@ -187,6 +187,7 @@ var templateMap = map[string]string{
 	"KeywordIndex":       gdtmpl.KeywordIndex,
 	"Keyword":            gdtmpl.Keyword,
 	"IndexPage":          gdtmpl.IndexPage,
+	"Checklist":          gdtmpl.ChecklistFile,
 }
 
 // prepareTemplates initialises and parses a sequence of templates in the order
