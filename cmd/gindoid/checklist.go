@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Default configuration struct containing non problematic test values
@@ -129,4 +131,18 @@ func mkchecklist(cl checklist, outpath string) {
 		return
 	}
 	fmt.Printf("-- Finished writing checklist file %s\n", outfile)
+}
+
+// readChecklistConfigYAML parses config information from a provided yaml file and
+// returns a checklist struct containing the config information.
+func readChecklistConfigYAML(yamlInfo *checklist, confile string) (*checklist, error) {
+	infoyml, err := readFileAtPath(confile)
+	if err != nil {
+		return nil, fmt.Errorf("-- Error reading config file: %s", err.Error())
+	}
+	err = yaml.Unmarshal(infoyml, yamlInfo)
+	if err != nil {
+		return nil, fmt.Errorf("-- Error unmarshalling config file: %s", err.Error())
+	}
+	return yamlInfo, nil
 }
