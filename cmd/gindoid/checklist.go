@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/G-Node/libgin/libgin"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -145,4 +146,37 @@ func readChecklistConfigYAML(yamlInfo *checklist, confile string) (*checklist, e
 		return nil, fmt.Errorf("-- Error unmarshalling config file: %s", err.Error())
 	}
 	return yamlInfo, nil
+}
+
+// parseRepoDatacite tries to access the request repository datacite file and
+// parse the 'title' and the 'citation' from the files authors list.
+// If the file cannot be accessed or there are any issues the script continues
+// since both title and citation are not essential for the checklist.
+func parseRepoDatacite(dcURL string) (string, string, error) {
+	fmt.Printf("-- Loading datacite file at '%s'\n", dcURL)
+
+	contents, err := readFileAtURL(dcURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	yamlInfo := new(libgin.RepositoryYAML)
+	err = yaml.Unmarshal(contents, yamlInfo)
+	if err != nil {
+		return "", "", fmt.Errorf("-- Error unmarshalling config file: %s", err.Error())
+	}
+
+	title := yamlInfo.Title
+	authors := make([]string, len(yamlInfo.Authors))
+	for idx, author := range yamlInfo.Authors {
+		firstnames := strings.Fields(author.FirstName)
+
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(author.LastName), strings.TrimSpace(initials))
+	}
+	authlist := strings.Join(authors, ", ")
+	return title, authlist, nil
 }
