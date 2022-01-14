@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -129,8 +130,19 @@ func mkchecklist(cl checklist, outpath string) error {
 	return nil
 }
 
+// writeChecklistConfigYAML serializes the content of a checklist struct
+// to a YAML config file.
+func writeChecklistConfigYAML(cl checklist, outpath string) error {
+	data, err := yaml.Marshal(&cl)
+	if err != nil {
+		return fmt.Errorf("error marshalling checklist yaml: %s", err.Error())
 	}
-	fmt.Printf("-- Finished writing checklist file %s\n", outfile)
+	fn := filepath.Join(outpath, fmt.Sprintf("conf_%s.yml", cl.Regid))
+	err = ioutil.WriteFile(fn, data, 0664)
+	if err != nil {
+		return fmt.Errorf("error writing checklist yaml: %s", err.Error())
+	}
+	return nil
 }
 
 // readChecklistConfigYAML parses config information from a provided yaml file and
