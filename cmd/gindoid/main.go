@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 8)
+	cmds := make([]*cobra.Command, 9)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -112,6 +112,25 @@ the keywords html pages and all DOI html landing pages from the XML files.`,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[8] = &cobra.Command{
+		Use:   "make-checklist",
+		Short: "Generate a DOI registration checklist file.",
+		Long: `Generate a DOI registration checklist file.
+
+The command will create a markdown file containing a DOI dataset registration checklist.
+By default all variables will contain placeholder text and the file will be placed at the
+executing path.
+Using the optional '-o' argument an alternative output path can be specified.
+Using the optional '-c' argument a yaml config file can be specified to automatically
+replace the default variable values. If a config file is specified, the service will 
+additionally try to fetch dataset 'title' and 'authors' from the corresponding gin repository.`,
+		Args:                  cobra.MinimumNArgs(0),
+		Run:                   mkchecklistcli,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+	cmds[8].Flags().StringP("config", "c", "", "[OPTIONAL] config yaml file")
+	cmds[8].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 
 	rootCmd.AddCommand(cmds...)
 	return rootCmd
