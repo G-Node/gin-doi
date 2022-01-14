@@ -91,21 +91,17 @@ type ChecklistTemplate struct {
 // mkchecklist creates an output markdown file with the contents
 // of the passed checklist struct. A path for the output file can
 // be provided.
-func mkchecklist(cl checklist, outpath string) {
+func mkchecklist(cl checklist, outpath string) error {
 	outfile := outFilename(cl, outpath)
-
-	fmt.Printf("-- Writing to checklist file %s\n", outfile)
 	fip, err := os.Create(outfile)
 	if err != nil {
-		fmt.Printf("Could not create checklist file: %s\n", err.Error())
-		return
+		return fmt.Errorf("could not create checklist file: %s", err.Error())
 	}
 	defer fip.Close()
 
 	tmpl, err := prepareTemplates("Checklist")
 	if err != nil {
-		fmt.Printf("Error preparing checklist template: %s", err.Error())
-		return
+		return fmt.Errorf("error preparing checklist template: %s", err.Error())
 	}
 
 	fullcl := ChecklistTemplate{
@@ -127,8 +123,12 @@ func mkchecklist(cl checklist, outpath string) {
 	}
 
 	if err := tmpl.Execute(fip, fullcl); err != nil {
-		fmt.Printf("Error writing checklist file: %s", err.Error())
-		return
+		return fmt.Errorf("error writing checklist file: %s", err.Error())
+	}
+
+	return nil
+}
+
 	}
 	fmt.Printf("-- Finished writing checklist file %s\n", outfile)
 }
@@ -237,6 +237,12 @@ func mkchecklistcli(cmd *cobra.Command, args []string) {
 		fmt.Printf("Error parsing output directory flag: %s\n", err.Error())
 	} else if oval != "" {
 		outpath = oval
+		fmt.Printf("-- Using output directory '%s'", outpath)
 	}
-	mkchecklist(defaultcl, outpath)
+	fmt.Println("-- Writing checklist file")
+	err = mkchecklist(defaultcl, outpath)
+	if err != nil {
+		fmt.Printf("-- ERROR: %s", err.Error())
+	}
+	fmt.Println("-- Done")
 }
