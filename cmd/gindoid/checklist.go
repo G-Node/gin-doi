@@ -39,8 +39,6 @@ type checklist struct {
 	Serveruser string `yaml:"server_user"`
 	// Local staging dir to create index and keyword pages
 	Dirlocalstage string `yaml:"dir_local_stage"`
-	// Full ssh access name of the server hosting the GIN server instance
-	Ginserver string `yaml:"gin_server"`
 	// Full ssh access name of the server hosting the DOI server instance
 	Doiserver string `yaml:"doi_server"`
 	// DOI Server repo preparation directory
@@ -197,7 +195,6 @@ func mkchecklistcli(cmd *cobra.Command, args []string) {
 		Citation:      "__CITATION__",
 		Serveruser:    "__SERVER_USER__",
 		Dirlocalstage: "__DIR_LOCAL_STAGE__",
-		Ginserver:     "__GIN.SERVER__",
 		Doiserver:     "__DOI.SERVER__",
 		Dirdoiprep:    "__DIR_DOI_PREP__",
 		Dirdoi:        "__DIR_DOI__",

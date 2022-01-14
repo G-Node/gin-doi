@@ -17,7 +17,7 @@ const ChecklistFile = `# Part 1 - pre registration
     - Request Date (as in doi.xml): {{ .CL.Regdate }}
 
 ## Base pre-registration checks
--[ ] GIN server ({{ .CL.Ginserver }}) check annex content
+-[ ] GIN server: check annex content
     - /gindata/annexcheck /gindata/gin-repositories/{{ .RepoownLower }}/{{ .RepoLower }}.git
 
 - check the datacite content at 
