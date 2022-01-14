@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/G-Node/libgin/libgin"
+	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -179,4 +180,66 @@ func parseRepoDatacite(dcURL string) (string, string, error) {
 	}
 	authlist := strings.Join(authors, ", ")
 	return title, authlist, nil
+}
+
+// mkchecklistcli handles command line input options and ensures
+// default values for missing entries.
+func mkchecklistcli(cmd *cobra.Command, args []string) {
+	// default configuration
+	defaultcl := checklist{
+		Regid:         "__ID__",
+		Repoown:       "__OWN__",
+		Repo:          "__REPO__",
+		Regdate:       "__DATE__",
+		Email:         "__MAIL__",
+		Userfullname:  "__USER_FULL__",
+		Title:         "__TITLE__",
+		Citation:      "__CITATION__",
+		Serveruser:    "__SERVER_USER__",
+		Dirlocalstage: "__DIR_LOCAL_STAGE__",
+		Ginserver:     "__GIN.SERVER__",
+		Doiserver:     "__DOI.SERVER__",
+		Dirdoiprep:    "__DIR_DOI_PREP__",
+		Dirdoi:        "__DIR_DOI__",
+	}
+
+	// handling CLI config yaml; missing fields will keep the default values
+	confile, err := cmd.Flags().GetString("config")
+	if err != nil {
+		fmt.Printf("-- Error parsing config flag: %s\n-- Exiting\n", err.Error())
+		return
+	}
+	if confile != "" {
+		loadedconf, err := readChecklistConfigYAML(&defaultcl, confile)
+		if err != nil {
+			fmt.Printf("%s\n-- Exiting\n", err.Error())
+			return
+		}
+		defaultcl = *loadedconf
+
+		// try to load title and citation from the gin datacite.yml
+		baseURL := "https://gin.g-node.org"
+		dcURL := fmt.Sprintf("%s/%s/%s/raw/master/datacite.yml", baseURL, defaultcl.Repoown, defaultcl.Repo)
+		title, authors, err := parseRepoDatacite(dcURL)
+		if err != nil {
+			fmt.Printf("-- Error fetching repo datacite.yml: %s\n", err.Error())
+		} else {
+			if title != "" {
+				defaultcl.Title = title
+			}
+			if authors != "" {
+				defaultcl.Citation = authors
+			}
+		}
+	}
+
+	// handling CLI output file path; default is current directory
+	var outpath string
+	oval, err := cmd.Flags().GetString("out")
+	if err != nil {
+		fmt.Printf("Error parsing output directory flag: %s\n", err.Error())
+	} else if oval != "" {
+		outpath = oval
+	}
+	mkchecklist(defaultcl, outpath)
 }
