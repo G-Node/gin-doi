@@ -145,6 +145,77 @@ func writeChecklistConfigYAML(cl checklist, outpath string) error {
 	return nil
 }
 
+// checklistFromMetadata checks all relevant entries in a received struct and
+// returns a filled checklist struct. Will return an error, if any issues occur.
+func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (checklist, error) {
+	if !strings.Contains(md.Identifier.ID, "10.12751/g-node.") {
+		return checklist{}, fmt.Errorf("could not identify request ID")
+	}
+	if !strings.Contains(md.SourceRepository, "/") {
+		return checklist{}, fmt.Errorf("could not parse source repository")
+	}
+	if len(md.Dates) < 1 {
+		return checklist{}, fmt.Errorf("could not access publication dates")
+	} else if md.Dates[0].Value == "" {
+		return checklist{}, fmt.Errorf("publication date was empty")
+	}
+	if md.RelatedIdentifiers == nil {
+		return checklist{}, fmt.Errorf("could not access requesting user")
+	}
+	if md.YAMLData == nil {
+		return checklist{}, fmt.Errorf("YAMLData was unavailable")
+	} else if md.YAMLData.Title == "" {
+		return checklist{}, fmt.Errorf("title was unavailable")
+	}
+	if !strings.Contains(doihost, ":") {
+		return checklist{}, fmt.Errorf("could not parse doihost")
+	}
+	regid := strings.Replace(md.Identifier.ID, "10.12751/g-node.", "", 1)
+	repoinfo := strings.Split(md.SourceRepository, "/")
+	repoown := repoinfo[0]
+	repo := repoinfo[1]
+	published := md.Dates[0].Value
+	email := md.RequestingUser.Email
+	fullname := md.RequestingUser.RealName
+	if fullname == "" {
+		fullname = md.RequestingUser.Username
+	}
+	title := md.YAMLData.Title
+	authors := fauthors(md)
+	hostinfo := strings.Split(doihost, ":")
+	host := "__DOI_HOST__"
+	if hostinfo[0] != "" {
+		host = hostinfo[0]
+	}
+	prepdir := "__DOI_PREP_DIR__"
+	hostdir := "__DOI_HOST_DIR__"
+	if hostinfo[1] != "" {
+		hostdir = hostinfo[1]
+		// Unadvisable hack to get to the preparation path
+		// outside the docker container. It depends on the
+		// hosting and the preparation directory residing
+		// side by side and being named 'doi' and 'doiprep'
+		// respectively.
+		prepdir = fmt.Sprintf("%sprep", hostdir)
+	}
+	cl := checklist{
+		Regid:         regid,
+		Repoown:       repoown,
+		Repo:          repo,
+		Regdate:       published,
+		Email:         email,
+		Userfullname:  fullname,
+		Title:         title,
+		Citation:      strings.Join(authors, ", "),
+		Serveruser:    "__SERVER_USER__",
+		Dirlocalstage: "__DIR_LOCAL_STAGE__",
+		Doiserver:     host,
+		Dirdoiprep:    prepdir,
+		Dirdoi:        hostdir,
+	}
+	return cl, nil
+}
+
 // readChecklistConfigYAML parses config information from a provided yaml file and
 // returns a checklist struct containing the config information.
 func readChecklistConfigYAML(yamlInfo *checklist, confile string) (*checklist, error) {
