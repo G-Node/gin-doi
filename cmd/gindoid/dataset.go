@@ -120,6 +120,13 @@ func createRegisteredDataset(job *RegistrationJob) error {
 		log.Printf("Failed to send notification email: %s", mailerr.Error())
 	}
 
+	// prepare checklist and yaml config files for the manual steps
+	// of the registration process in the preparation directory.
+	listerr := mkchecklistserver(job.Metadata, preppath, job.Config.Storage.XMLURL)
+	if listerr != nil {
+		log.Printf("Encountered an error writing registration checklist files: %s", err.Error())
+	}
+
 	return err
 }
 
