@@ -1,5 +1,12 @@
 package main
 
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
 // Default configuration struct containing non problematic test values
 type checklist struct {
 	// Entries required for every DOI request
@@ -35,4 +42,25 @@ type checklist struct {
 	Dirdoiprep string `yaml:"dir_doi_prep"`
 	// DOI Server root doi hosting directory
 	Dirdoi string `yaml:"dir_doi"`
+}
+
+// outFilename constructs a filename for the output markdown file
+// from the checklist repo and registration information and
+// returns it. Optionally an output path can be specified.
+func outFilename(cl checklist, outpath string) string {
+	owner := strings.ToLower(cl.Repoown)
+	if len(cl.Repoown) > 5 {
+		owner = owner[0:5]
+	}
+	reponame := strings.ToLower(cl.Repo)
+	if len(cl.Repo) > 10 {
+		reponame = reponame[0:15]
+	}
+
+	currdate := time.Now().Format("20060102")
+	outfile := fmt.Sprintf("%s_%s-%s-%s.md", currdate, strings.ToLower(cl.Regid), owner, reponame)
+	if outpath != "" {
+		outfile = filepath.Join(outpath, outfile)
+	}
+	return outfile
 }
