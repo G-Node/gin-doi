@@ -17,8 +17,6 @@ const ChecklistFile = `# Part 1 - pre registration
     - Request Date (as in doi.xml): {{ .CL.Regdate }}
 
 ## Base pre-registration checks
--[ ] GIN server: check annex content
-    - /gindata/annexcheck /gindata/gin-repositories/{{ .RepoownLower }}/{{ .RepoLower }}.git
 
 - check the datacite content at 
   https://gin.g-node.org/{{ .CL.Repoown }}/{{ .CL.Repo }}
@@ -26,20 +24,38 @@ const ChecklistFile = `# Part 1 - pre registration
     -[ ] the repo name is sufficiently unique to avoid clashes when 
          forking to the DOI GIN user.
     -[ ] resourceType e.g. Dataset fits the repository
+    -[ ] license in datacite.yml and LICENSE file match
+    -[ ] author list includes requester, otherwise ask requester for confirmation
+    -[ ] ORCIDs look reasonable / are valid
     -[ ] title is useful and has no typos
+    -[ ] keywords have no typos
     -[ ] automated issues are all addressed
+
+- on the GIN server check annex content
+    -[ ] /gindata/annexcheck /gindata/gin-repositories/{{ .RepoownLower }}/{{ .RepoLower }}.git
+
+- on the DOI server ({{ .CL.Doiserver }}) make sure all information has been properly downloaded 
+  to the staging directory and all annex files are unlocked and the content is present:
+    -[ ] {{ .CL.Dirdoiprep }}/annexcheck {{ .SemiDOIDirpath }}
+    -[ ] find {{ .CL.Dirdoiprep }}/10.12751/g-node.{{ .CL.Regid }} -type l -print
+    -[ ] find {{ .CL.Dirdoiprep }}/10.12751/g-node.{{ .CL.Regid }} -type f -size -100c -print0 | xargs -0 grep -i annex.objects
+    -[ ] grep annex.objects $(find {{ .CL.Dirdoiprep }}/10.12751/g-node.{{ .CL.Regid }} -type f -size -100c -print)
+    -[ ] check that the content size of the repository and the created zip file matches
+    -[ ] if there still are symlinks present or the content size does not match up, the zip
+         file does not contain all required data. Run the next steps - the script will
+         download all missing information and upload to the DOI fork. When recreating the
+         zip file, all files will be manually unlocked first.
+    - check the DOI directory content
+      -[ ] zip file created in {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}
+      -[ ] check zip file content
+           unzip -vl {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}/10.12751_g-node.{{ .CL.Regid }}.zip
+      -[ ] note zip size
 
 ## Semi-automated DOI or DOI update
 - use this section if there are no technical or other issues with the DOI request 
   and skip the 'Full DOI' section.
 - also use this section if there were no issues and an update to an existing DOI has
   been requested. The 'doiforkupload' script does both initial upload and update.
-
-- on the DOI server ({{ .CL.Doiserver }}) check the DOI directory content
-    -[ ] zip file created in {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}
-    -[ ] check zip file content
-         unzip -vl {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}/10.12751_g-node.{{ .CL.Regid }}.zip
-    -[ ] note zip size
 
 -[ ] remove {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}/.htaccess
 
@@ -54,16 +70,6 @@ const ChecklistFile = `# Part 1 - pre registration
     - fork https://gin.g-node.org/{{ .CL.Repoown }}/{{ .CL.Repo }}
 
 -[ ] log on to the DOI server ({{ .CL.Doiserver }}) and move to {{ .CL.Dirdoiprep }}
-- Make sure all information has been properly downloaded to the staging directory and
-  all annex files are unlocked and the content is present:
-    -[ ] {{ .CL.Dirdoiprep }}/annexcheck {{ .SemiDOIDirpath }}
-    -[ ] find {{ .CL.Dirdoiprep }}/10.12751/g-node.{{ .CL.Regid }} -type l -print
-    -[ ] grep annex.objects $(find {{ .CL.Dirdoiprep }}/10.12751/g-node.{{ .CL.Regid }} -type f -size -100c -print)
-    -[ ] check that the content size of the repository and the created zip file matches
-    -[ ] if there still are symlinks present or the content size does not match up, the zip
-         file does not contain all required data. Run the next steps - the script will
-         download all missing information and upload to the DOI fork. When recreating the
-         zip file, all files will be manually unlocked first.
 -[ ] fetch git and annex content and upload annex content to the DOI fork repo.
      use screen to avoid large down- and uploads to be interrupted.
      use CTRL+a+d to switch out of screen sessions without interruption.
@@ -231,11 +237,8 @@ has been successfully registered.
 The DOI for the dataset is
   https://doi.org/10.12751/g-node.{{ .CL.Regid }}
 
-Please always reference the dataset by its DOI (not the link to the
-repository) and cite the dataset as
-  {{ .CL.Citation }} ({{ .Citeyear }})
-  {{ .CL.Title }}
-  G-Node. https://doi.org/10.12751/g-node.{{ .CL.Regid }}
+Please always reference the dataset by its DOI (not the link to the repository) and cite the dataset as
+  {{ .CL.Citation }} ({{ .Citeyear }}) {{ .CL.Title }}. G-Node. https://doi.org/10.12751/g-node.{{ .CL.Regid }}
 
 If this is data supplementing a publication and if you haven't done so already, we kindly request that you:
 - include the new DOI of this dataset in the publication as a reference, and
