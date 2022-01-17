@@ -186,6 +186,7 @@ var templateMap = map[string]string{
 	"LandingPage":        gdtmpl.LandingPage,
 	"KeywordIndex":       gdtmpl.KeywordIndex,
 	"Keyword":            gdtmpl.Keyword,
+	"IndexPage":          gdtmpl.IndexPage,
 }
 
 // prepareTemplates initialises and parses a sequence of templates in the order
