@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 6)
+	cmds := make([]*cobra.Command, 8)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -85,6 +85,30 @@ The command accepts GIN repositories of format "GIN:owner/repository", yaml file
 The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkindex,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+	cmds[6] = &cobra.Command{
+		Use:   "make-sitemap <xml file>...",
+		Short: "Generate the urls.txt google sitemap file from one or more DataCite XML files",
+		Long: `Generate the urls.txt google sitemap file from one or more DataCite XML files.
+
+The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mksitemap,
+		Version:               verstr,
+		DisableFlagsInUseLine: true,
+	}
+	cmds[7] = &cobra.Command{
+		Use:   "make-all <xml file>...",
+		Short: "Generate all html files and the google sitemap file.",
+		Long: `Generate all html files and the google sitemap file.
+
+The command accepts file paths and URLs (mixing allowed) of DOI XML files 
+and will generate the root landing HTML page, the google sitemap urls.txt file, 
+the keywords html pages and all DOI html landing pages from the XML files.`,
+		Args:                  cobra.MinimumNArgs(1),
+		Run:                   mkall,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}

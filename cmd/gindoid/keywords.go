@@ -12,7 +12,9 @@ import (
 )
 
 func mkkeywords(cmd *cobra.Command, args []string) {
-	keywordMap := make(map[string][]*libgin.RepositoryMetadata) // map keywords to DOIs
+	// map keywords to DOIs
+	keywordMap := make(map[string][]*libgin.RepositoryMetadata)
+
 	fmt.Println("Reading files")
 	for idx, filearg := range args {
 		var contents []byte
@@ -54,13 +56,14 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 		if err != nil {
 			continue
 		}
-		err = os.MkdirAll(kw, 0777)
+		// use a "keywords" root directory
+		err = os.MkdirAll(fmt.Sprintf("keywords/%s", kw), 0777)
 		if err != nil {
 			log.Printf("Could not create the keyword page dir: %s", err.Error())
 			continue
 		}
 
-		fp, err := os.Create(fmt.Sprintf("%s/index.html", kw))
+		fp, err := os.Create(fmt.Sprintf("keywords/%s/index.html", kw))
 		if err != nil {
 			log.Printf("Could not create the keyword page file: %s", err.Error())
 			continue
@@ -104,9 +107,9 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 	if err != nil {
 		return
 	}
-	fp, err := os.Create("index.html")
+	fp, err := os.Create("keywords/index.html")
 	if err != nil {
-		log.Printf("Could not create the keyword page file: %s", err.Error())
+		log.Printf("Could not create the keyword list page file: %s", err.Error())
 		return
 	}
 	defer fp.Close()
