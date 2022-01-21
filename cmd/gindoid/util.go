@@ -19,7 +19,8 @@ import (
 )
 
 // ALNUM provides characters for the randAlnum function.
-const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
+// Excluding 0aou to avoid the worst of swear words turning up by chance.
+const ALNUM = "123456789bcdefghijklmnpqrstvwxyz"
 
 // randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
 func randAlnum(n int) string {
