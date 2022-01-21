@@ -148,6 +148,9 @@ func writeChecklistConfigYAML(cl checklist, outpath string) error {
 // checklistFromMetadata checks all relevant entries in a received struct and
 // returns a filled checklist struct. Will return an error, if any issues occur.
 func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (checklist, error) {
+	if md == nil || md.DataCite == nil || md.YAMLData == nil {
+		return checklist{}, fmt.Errorf("encountered libgin.RepositoryMetadata nil pointer: %v", md)
+	}
 	if !strings.Contains(md.Identifier.ID, "10.12751/g-node.") {
 		return checklist{}, fmt.Errorf("could not identify request ID")
 	}
