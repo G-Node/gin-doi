@@ -507,15 +507,34 @@ func KeywordPath(kw string) string {
 	return kw
 }
 
-// FormatAuthorList returns a comma-separated list of the author names for a
-// dataset.
+// FormatAuthorList returns a string of comma separated authors with leading
+// last names followed by the first name initials.
+// The names are parsed from a list of libgin.RepositoryMedata.Datacite.Creators.
 func FormatAuthorList(md *libgin.RepositoryMetadata) string {
-	names := make([]string, len(md.Creators))
-	for idx, author := range md.Creators {
-		names[idx] = author.Name
+	// avoid nil pointer panic
+	if md == nil || md.DataCite == nil {
+		log.Printf("FormatAuthorList: encountered libgin.RepositoryMetadata nil pointer: %v", md)
+		return ""
 	}
-	authors := strings.Join(names, ", ")
-	return authors
+	authors := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		// By DataCite convention, creator names are formatted as "FamilyName, GivenName"
+		namesplit := strings.SplitN(author.Name, ",", 2)
+		if len(namesplit) != 2 {
+			// No comma: Bad input, mononym, or empty field.
+			// Trim, add continue.
+			authors[idx] = strings.TrimSpace(author.Name)
+			continue
+		}
+		// render as FirstName Initials, ...
+		firstnames := strings.Fields(namesplit[1])
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
+	}
+	return strings.Join(authors, ", ")
 }
 
 // NewVersionNotice returns an HTML template containing links to a newer version
