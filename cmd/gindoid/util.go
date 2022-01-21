@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -37,7 +38,19 @@ func randAlnum(n int) string {
 		chrs[idx] = ALNUM[rand.Intn(N)]
 	}
 
-	return string(chrs)
+	candidate := string(chrs)
+	// return string has to contain at least one number and one character
+	// if the required string length is larger than 1.
+	if n > 1 {
+		renum := regexp.MustCompile("[1-9]+")
+		rechar := regexp.MustCompile("[bcdefghijklmnpqrstvwxyz]+")
+		if !renum.MatchString(candidate) || !rechar.MatchString(candidate) {
+			log.Printf("Re-running radnAlnum: %s", candidate)
+			candidate = randAlnum(n)
+		}
+	}
+
+	return candidate
 }
 
 // isURL returns true if a URL scheme part can be identfied
