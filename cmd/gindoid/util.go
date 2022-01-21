@@ -23,7 +23,12 @@ import (
 const ALNUM = "123456789bcdefghijklmnpqrstvwxyz"
 
 // randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
+// Negative numbers return an empty string.
 func randAlnum(n int) string {
+	if n < 0 {
+		return ""
+	}
+
 	N := len(ALNUM)
 
 	chrs := make([]byte, n)
