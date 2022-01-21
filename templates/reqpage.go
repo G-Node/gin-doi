@@ -92,6 +92,7 @@ const RequestPage = `<!DOCTYPE html>
 							<p><b>Please note that content linked via git submodules will not be included in the published dataset.</b></p>
 							<p><b>Please make sure it does not contain any private files, SSH keys, address books, password collections, or similar sensitive, private data.</b></p>
 							<p><b>All contents of the repository will be part of the public archive!</b></p>
+							<p><b>Please note that only contents of the master branch will be part of the archive.</b></p>
 						</div>
 					</div>
 					<form action="/submit" method="post">
