@@ -38,6 +38,7 @@ If you would like to make any changes to the dataset before it is published, or 
 	msgNoAuthors        = `No <b>authors</b> provided.`
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = `No <b>description</b> provided.`
+	msgNoMaster         = "Could not access the repository <b>master</b> branch. DOI requests require the master branch of the requesting repository."
 	msgNoLicense        = `No valid <b>license</b> provided. Please specify a license URL and name and make sure it matches the license file in the repository.`
 	msgNoLicenseFile    = `The LICENSE file is missing. The full text of the license is required to be in the repository when publishing. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for details and links to recommended data licenses.`
 	msgLicenseMismatch  = `The LICENSE file does not match the license specified in the metadata. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for links to full text for available licenses.`
