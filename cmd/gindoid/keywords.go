@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/G-Node/libgin/libgin"
 	"github.com/spf13/cobra"
@@ -35,6 +36,19 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 			fmt.Printf("Failed to unmarshal contents of %q: %s\n", filearg, err.Error())
 			continue
 		}
+
+		// exclude old keywords of re-published datasets
+		var exclude bool
+		for _, relid := range datacite.RelatedIdentifiers {
+			if strings.Contains(strings.ToLower(relid.RelationType), "ispreviousversionof") {
+				exclude = true
+			}
+		}
+		if exclude {
+			fmt.Printf("Excluding previous version dataset (%s)\n", datacite.Identifier.ID)
+			continue
+		}
+
 		metadata := &libgin.RepositoryMetadata{
 			DataCite: datacite,
 		}
