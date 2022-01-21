@@ -210,3 +210,30 @@ func TestIsURL(t *testing.T) {
 		t.Fatalf("isURL returned false for test string %q", testURL)
 	}
 }
+
+func TestRandAlnum(t *testing.T) {
+	// check negative numbers don't break the function
+	tstr := randAlnum(-1)
+	if tstr != "" {
+		t.Fatalf("Expected empty string but got: %s", tstr)
+	}
+
+	// check return length
+	for i := 0; i <= 1000; i++ {
+		tstr := randAlnum(i)
+		if len(tstr) != i {
+			t.Fatalf("Invalid output string length, expexted length %d: %s", i, tstr)
+		}
+	}
+
+	// ensure results are unique within a reasonable number of runs
+	dupcheck := make(map[string]bool)
+	for i := 0; i < 100; i++ {
+		tstr := randAlnum(i)
+		_, found := dupcheck[tstr]
+		if found {
+			t.Fatalf("Fo un d duplicate string '%s' on run %d", tstr, i)
+		}
+		dupcheck[tstr] = false
+	}
+}
