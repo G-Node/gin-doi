@@ -181,7 +181,6 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 		fullname = md.RequestingUser.Username
 	}
 	title := md.YAMLData.Title
-	authors := fauthors(md)
 	hostinfo := strings.Split(doihost, ":")
 	host := "__DOI_HOST__"
 	if hostinfo[0] != "" {
@@ -206,7 +205,7 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 		Email:         email,
 		Userfullname:  fullname,
 		Title:         title,
-		Citation:      strings.Join(authors, ", "),
+		Citation:      FormatAuthorList(md),
 		Serveruser:    "__SERVER_USER__",
 		Dirlocalstage: "__DIR_LOCAL_STAGE__",
 		Doiserver:     host,
