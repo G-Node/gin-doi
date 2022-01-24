@@ -25,7 +25,7 @@ func setUpCommands(verstr string) *cobra.Command {
 		Version:               fmt.Sprintln(verstr),
 		DisableFlagsInUseLine: true,
 	}
-	cmds := make([]*cobra.Command, 9)
+	cmds := make([]*cobra.Command, 8)
 	cmds[0] = &cobra.Command{
 		Use:                   "start",
 		Short:                 "Start the GIN DOI service",
@@ -35,14 +35,6 @@ func setUpCommands(verstr string) *cobra.Command {
 		DisableFlagsInUseLine: true,
 	}
 	cmds[1] = &cobra.Command{
-		Use:                   "register <repopath>",
-		Short:                 "Register a repository",
-		Args:                  cobra.ExactArgs(1),
-		Run:                   register,
-		Version:               verstr,
-		DisableFlagsInUseLine: true,
-	}
-	cmds[2] = &cobra.Command{
 		Use:   "make-html <xml file>...",
 		Short: "Generate the HTML landing page from one or more DataCite XML files",
 		Long: `Generate the HTML landing page from one or more DataCite XML files.
@@ -53,7 +45,7 @@ The command accepts file paths and URLs (mixing allowed) and will generate one H
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[3] = &cobra.Command{
+	cmds[2] = &cobra.Command{
 		Use:   "make-keyword-pages <xml file>...",
 		Short: "Generate keyword index pages",
 		Long: `Generate keyword index pages.
@@ -66,7 +58,7 @@ Previously generated pages are overwritten, so this command only makes sense if 
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[4] = &cobra.Command{
+	cmds[3] = &cobra.Command{
 		Use:   "make-xml <yml file>...",
 		Short: "Generate the doi.xml file from one or more DataCite YAML files",
 		Long: `Generate the doi.xml file from one or more DataCite YAML files.
@@ -77,7 +69,7 @@ The command accepts GIN repositories of format "GIN:owner/repository", yaml file
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[5] = &cobra.Command{
+	cmds[4] = &cobra.Command{
 		Use:   "make-index <xml file>...",
 		Short: "Generate the index.html file from one or more DataCite XML files",
 		Long: `Generate the index.html file from one or more DataCite XML files.
@@ -88,7 +80,7 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[6] = &cobra.Command{
+	cmds[5] = &cobra.Command{
 		Use:   "make-sitemap <xml file>...",
 		Short: "Generate the urls.txt google sitemap file from one or more DataCite XML files",
 		Long: `Generate the urls.txt google sitemap file from one or more DataCite XML files.
@@ -99,7 +91,7 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[7] = &cobra.Command{
+	cmds[6] = &cobra.Command{
 		Use:   "make-all <xml file>...",
 		Short: "Generate all html files and the google sitemap file.",
 		Long: `Generate all html files and the google sitemap file.
@@ -112,7 +104,7 @@ the keywords html pages and all DOI html landing pages from the XML files.`,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[8] = &cobra.Command{
+	cmds[7] = &cobra.Command{
 		Use:   "make-checklist",
 		Short: "Generate a DOI registration checklist file.",
 		Long: `Generate a DOI registration checklist file.
@@ -129,8 +121,8 @@ additionally try to fetch dataset 'title' and 'authors' from the corresponding g
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
-	cmds[8].Flags().StringP("config", "c", "", "[OPTIONAL] config yaml file")
-	cmds[8].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
+	cmds[7].Flags().StringP("config", "c", "", "[OPTIONAL] config yaml file")
+	cmds[7].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 
 	rootCmd.AddCommand(cmds...)
 	return rootCmd
