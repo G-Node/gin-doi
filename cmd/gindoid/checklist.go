@@ -151,32 +151,19 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 	if md == nil || md.DataCite == nil || md.YAMLData == nil {
 		return checklist{}, fmt.Errorf("encountered libgin.RepositoryMetadata nil pointer: %v", md)
 	}
-	if !strings.Contains(md.Identifier.ID, "10.12751/g-node.") {
-		return checklist{}, fmt.Errorf("could not identify request ID")
+	if md.RequestingUser == nil {
+		return checklist{}, fmt.Errorf("encountered libgin.RequestingUser nil pointer: %v", md)
 	}
-	if !strings.Contains(md.SourceRepository, "/") {
-		return checklist{}, fmt.Errorf("could not parse source repository")
+	repoinfo := strings.Split(md.SourceRepository, "/")
+	if len(repoinfo) != 2 {
+		return checklist{}, fmt.Errorf("cannot parse SourceRepository: %v", md.SourceRepository)
 	}
 	if len(md.Dates) < 1 {
-		return checklist{}, fmt.Errorf("could not access publication dates")
-	} else if md.Dates[0].Value == "" {
-		return checklist{}, fmt.Errorf("publication date was empty")
+		return checklist{}, fmt.Errorf("missing pubication date: %v", md.Dates)
 	}
-	if md.RelatedIdentifiers == nil {
-		return checklist{}, fmt.Errorf("could not access requesting user")
-	}
-	if md.YAMLData == nil {
-		return checklist{}, fmt.Errorf("YAMLData was unavailable")
-	} else if md.YAMLData.Title == "" {
-		return checklist{}, fmt.Errorf("title was unavailable")
-	}
-	if !strings.Contains(doihost, ":") {
-		return checklist{}, fmt.Errorf("could not parse doihost")
-	}
-	regid := strings.Replace(md.Identifier.ID, "10.12751/g-node.", "", 1)
-	repoinfo := strings.Split(md.SourceRepository, "/")
 	repoown := repoinfo[0]
 	repo := repoinfo[1]
+	regid := strings.Replace(md.Identifier.ID, "10.12751/g-node.", "", 1)
 	published := md.Dates[0].Value
 	email := md.RequestingUser.Email
 	fullname := md.RequestingUser.RealName
@@ -186,12 +173,12 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 	title := md.YAMLData.Title
 	hostinfo := strings.Split(doihost, ":")
 	host := "__DOI_HOST__"
-	if hostinfo[0] != "" {
+	if len(hostinfo) > 0 && hostinfo[0] != "" {
 		host = hostinfo[0]
 	}
 	prepdir := "__DOI_PREP_DIR__"
 	hostdir := "__DOI_HOST_DIR__"
-	if hostinfo[1] != "" {
+	if len(hostinfo) > 1 && hostinfo[1] != "" {
 		hostdir = hostinfo[1]
 		// Unadvisable hack to get to the preparation path
 		// outside the docker container. It depends on the
