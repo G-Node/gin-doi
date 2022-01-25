@@ -274,11 +274,9 @@ func parseRepoDatacite(dcURL string) (string, string, error) {
 	return title, authlist, nil
 }
 
-// mkchecklistcli handles command line input options and ensures
-// default values for missing entries.
-func mkchecklistcli(cmd *cobra.Command, args []string) {
-	// default configuration
-	defaultcl := checklist{
+// defaultChecklist returns a checklist with default string values
+func defaultChecklist() checklist {
+	return checklist{
 		Regid:         "__ID__",
 		Repoown:       "__OWN__",
 		Repo:          "__REPO__",
@@ -293,6 +291,13 @@ func mkchecklistcli(cmd *cobra.Command, args []string) {
 		Dirdoiprep:    "__DIR_DOI_PREP__",
 		Dirdoi:        "__DIR_DOI__",
 	}
+}
+
+// mkchecklistcli handles command line input options and ensures
+// default values for missing entries.
+func mkchecklistcli(cmd *cobra.Command, args []string) {
+	// default configuration
+	defaultcl := defaultChecklist()
 
 	// handling CLI config yaml; missing fields will keep the default values
 	confile, err := cmd.Flags().GetString("config")
