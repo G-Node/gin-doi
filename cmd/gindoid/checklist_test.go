@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -68,7 +69,7 @@ func TestChecklistFromMetadata(t *testing.T) {
 	}
 }
 
-func TestWriteChecklistConfigYAML(t *testing.T) {
+func TestWriteReadChecklistConfigYAML(t *testing.T) {
 	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_config")
 	if err != nil {
 		t.Fatalf("Failed to create checklist config temp directory: %v", err)
@@ -88,11 +89,30 @@ func TestWriteChecklistConfigYAML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error writing default checklist config file: %s", err.Error())
 	}
-	fn := filepath.Join(targetpath, fmt.Sprintf("conf_%s.yml", cl.Regid))
-	_, err = os.Stat(fn)
+	targetFile := filepath.Join(targetpath, fmt.Sprintf("conf_%s.yml", cl.Regid))
+	_, err = os.Stat(targetFile)
 	if errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("Could not find checklist config file at: %s", fn)
+		t.Fatalf("Could not find checklist config file at: %s", targetFile)
 	} else if err != nil {
 		t.Fatalf("Unexpected error writing checklist config file: %s", err.Error())
+	}
+
+	// test readChecklistConfigYAML
+	// test invalid read
+	chl := new(checklist)
+	_, err = readChecklistConfigYAML(chl, "")
+	if err == nil {
+		t.Fatalf("Expected read file error")
+	} else if err != nil && !strings.Contains(err.Error(), "-- Error reading config file") {
+		t.Fatalf("Expected read file error but got: %s", err.Error())
+	}
+
+	chl, err = readChecklistConfigYAML(chl, targetFile)
+	if err != nil {
+		t.Fatalf("Error on reading config file: %s", err.Error())
+	}
+	compcl := defaultChecklist()
+	if !reflect.DeepEqual(compcl, *chl) {
+		t.Fatalf("Loaded config differs from original: %v, %v", compcl, *chl)
 	}
 }
