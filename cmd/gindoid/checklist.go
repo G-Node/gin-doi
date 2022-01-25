@@ -89,10 +89,10 @@ type ChecklistTemplate struct {
 	Citeyear         string
 }
 
-// mkchecklist creates an output markdown file with the contents
+// mkchecklistFile creates an output markdown file with the contents
 // of the passed checklist struct. A path for the output file can
 // be provided.
-func mkchecklist(cl checklist, outpath string) error {
+func mkchecklistFile(cl checklist, outpath string) error {
 	outfile := outFilename(cl, outpath)
 	fip, err := os.Create(outfile)
 	if err != nil {
@@ -232,7 +232,7 @@ func mkchecklistserver(md *libgin.RepositoryMetadata, preppath string, doihost s
 		return err
 	}
 
-	err = mkchecklist(cl, preppath)
+	err = mkchecklistFile(cl, preppath)
 	if err != nil {
 		return err
 	}
@@ -347,7 +347,7 @@ func mkchecklistcli(cmd *cobra.Command, args []string) {
 		fmt.Printf("-- Using output directory '%s'", outpath)
 	}
 	fmt.Println("-- Writing checklist file")
-	err = mkchecklist(defaultcl, outpath)
+	err = mkchecklistFile(defaultcl, outpath)
 	if err != nil {
 		fmt.Printf("-- ERROR: %s", err.Error())
 	}
