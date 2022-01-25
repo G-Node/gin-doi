@@ -1,6 +1,11 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -60,5 +65,34 @@ func TestChecklistFromMetadata(t *testing.T) {
 	_, err = checklistFromMetadata(md, "")
 	if err != nil {
 		t.Fatalf("%s", err.Error())
+	}
+}
+
+func TestWriteChecklistConfigYAML(t *testing.T) {
+	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_config")
+	if err != nil {
+		t.Fatalf("Failed to create checklist config temp directory: %v", err)
+	}
+	defer os.RemoveAll(targetpath)
+
+	// test no panic on blank input
+	cl := checklist{}
+	err = writeChecklistConfigYAML(cl, targetpath)
+	if err != nil {
+		t.Fatalf("Error writing blank checklist config file: %s", err.Error())
+	}
+
+	// test writing default config
+	cl = defaultChecklist()
+	err = writeChecklistConfigYAML(cl, targetpath)
+	if err != nil {
+		t.Fatalf("Error writing default checklist config file: %s", err.Error())
+	}
+	fn := filepath.Join(targetpath, fmt.Sprintf("conf_%s.yml", cl.Regid))
+	_, err = os.Stat(fn)
+	if errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("Could not find checklist config file at: %s", fn)
+	} else if err != nil {
+		t.Fatalf("Unexpected error writing checklist config file: %s", err.Error())
 	}
 }
