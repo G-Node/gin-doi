@@ -19,7 +19,7 @@ const IndexPage = `<!DOCTYPE html>
 	<body>
 		{{ template "Nav" }}
 		<div class="ui stackable middle very relaxed page grid">
-			<div class="sixteenn wide center aligned centered column">
+			<div class="sixteen wide center aligned centered column">
 				<h1>G-Node Open Data</h1>
 				<p><b>Registered Datasets</b></p>
 				<table class="ui very basic table">
