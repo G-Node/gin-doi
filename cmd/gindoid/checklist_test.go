@@ -16,6 +16,37 @@ import (
 	"github.com/G-Node/libgin/libgin"
 )
 
+func TestOutFilename(t *testing.T) {
+	// test blank input
+	cl := new(checklist)
+	check := outFilename(*cl, "")
+	if !strings.Contains(check, "_--.md") {
+		t.Fatalf("Expected default filename but got '%s'", check)
+	}
+
+	// test short repo name and repo owner name
+	cl.Repoown = "1"
+	cl.Repo = "a"
+	check = outFilename(*cl, "")
+	if !strings.Contains(check, "_-1-a.md") {
+		t.Fatalf("Expected minimal filename but got '%s'", check)
+	}
+
+	// test extensive repo name and repo owner name shortening
+	cl.Repoown = "1234567890"
+	cl.Repo = "abcdefghijklmnopqrstxyz"
+	check = outFilename(*cl, "")
+	if !strings.Contains(check, "_-12345-abcdefghijklmno.md") {
+		t.Fatalf("Expected shortened filename but got '%s'", check)
+	}
+
+	// test optional path
+	check = outFilename(*cl, "somepath")
+	if !strings.Contains(check, "somepath/") {
+		t.Fatalf("Expected prepended directory but got '%s'", check)
+	}
+}
+
 func TestChecklistFromMetadata(t *testing.T) {
 	// assert no panic on nil input
 	_, err := checklistFromMetadata(nil, "")
