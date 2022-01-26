@@ -120,6 +120,54 @@ func TestWriteReadChecklistConfigYAML(t *testing.T) {
 	}
 }
 
+func TestFormatYAMLAuthors(t *testing.T) {
+	// test blank struct
+	yml := new(libgin.RepositoryYAML)
+	authors := formatYAMLAuthors(yml)
+	if authors != "" {
+		t.Fatalf("Expected empty author list: %s", authors)
+	}
+
+	// Test single author, no comma, whitespace trim
+	yml.Authors = []libgin.Author{
+		{LastName: " NameA "},
+	}
+	authors = formatYAMLAuthors(yml)
+	if authors != "NameA" {
+		t.Fatalf("Expected trimmed string 'NameA' but got: '%s'", authors)
+	}
+
+	// Test single author family name, two given names, whitespace trim
+	yml.Authors = []libgin.Author{
+		{LastName: " NameA   ", FirstName: " GivenAA GivenAB "},
+	}
+	authors = formatYAMLAuthors(yml)
+	if authors != "NameA GG" {
+		t.Fatalf("Expected formatted author string 'A GG' but got: '%s'", authors)
+	}
+
+	// Test multiple, simple name authors, whitespace trim
+	yml.Authors = []libgin.Author{
+		{LastName: " NameA "},
+		{LastName: " NameB "},
+		{LastName: " NameC "},
+	}
+	authors = formatYAMLAuthors(yml)
+	if authors != "NameA, NameB, NameC" {
+		t.Fatalf("Expected formatted authors string 'NameA, NameB, NameC' but got: %s", authors)
+	}
+	// Test multiple, complex name authors, whitespace trim
+	yml.Authors = []libgin.Author{
+		{LastName: " NameA", FirstName: " GivenAA "},
+		{LastName: " NameB "},
+		{LastName: " NameC", FirstName: " GivenCA GivenCB GivenCC"},
+	}
+	authors = formatYAMLAuthors(yml)
+	if authors != "NameA G, NameB, NameC GGG" {
+		t.Fatalf("Expected formatted authors string 'NameA G, NameB, NameC GGG' but got: %s", authors)
+	}
+}
+
 func TestParseRepoDatacite(t *testing.T) {
 	dataciteYAML := `title: "title"
 authors:
