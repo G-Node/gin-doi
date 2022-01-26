@@ -13,7 +13,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Default configuration struct containing non problematic test values
+// checklist allows loading basic information from a config YAML file
 type checklist struct {
 	// Entries required for every DOI request
 	// Paste basic information from the corresponding issue on
@@ -48,8 +48,9 @@ type checklist struct {
 	Dirdoi string `yaml:"dir_doi"`
 }
 
-// ChecklistTemplate is the data struct required to properly render
-// the checklist file template.
+// ChecklistTemplate is the full data struct required to properly render
+// the checklist file template. It contains processed information that is
+// not available in the basic checklist struct.
 type ChecklistTemplate struct {
 	CL               checklist
 	RepoLower        string
@@ -191,8 +192,8 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 }
 
 // mkchecklistserver handles a checklist request via the DOI server. It creates
-// a checklist config yaml file and a checklist markdown file in the preparation
-// directory.
+// a checklist config yaml file and a checklist markdown file at the provided
+// directory path.
 func mkchecklistserver(md *libgin.RepositoryMetadata, preppath string, doihost string) error {
 	cl, err := checklistFromMetadata(md, doihost)
 	if err != nil {
@@ -227,7 +228,7 @@ func readChecklistConfigYAML(yamlInfo *checklist, confile string) (*checklist, e
 }
 
 // writeChecklistConfigYAML serializes the content of a checklist struct
-// to a YAML config file.
+// to a YAML checklist config file.
 func writeChecklistConfigYAML(cl checklist, outpath string) error {
 	data, err := yaml.Marshal(&cl)
 	if err != nil {
@@ -262,10 +263,8 @@ func formatYAMLAuthors(yamlInfo *libgin.RepositoryYAML) string {
 	return strings.Join(authors, ", ")
 }
 
-// parseRepoDatacite tries to access the request repository datacite file and
-// parse the 'title' and the 'citation' from the files authors list.
-// If the file cannot be accessed or there are any issues the script continues
-// since both title and citation are not essential for the checklist.
+// parseRepoDatacite accesses a datacite YAML file from a provided
+// URL and parses and returns the 'title' and formatted author list names.
 func parseRepoDatacite(dcURL string) (string, string, error) {
 	fmt.Printf("-- Loading datacite file at '%s'\n", dcURL)
 
@@ -286,7 +285,7 @@ func parseRepoDatacite(dcURL string) (string, string, error) {
 	return title, authlist, nil
 }
 
-// defaultChecklist returns a checklist with default string values
+// defaultChecklist returns a checklist with default string values.
 func defaultChecklist() checklist {
 	return checklist{
 		Regid:         "__ID__",
