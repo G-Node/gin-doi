@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -114,5 +117,70 @@ func TestWriteReadChecklistConfigYAML(t *testing.T) {
 	compcl := defaultChecklist()
 	if !reflect.DeepEqual(compcl, *chl) {
 		t.Fatalf("Loaded config differs from original: %v, %v", compcl, *chl)
+	}
+}
+
+func TestParseRepoDatacite(t *testing.T) {
+	dataciteYAML := `title: "title"
+authors:
+-
+ firstname: "firstname"
+ lastname: "lastname"
+`
+
+	_, _, err := parseRepoDatacite("")
+	if err == nil {
+		t.Fatal("Missing error on missing URL")
+	}
+	_, _, err = parseRepoDatacite("https://gin.g-node.org/idonotexist")
+	if err == nil {
+		t.Fatal("Missing error on invalid URL")
+	}
+
+	// provide local test server for datacite yml files
+	mux := http.NewServeMux()
+	mux.HandleFunc("/non-dc-yml", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, err := rw.Write([]byte(`non-yml`))
+		if err != nil {
+			t.Fatalf("Could not write invalid response: %q", err.Error())
+		}
+	})
+	mux.HandleFunc("/dc-yml", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, err := rw.Write([]byte(dataciteYAML))
+		if err != nil {
+			t.Fatalf("Could not write valid response: %q", err.Error())
+		}
+	})
+
+	// start local test server
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// test local test server works
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
+	// test error on invalid datacite content
+	testNonYAML := fmt.Sprintf("%s/non-dc-yml", server.URL)
+	_, _, err = parseRepoDatacite(testNonYAML)
+	if err == nil || !strings.Contains(err.Error(), "unmarshalling config file") {
+		t.Fatalf("Error handling invalid config unmarshal: %v", err)
+	}
+
+	// test valid dc yaml file import
+	testYAML := fmt.Sprintf("%s/dc-yml", server.URL)
+	title, authorlist, err := parseRepoDatacite(testYAML)
+	if err != nil {
+		t.Fatalf("Error handling valid config unmarshal: %s", err.Error())
+	}
+	if title != "title" {
+		t.Fatalf("Error parsing title from datacite.yml: %s", title)
+	}
+	if authorlist != "lastname f" {
+		t.Fatalf("Error parsing authors from datacite.yml: %s", authorlist)
 	}
 }
