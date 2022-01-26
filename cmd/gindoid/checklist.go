@@ -69,15 +69,15 @@ type ChecklistTemplate struct {
 }
 
 // outFilename constructs a filename for the output markdown file
-// from the checklist repo and registration information and
-// returns it. Optionally an output path can be specified.
+// from the checklist repository and registration information and
+// returns it. An optional output path can be specified.
 func outFilename(cl checklist, outpath string) string {
 	owner := strings.ToLower(cl.Repoown)
 	if len(cl.Repoown) > 5 {
 		owner = owner[0:5]
 	}
 	reponame := strings.ToLower(cl.Repo)
-	if len(cl.Repo) > 10 {
+	if len(cl.Repo) > 15 {
 		reponame = reponame[0:15]
 	}
 
