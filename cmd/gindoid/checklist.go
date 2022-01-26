@@ -241,6 +241,27 @@ func writeChecklistConfigYAML(cl checklist, outpath string) error {
 	return nil
 }
 
+// formatYAMLAuthors parses Author lastnames and firstname initials
+// from a libgin.RepositoryYAML.Authors list and returns them
+// separated by comma as a single string.
+func formatYAMLAuthors(yamlInfo *libgin.RepositoryYAML) string {
+	authors := make([]string, len(yamlInfo.Authors))
+	for idx, author := range yamlInfo.Authors {
+		if author.FirstName == "" {
+			authors[idx] = strings.TrimSpace(author.LastName)
+			continue
+		}
+		firstnames := strings.Fields(author.FirstName)
+
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(author.LastName), strings.TrimSpace(initials))
+	}
+	return strings.Join(authors, ", ")
+}
+
 // parseRepoDatacite tries to access the request repository datacite file and
 // parse the 'title' and the 'citation' from the files authors list.
 // If the file cannot be accessed or there are any issues the script continues
@@ -260,17 +281,8 @@ func parseRepoDatacite(dcURL string) (string, string, error) {
 	}
 
 	title := yamlInfo.Title
-	authors := make([]string, len(yamlInfo.Authors))
-	for idx, author := range yamlInfo.Authors {
-		firstnames := strings.Fields(author.FirstName)
+	authlist := formatYAMLAuthors(yamlInfo)
 
-		var initials string
-		for _, name := range firstnames {
-			initials += string(name[0])
-		}
-		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(author.LastName), strings.TrimSpace(initials))
-	}
-	authlist := strings.Join(authors, ", ")
 	return title, authlist, nil
 }
 
