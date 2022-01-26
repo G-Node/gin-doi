@@ -48,6 +48,26 @@ type checklist struct {
 	Dirdoi string `yaml:"dir_doi"`
 }
 
+// ChecklistTemplate is the data struct required to properly render
+// the checklist file template.
+type ChecklistTemplate struct {
+	CL               checklist
+	RepoLower        string
+	RepoownLower     string
+	SemiDOIScreenID  string
+	FullDOIScreenID  string
+	SemiDOICleanup   string
+	SemiDOIDirpath   string
+	FullDOIDirpath   string
+	Forklog          string
+	Logfiles         string
+	Ziplog           string
+	Zipfile          string
+	KeywordsLocalDir string
+	ToServer         string
+	Citeyear         string
+}
+
 // outFilename constructs a filename for the output markdown file
 // from the checklist repo and registration information and
 // returns it. Optionally an output path can be specified.
@@ -67,26 +87,6 @@ func outFilename(cl checklist, outpath string) string {
 		outfile = filepath.Join(outpath, outfile)
 	}
 	return outfile
-}
-
-// ChecklistTemplate is the data struct required to properly render
-// the checklist file template.
-type ChecklistTemplate struct {
-	CL               checklist
-	RepoLower        string
-	RepoownLower     string
-	SemiDOIScreenID  string
-	FullDOIScreenID  string
-	SemiDOICleanup   string
-	SemiDOIDirpath   string
-	FullDOIDirpath   string
-	Forklog          string
-	Logfiles         string
-	Ziplog           string
-	Zipfile          string
-	KeywordsLocalDir string
-	ToServer         string
-	Citeyear         string
 }
 
 // mkchecklistFile creates an output markdown file with the contents
@@ -127,21 +127,6 @@ func mkchecklistFile(cl checklist, outpath string) error {
 		return fmt.Errorf("error writing checklist file: %s", err.Error())
 	}
 
-	return nil
-}
-
-// writeChecklistConfigYAML serializes the content of a checklist struct
-// to a YAML config file.
-func writeChecklistConfigYAML(cl checklist, outpath string) error {
-	data, err := yaml.Marshal(&cl)
-	if err != nil {
-		return fmt.Errorf("error marshalling checklist yaml: %s", err.Error())
-	}
-	fn := filepath.Join(outpath, fmt.Sprintf("conf_%s.yml", cl.Regid))
-	err = ioutil.WriteFile(fn, data, 0664)
-	if err != nil {
-		return fmt.Errorf("error writing checklist yaml: %s", err.Error())
-	}
 	return nil
 }
 
@@ -239,6 +224,21 @@ func readChecklistConfigYAML(yamlInfo *checklist, confile string) (*checklist, e
 		return nil, fmt.Errorf("-- Error unmarshalling config file: %s", err.Error())
 	}
 	return yamlInfo, nil
+}
+
+// writeChecklistConfigYAML serializes the content of a checklist struct
+// to a YAML config file.
+func writeChecklistConfigYAML(cl checklist, outpath string) error {
+	data, err := yaml.Marshal(&cl)
+	if err != nil {
+		return fmt.Errorf("error marshalling checklist yaml: %s", err.Error())
+	}
+	fn := filepath.Join(outpath, fmt.Sprintf("conf_%s.yml", cl.Regid))
+	err = ioutil.WriteFile(fn, data, 0664)
+	if err != nil {
+		return fmt.Errorf("error writing checklist yaml: %s", err.Error())
+	}
+	return nil
 }
 
 // parseRepoDatacite tries to access the request repository datacite file and
