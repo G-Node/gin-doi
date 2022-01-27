@@ -48,7 +48,7 @@ func TestOutFilename(t *testing.T) {
 }
 
 func TestMKChecklistFile(t *testing.T) {
-	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_config")
+	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_md")
 	if err != nil {
 		t.Fatalf("Failed to create checklist config temp directory: %v", err)
 	}
@@ -116,11 +116,11 @@ func TestChecklistFromMetadata(t *testing.T) {
 		t.Fatalf("Expected function to fail gracefully on missing DataCite.Dates: %v", err)
 	}
 
-	// assert no panic on blank libgin.User
+	// assert no issue on minimal input
 	md.DataCite.Dates = append(md.DataCite.Dates, libgin.Date{})
 	_, err = checklistFromMetadata(md, "")
 	if err != nil {
-		t.Fatalf("%s", err.Error())
+		t.Fatalf("Unexpected error on minimal input: %s", err.Error())
 	}
 }
 
