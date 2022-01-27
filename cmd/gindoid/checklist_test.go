@@ -124,6 +124,48 @@ func TestChecklistFromMetadata(t *testing.T) {
 	}
 }
 
+func TestMKChecklistserver(t *testing.T) {
+	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_server")
+	if err != nil {
+		t.Fatalf("Failed to create checklist config temp directory: %v", err)
+	}
+	defer os.RemoveAll(targetpath)
+
+	// test no panic, no files on blank input
+	md := new(libgin.RepositoryMetadata)
+	err = mkchecklistserver(md, targetpath, "")
+	if err == nil {
+		t.Fatal("Expected error on blank input")
+	} else if err != nil && !strings.Contains(err.Error(), "parsing checklist information") {
+		t.Fatalf("Expected checklist parsing error on blank input: %s", err.Error())
+	}
+	fi, err := ioutil.ReadDir(targetpath)
+	if err != nil {
+		t.Fatalf("Error on reading target dir: %s", err.Error())
+	}
+	if len(fi) > 0 {
+		t.Fatalf("Encountered unexpected files: %v", fi)
+	}
+
+	// test files written on minimal input
+	md.DataCite = new(libgin.DataCite)
+	md.YAMLData = new(libgin.RepositoryYAML)
+	md.RequestingUser = new(libgin.GINUser)
+	md.SourceRepository = "a/b"
+	md.DataCite.Dates = append(md.DataCite.Dates, libgin.Date{})
+	err = mkchecklistserver(md, targetpath, "")
+	if err != nil {
+		t.Fatalf("Unexpected error on minimal input: %s", err.Error())
+	}
+	fi, err = ioutil.ReadDir(targetpath)
+	if err != nil {
+		t.Fatalf("Error on reading target dir: %s", err.Error())
+	}
+	if len(fi) != 2 {
+		t.Fatalf("Expected two files but got: %d", len(fi))
+	}
+}
+
 func TestWriteReadChecklistConfigYAML(t *testing.T) {
 	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_config")
 	if err != nil {
