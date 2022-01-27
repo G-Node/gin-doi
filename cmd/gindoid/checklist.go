@@ -36,10 +36,6 @@ type checklist struct {
 	// Author citation list; usually handled automatically via repo datacite entry
 	Citation string `yaml:"citation"`
 	// Entries that are set once and remain unchanged for future DOI requests
-	// User working on the DOI server
-	Serveruser string `yaml:"server_user"`
-	// Local staging dir to create index and keyword pages
-	Dirlocalstage string `yaml:"dir_local_stage"`
 	// Full ssh access name of the server hosting the DOI server instance
 	Doiserver string `yaml:"doi_server"`
 	// DOI Server repo preparation directory
@@ -52,21 +48,19 @@ type checklist struct {
 // the checklist file template. It contains processed information that is
 // not available in the basic checklist struct.
 type ChecklistTemplate struct {
-	CL               checklist
-	RepoLower        string
-	RepoownLower     string
-	SemiDOIScreenID  string
-	FullDOIScreenID  string
-	SemiDOICleanup   string
-	SemiDOIDirpath   string
-	FullDOIDirpath   string
-	Forklog          string
-	Logfiles         string
-	Ziplog           string
-	Zipfile          string
-	KeywordsLocalDir string
-	ToServer         string
-	Citeyear         string
+	CL              checklist
+	RepoLower       string
+	RepoownLower    string
+	SemiDOIScreenID string
+	FullDOIScreenID string
+	SemiDOICleanup  string
+	SemiDOIDirpath  string
+	FullDOIDirpath  string
+	Forklog         string
+	Logfiles        string
+	Ziplog          string
+	Zipfile         string
+	Citeyear        string
 }
 
 // outFilename constructs a filename for the output markdown file
@@ -107,21 +101,19 @@ func mkchecklistFile(cl checklist, outpath string) error {
 	}
 
 	fullcl := ChecklistTemplate{
-		CL:               cl,
-		RepoLower:        strings.ToLower(cl.Repo),
-		RepoownLower:     strings.ToLower(cl.Repoown),
-		SemiDOIScreenID:  fmt.Sprintf("%s-%s", strings.ToLower(cl.Repoown), randAlnum(5)),
-		FullDOIScreenID:  fmt.Sprintf("%s-%s", strings.ToLower(cl.Repoown), randAlnum(5)),
-		SemiDOICleanup:   fmt.Sprintf("%s/10.12751/g-node.%s", cl.Dirdoiprep, cl.Regid),
-		SemiDOIDirpath:   fmt.Sprintf("%s/10.12751/g-node.%s/%s", cl.Dirdoiprep, cl.Regid, strings.ToLower(cl.Repo)),
-		FullDOIDirpath:   fmt.Sprintf("%s/%s", cl.Dirdoiprep, strings.ToLower(cl.Repo)),
-		Forklog:          fmt.Sprintf("%s-%s.log", strings.ToLower(cl.Repoown), strings.ToLower(cl.Repo)),
-		Logfiles:         fmt.Sprintf("%s-%s*.log", strings.ToLower(cl.Repoown), strings.ToLower(cl.Repo)),
-		Ziplog:           fmt.Sprintf("%s-%s_zip.log", strings.ToLower(cl.Repoown), strings.ToLower(cl.Repo)),
-		Zipfile:          fmt.Sprintf("%s/10.12751/g-node.%s/10.12751_g-node.%s.zip", cl.Dirdoi, cl.Regid, cl.Regid),
-		KeywordsLocalDir: fmt.Sprintf("%s/keywords", cl.Dirlocalstage),
-		ToServer:         fmt.Sprintf("%s@%s:/home/%s/staging", cl.Serveruser, cl.Doiserver, cl.Serveruser),
-		Citeyear:         time.Now().Format("2006"),
+		CL:              cl,
+		RepoLower:       strings.ToLower(cl.Repo),
+		RepoownLower:    strings.ToLower(cl.Repoown),
+		SemiDOIScreenID: fmt.Sprintf("%s-%s", strings.ToLower(cl.Repoown), randAlnum(5)),
+		FullDOIScreenID: fmt.Sprintf("%s-%s", strings.ToLower(cl.Repoown), randAlnum(5)),
+		SemiDOICleanup:  fmt.Sprintf("%s/10.12751/g-node.%s", cl.Dirdoiprep, cl.Regid),
+		SemiDOIDirpath:  fmt.Sprintf("%s/10.12751/g-node.%s/%s", cl.Dirdoiprep, cl.Regid, strings.ToLower(cl.Repo)),
+		FullDOIDirpath:  fmt.Sprintf("%s/%s", cl.Dirdoiprep, strings.ToLower(cl.Repo)),
+		Forklog:         fmt.Sprintf("%s-%s.log", strings.ToLower(cl.Repoown), strings.ToLower(cl.Repo)),
+		Logfiles:        fmt.Sprintf("%s-%s*.log", strings.ToLower(cl.Repoown), strings.ToLower(cl.Repo)),
+		Ziplog:          fmt.Sprintf("%s-%s_zip.log", strings.ToLower(cl.Repoown), strings.ToLower(cl.Repo)),
+		Zipfile:         fmt.Sprintf("%s/10.12751/g-node.%s/10.12751_g-node.%s.zip", cl.Dirdoi, cl.Regid, cl.Regid),
+		Citeyear:        time.Now().Format("2006"),
 	}
 
 	if err := tmpl.Execute(fip, fullcl); err != nil {
@@ -174,19 +166,17 @@ func checklistFromMetadata(md *libgin.RepositoryMetadata, doihost string) (check
 		prepdir = fmt.Sprintf("%sprep", hostdir)
 	}
 	cl := checklist{
-		Regid:         regid,
-		Repoown:       repoown,
-		Repo:          repo,
-		Regdate:       published,
-		Email:         email,
-		Userfullname:  fullname,
-		Title:         title,
-		Citation:      FormatAuthorList(md),
-		Serveruser:    "__SERVER_USER__",
-		Dirlocalstage: "__DIR_LOCAL_STAGE__",
-		Doiserver:     host,
-		Dirdoiprep:    prepdir,
-		Dirdoi:        hostdir,
+		Regid:        regid,
+		Repoown:      repoown,
+		Repo:         repo,
+		Regdate:      published,
+		Email:        email,
+		Userfullname: fullname,
+		Title:        title,
+		Citation:     FormatAuthorList(md),
+		Doiserver:    host,
+		Dirdoiprep:   prepdir,
+		Dirdoi:       hostdir,
 	}
 	return cl, nil
 }
@@ -288,19 +278,17 @@ func parseRepoDatacite(dcURL string) (string, string, error) {
 // defaultChecklist returns a checklist with default string values.
 func defaultChecklist() checklist {
 	return checklist{
-		Regid:         "__ID__",
-		Repoown:       "__OWN__",
-		Repo:          "__REPO__",
-		Regdate:       "__DATE__",
-		Email:         "__MAIL__",
-		Userfullname:  "__USER_FULL__",
-		Title:         "__TITLE__",
-		Citation:      "__CITATION__",
-		Serveruser:    "__SERVER_USER__",
-		Dirlocalstage: "__DIR_LOCAL_STAGE__",
-		Doiserver:     "__DOI.SERVER__",
-		Dirdoiprep:    "__DIR_DOI_PREP__",
-		Dirdoi:        "__DIR_DOI__",
+		Regid:        "__ID__",
+		Repoown:      "__OWN__",
+		Repo:         "__REPO__",
+		Regdate:      "__DATE__",
+		Email:        "__MAIL__",
+		Userfullname: "__USER_FULL__",
+		Title:        "__TITLE__",
+		Citation:     "__CITATION__",
+		Doiserver:    "__DOI_SERVER__",
+		Dirdoiprep:   "__DIR_DOI_PREP__",
+		Dirdoi:       "__DIR_DOI__",
 	}
 }
 
