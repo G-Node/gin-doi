@@ -47,6 +47,27 @@ func TestOutFilename(t *testing.T) {
 	}
 }
 
+func TestMKChecklistFile(t *testing.T) {
+	targetpath, err := ioutil.TempDir("", "test_doi_write_checklist_config")
+	if err != nil {
+		t.Fatalf("Failed to create checklist config temp directory: %v", err)
+	}
+	defer os.RemoveAll(targetpath)
+
+	// test blank input
+	cl := new(checklist)
+	err = mkchecklistFile(*cl, targetpath)
+	if err != nil {
+		t.Fatalf("Error on blank input: %s", err.Error())
+	}
+
+	// test default input
+	err = mkchecklistFile(defaultChecklist(), targetpath)
+	if err != nil {
+		t.Fatalf("Error on default input: %s", err.Error())
+	}
+}
+
 func TestChecklistFromMetadata(t *testing.T) {
 	// assert no panic on nil input
 	_, err := checklistFromMetadata(nil, "")
