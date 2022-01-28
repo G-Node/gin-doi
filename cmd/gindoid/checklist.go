@@ -332,15 +332,16 @@ func mkchecklistcli(cmd *cobra.Command, args []string) {
 	var outpath string
 	oval, err := cmd.Flags().GetString("out")
 	if err != nil {
-		fmt.Printf("Error parsing output directory flag: %s\n", err.Error())
+		fmt.Printf("-- Error parsing output directory flag: %s\n", err.Error())
 	} else if oval != "" {
 		outpath = oval
-		fmt.Printf("-- Using output directory '%s'", outpath)
+		fmt.Printf("-- Using output directory '%s'\n", outpath)
 	}
+
 	fmt.Println("-- Writing checklist file")
 	err = mkchecklistFile(defaultcl, outpath)
 	if err != nil {
-		fmt.Printf("-- ERROR: %s", err.Error())
+		fmt.Printf("-- ERROR: %s\n", err.Error())
 	}
 	fmt.Println("-- Done")
 }
