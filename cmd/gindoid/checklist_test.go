@@ -122,6 +122,27 @@ func TestChecklistFromMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error on minimal input: %s", err.Error())
 	}
+
+	// assert no issue on simple host string
+	cl, err := checklistFromMetadata(md, "somehost")
+	if err != nil {
+		t.Fatalf("Unexpected error on simple host string: %s", err.Error())
+	}
+	if cl.Doiserver != "somehost" {
+		t.Fatalf("Unexpected doiserver entry: %v", cl)
+	}
+
+	// assert no issue on multi-separated host string
+	cl, err = checklistFromMetadata(md, "somehost:moreinfo:ignored content")
+	if err != nil {
+		t.Fatalf("Unexpected error on multi-separated host string: %s", err.Error())
+	}
+	if cl.Doiserver != "somehost" {
+		t.Fatalf("Unexpected doiserver entry: %v", cl)
+	}
+	if cl.Dirdoi != "moreinfo" {
+		t.Fatalf("Unexpected dirdoi entry: %v", cl)
+	}
 }
 
 func TestMKChecklistserver(t *testing.T) {
