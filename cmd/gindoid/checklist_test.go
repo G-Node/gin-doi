@@ -347,3 +347,43 @@ authors:
 		t.Fatalf("Error parsing authors from datacite.yml: %s", authorlist)
 	}
 }
+
+func TestMKChecklistcli(t *testing.T) {
+	targetpath, err := ioutil.TempDir("", "test_checklist_cli")
+	if err != nil {
+		t.Fatalf("Failed to create checklist cli temp directory: %v", err)
+	}
+	defer os.RemoveAll(targetpath)
+
+	cmd := setUpCommands("")
+	// check no outfile on invalid config file
+	cmd.SetArgs([]string{"make-checklist", "-cidonotexist", fmt.Sprintf("-o%s", targetpath)})
+	err = cmd.Execute()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := ioutil.ReadDir(targetpath)
+	if err != nil {
+		t.Fatalf("Error on reading target dir: %s", err.Error())
+	}
+	if len(fi) != 0 {
+		t.Fatalf("Encountered unexpected number of files: %d", len(fi))
+	}
+
+	// check default file write
+	cmd = setUpCommands("")
+	cmd.SetArgs([]string{"make-checklist", fmt.Sprintf("-o%s", targetpath)})
+	err = cmd.Execute()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err = ioutil.ReadDir(targetpath)
+	if err != nil {
+		t.Fatalf("Error on reading target dir: %s", err.Error())
+	}
+	if len(fi) != 1 {
+		t.Fatalf("Expected single file but got: %d", len(fi))
+	}
+}
