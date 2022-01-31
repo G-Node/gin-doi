@@ -91,6 +91,11 @@ func mkindex(cmd *cobra.Command, args []string) {
 		dois = append(dois, curr)
 	}
 
+	if len(dois) < 1 {
+		log.Printf("No DOIs parsed, skipping empty 'index' file creation.")
+		return
+	}
+
 	fname := "index.html"
 	tmpl, err := prepareTemplates("IndexPage")
 	if err != nil {
