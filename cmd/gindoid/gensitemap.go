@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"sort"
 	"time"
 
@@ -25,11 +26,11 @@ func (d urllist) Len() int {
 func (d urllist) Less(i, j int) bool {
 	idate, err := time.Parse("2006-01-02", d[i].Isodate)
 	if err != nil {
-		fmt.Printf("Error parsing date '%s' of item '%s'", d[i].Isodate, d[i].Title)
+		log.Printf("Error parsing date '%s' of item '%s'", d[i].Isodate, d[i].Title)
 	}
 	jdate, err := time.Parse("2006-01-02", d[j].Isodate)
 	if err != nil {
-		fmt.Printf("Error parsing date '%s' of item '%s'", d[j].Isodate, d[j].Title)
+		log.Printf("Error parsing date '%s' of item '%s'", d[j].Isodate, d[j].Title)
 	}
 	if idate.Equal(jdate) {
 		return d[i].Title < d[j].Title
@@ -49,7 +50,7 @@ func mksitemap(cmd *cobra.Command, args []string) {
 
 	var urls []doiitem
 	for idx, filearg := range args {
-		fmt.Printf("%3d: %s\n", idx, filearg)
+		log.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
 		var err error
 		if isURL(filearg) {
@@ -58,14 +59,14 @@ func mksitemap(cmd *cobra.Command, args []string) {
 			contents, err = readFileAtPath(filearg)
 		}
 		if err != nil {
-			fmt.Printf("Failed to read file at %q: %s\n", filearg, err.Error())
+			log.Printf("Failed to read file at %q: %s\n", filearg, err.Error())
 			continue
 		}
 
 		datacite := new(libgin.DataCite)
 		err = xml.Unmarshal(contents, datacite)
 		if err != nil {
-			fmt.Printf("Failed to unmarshal contents of %q: %s\n", filearg, err.Error())
+			log.Printf("Failed to unmarshal contents of %q: %s\n", filearg, err.Error())
 			continue
 		}
 		metadata := &libgin.RepositoryMetadata{
@@ -92,6 +93,6 @@ func mksitemap(cmd *cobra.Command, args []string) {
 	fname := "urls.txt"
 	err := ioutil.WriteFile(fname, []byte(siteurls), 0664)
 	if err != nil {
-		fmt.Printf("Error writing sitemap file: %s", err.Error())
+		log.Printf("Error writing sitemap file: %s\n", err.Error())
 	}
 }
