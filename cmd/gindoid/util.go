@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,10 +20,16 @@ import (
 )
 
 // ALNUM provides characters for the randAlnum function.
-const ALNUM = "1234567890abcdefghijklmnopqrstuvwxyz"
+// Excluding 0aou to avoid the worst of swear words turning up by chance.
+const ALNUM = "123456789bcdefghijklmnpqrstvwxyz"
 
 // randAlnum returns a random alphanumeric (lowercase, latin) string of length 'n'.
+// Negative numbers return an empty string.
 func randAlnum(n int) string {
+	if n < 0 {
+		return ""
+	}
+
 	N := len(ALNUM)
 
 	chrs := make([]byte, n)
@@ -31,7 +38,19 @@ func randAlnum(n int) string {
 		chrs[idx] = ALNUM[rand.Intn(N)]
 	}
 
-	return string(chrs)
+	candidate := string(chrs)
+	// return string has to contain at least one number and one character
+	// if the required string length is larger than 1.
+	if n > 1 {
+		renum := regexp.MustCompile("[1-9]+")
+		rechar := regexp.MustCompile("[bcdefghijklmnpqrstvwxyz]+")
+		if !renum.MatchString(candidate) || !rechar.MatchString(candidate) {
+			log.Printf("Re-running radnAlnum: %s", candidate)
+			candidate = randAlnum(n)
+		}
+	}
+
+	return candidate
 }
 
 // isURL returns true if a URL scheme part can be identfied
@@ -437,24 +456,8 @@ func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 
 // FormatCitation returns the formatted citation string for a given dataset.
 func FormatCitation(md *libgin.RepositoryMetadata) string {
-	authors := make([]string, len(md.Creators))
-	for idx, author := range md.Creators {
-		namesplit := strings.SplitN(author.Name, ",", 2) // Author names are LastName, FirstName
-		if len(namesplit) != 2 {
-			// No comma: Bad input, mononym, or empty field.
-			// Trim, add continue.
-			authors[idx] = strings.TrimSpace(author.Name)
-			continue
-		}
-		// render as LastName Initials, ...
-		firstnames := strings.Fields(namesplit[1])
-		var initials string
-		for _, name := range firstnames {
-			initials += string(name[0])
-		}
-		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
-	}
-	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", strings.Join(authors, ", "), md.Year, md.Titles[0], md.Identifier.ID)
+	authors := FormatAuthorList(md)
+	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", authors, md.Year, md.Titles[0], md.Identifier.ID)
 }
 
 // FormatIssuedDate returns the issued date of the dataset in the format DD Mon.
@@ -488,15 +491,34 @@ func KeywordPath(kw string) string {
 	return kw
 }
 
-// FormatAuthorList returns a comma-separated list of the author names for a
-// dataset.
+// FormatAuthorList returns a string of comma separated authors with leading
+// last names followed by the first name initials.
+// The names are parsed from a list of libgin.RepositoryMedata.Datacite.Creators.
 func FormatAuthorList(md *libgin.RepositoryMetadata) string {
-	names := make([]string, len(md.Creators))
-	for idx, author := range md.Creators {
-		names[idx] = author.Name
+	// avoid nil pointer panic
+	if md == nil || md.DataCite == nil {
+		log.Printf("FormatAuthorList: encountered libgin.RepositoryMetadata nil pointer: %v", md)
+		return ""
 	}
-	authors := strings.Join(names, ", ")
-	return authors
+	authors := make([]string, len(md.Creators))
+	for idx, author := range md.Creators {
+		// By DataCite convention, creator names are formatted as "FamilyName, GivenName"
+		namesplit := strings.SplitN(author.Name, ",", 2)
+		if len(namesplit) != 2 {
+			// No comma: Bad input, mononym, or empty field.
+			// Trim, add continue.
+			authors[idx] = strings.TrimSpace(author.Name)
+			continue
+		}
+		// render as FirstName Initials, ...
+		firstnames := strings.Fields(namesplit[1])
+		var initials string
+		for _, name := range firstnames {
+			initials += string(name[0])
+		}
+		authors[idx] = fmt.Sprintf("%s %s", strings.TrimSpace(namesplit[0]), initials)
+	}
+	return strings.Join(authors, ", ")
 }
 
 // NewVersionNotice returns an HTML template containing links to a newer version

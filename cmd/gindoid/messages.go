@@ -2,7 +2,7 @@ package main
 
 const (
 	msgInvalidRequest    = `Invalid request data received.  Please note that requests should only be submitted through repository pages on <a href="https://gin.g-node.org">GIN</a>.  If you followed the instructions in the <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">DOI registration guide</a> and arrived at this error page, please <a href="mailto:gin@g-node.org">contact us</a> for assistance.`
-	msgInvalidDOI        = `The DOI file is missing or not valid. See the messages below for specific issues with the provided data.<br>Also, please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions.`
+	msgInvalidDOI        = `The DOI file is missing in the <b>master</b> branch or not valid.<br>See the messages below for specific issues with the provided data.<br>Also, please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions.`
 	msgInvalidURI        = "Please provide a valid repository URI"
 	msgAlreadyRegistered = `<div class="content">
 								<div class="header"> A DOI is already registered for your dataset.</div>
@@ -38,8 +38,9 @@ If you would like to make any changes to the dataset before it is published, or 
 	msgNoAuthors        = `No <b>authors</b> provided.`
 	msgInvalidAuthors   = "Not all authors valid. Please provide at least a last name and a first name."
 	msgNoDescription    = `No <b>description</b> provided.`
+	msgNoMaster         = "Could not access the repository <b>master</b> branch. DOI requests require the master branch of the requesting repository."
 	msgNoLicense        = `No valid <b>license</b> provided. Please specify a license URL and name and make sure it matches the license file in the repository.`
-	msgNoLicenseFile    = `The LICENSE file is missing. The full text of the license is required to be in the repository when publishing. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for details and links to recommended data licenses.`
+	msgNoLicenseFile    = `The LICENSE file is missing in the required <b>master</b> branch. The full text of the license is required to be in the repository when publishing.<br>See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for details and links to recommended data licenses.`
 	msgLicenseMismatch  = `The LICENSE file does not match the license specified in the metadata. See the <a href="https://gin.g-node.org/G-Node/Info/wiki/Licensing">Licensing</a> help page for links to full text for available licenses.`
 	msgInvalidReference = `Not all <b>Reference</b> entries are valid. Please provide the full citation and type of the reference.`
 	msgBadEncoding      = `There was an issue with the content of the DOI file (datacite.yml). This might mean that the encoding is wrong. Please see <a href="https://gin.g-node.org/G-Node/Info/wiki/DOIfile">the DOI guide</a> for detailed instructions or contact gin@g-node.org for assistance.`

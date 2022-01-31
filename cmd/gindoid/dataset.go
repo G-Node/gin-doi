@@ -401,13 +401,20 @@ func (d *RegistrationRequest) AsHTML() template.HTML {
 }
 
 // readAndValidate loads and checks LICENSE file and datacite.yml file for a
-// given repository. The function tries to collect as many issues as possible
-// and returns the RepositoryYAML struct or an error message if the retrieval,
-// parsing, or validation fails.  The message is appropriate for display to the
-// user.
+// given repository and ensures a master branch is available. The function tries
+// to collect as many issues as possible and returns the RepositoryYAML struct or
+// an error message if the retrieval, parsing, or validation fails.
+// The message is appropriate for display to the user.
 func readAndValidate(conf *Configuration, repository string) (*libgin.RepositoryYAML, error) {
 	// Fail registration on missing LICENSE file; do not yet return and check datacite.yml
 	collecterr := make([]string, 0)
+	checkMasterURL := fmt.Sprintf("%s/%s/src/master", GetGINURL(conf), repository)
+	masterExists := URLexists(checkMasterURL)
+	if !masterExists {
+		log.Printf("Failed to access master branch at URL: %s", checkMasterURL)
+		collecterr = append(collecterr, fmt.Sprintf("<p>%s</p>", msgNoMaster))
+	}
+
 	_, err := readFileAtURL(repoFileURL(conf, repository, "LICENSE"))
 	if err != nil {
 		log.Printf("Failed to fetch LICENSE: %s", err.Error())

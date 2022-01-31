@@ -11,6 +11,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/G-Node/libgin/libgin"
 )
 
 func TestReadFileAtPath(t *testing.T) {
@@ -208,5 +210,85 @@ func TestIsURL(t *testing.T) {
 	testURL = "https://i/could/be/a/url"
 	if !isURL(testURL) {
 		t.Fatalf("isURL returned false for test string %q", testURL)
+	}
+}
+
+func TestRandAlnum(t *testing.T) {
+	// check negative numbers don't break the function
+	tstr := randAlnum(-1)
+	if tstr != "" {
+		t.Fatalf("Expected empty string but got: %s", tstr)
+	}
+
+	// check return length
+	for i := 0; i <= 1000; i++ {
+		tstr := randAlnum(i)
+		if len(tstr) != i {
+			t.Fatalf("Invalid output string length, expexted length %d: %s", i, tstr)
+		}
+	}
+
+	// ensure results are unique within a reasonable number of runs
+	dupcheck := make(map[string]bool)
+	for i := 0; i < 100; i++ {
+		tstr := randAlnum(i)
+		_, found := dupcheck[tstr]
+		if found {
+			t.Fatalf("Fo un d duplicate string '%s' on run %d", tstr, i)
+		}
+		dupcheck[tstr] = false
+	}
+}
+
+func TestFormatAuthorList(t *testing.T) {
+	// assert no issue on blank input
+	md := new(libgin.RepositoryMetadata)
+	authors := FormatAuthorList(md)
+	if authors != "" {
+		t.Fatalf("Expected emtpy string but got: %s", authors)
+	}
+	md.DataCite = &libgin.DataCite{}
+	authors = FormatAuthorList(md)
+	if authors != "" {
+		t.Fatalf("Expected emtpy string but got: %s", authors)
+	}
+
+	// Test single author, no comma, whitespace trim
+	md.DataCite.Creators = []libgin.Creator{
+		{Name: " NameA "},
+	}
+	authors = FormatAuthorList(md)
+	if authors != "NameA" {
+		t.Fatalf("Expected trimmed string 'NameA' but got: %s", authors)
+	}
+
+	// Test single author family name, two given names, whitespace trim
+	md.DataCite.Creators = []libgin.Creator{
+		{Name: " NameA, GivenAA GivenAB  "},
+	}
+	authors = FormatAuthorList(md)
+	if authors != "NameA GG" {
+		t.Fatalf("Expected formatted author string 'A GG' but got: '%s'", authors)
+	}
+
+	// Test multiple, simple name authors, whitespace trim
+	md.DataCite.Creators = []libgin.Creator{
+		{Name: " NameA "},
+		{Name: " NameB "},
+		{Name: " NameC "},
+	}
+	authors = FormatAuthorList(md)
+	if authors != "NameA, NameB, NameC" {
+		t.Fatalf("Expected formatted authors string 'NameA, NameB, NameC' but got: %s", authors)
+	}
+	// Test multiple, complex name authors, whitespace trim
+	md.DataCite.Creators = []libgin.Creator{
+		{Name: " NameA, GivenAA "},
+		{Name: " NameB "},
+		{Name: " NameC, GivenCA GivenCB GivenCC "},
+	}
+	authors = FormatAuthorList(md)
+	if authors != "NameA G, NameB, NameC GGG" {
+		t.Fatalf("Expected formatted authors string 'NameA G, NameB, NameC GGG' but got: %s", authors)
 	}
 }
