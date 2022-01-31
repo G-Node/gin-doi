@@ -90,6 +90,11 @@ func mksitemap(cmd *cobra.Command, args []string) {
 		siteurls += fmt.Sprintf("https://doi.gin.g-node.org/%s/\n", item.Shorthash)
 	}
 
+	if siteurls == "" {
+		log.Printf("Sitemap filecontent empty, skipping empty file creation.")
+		return
+	}
+
 	fname := "urls.txt"
 	err := ioutil.WriteFile(fname, []byte(siteurls), 0664)
 	if err != nil {
