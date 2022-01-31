@@ -87,10 +87,11 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 
 The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mksitemap,
+		Run:                   clisitemap,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[5].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[6] = &cobra.Command{
 		Use:   "make-all <xml file>...",
 		Short: "Generate all html files and the google sitemap file.",
@@ -104,6 +105,7 @@ the keywords html pages and all DOI html landing pages from the XML files.`,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[6].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[7] = &cobra.Command{
 		Use:   "make-checklist",
 		Short: "Generate a DOI registration checklist file.",

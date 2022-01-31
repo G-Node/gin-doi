@@ -10,7 +10,7 @@ func mkall(cmd *cobra.Command, args []string) {
 	// generate root landing page file
 	mkindex(cmd, args)
 	// generate sitemap file
-	mksitemap(cmd, args)
+	clisitemap(cmd, args)
 	// generate keyword pages
 	mkkeywords(cmd, args)
 	// generate html dataset landing pages

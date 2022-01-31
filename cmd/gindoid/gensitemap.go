@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -44,12 +45,14 @@ func (d urllist) Swap(i, j int) {
 }
 
 // mksitemap reads the provided XML files or URLs and generates a
-// google sitemap 'urls.txt' files containing the corresponding DOI URLs.
-func mksitemap(cmd *cobra.Command, args []string) {
-	fmt.Printf("Parsing %d files\n", len(args))
+// google sitemap 'urls.txt' file containing the corresponding DOI URLs.
+// If an outpath is provided, the file will be created there; default is
+// the current working directory.
+func mksitemap(xmlFiles []string, outpath string) {
+	log.Printf("Parsing %d files\n", len(xmlFiles))
 
 	var urls []doiitem
-	for idx, filearg := range args {
+	for idx, filearg := range xmlFiles {
 		log.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
 		var err error
@@ -96,8 +99,29 @@ func mksitemap(cmd *cobra.Command, args []string) {
 	}
 
 	fname := "urls.txt"
+	if outpath != "" {
+		fname = filepath.Join(outpath, fname)
+	}
+
 	err := ioutil.WriteFile(fname, []byte(siteurls), 0664)
 	if err != nil {
 		log.Printf("Error writing sitemap file: %s\n", err.Error())
 	}
+}
+
+// clisitemap handles command line arguments and passes them
+// to the mksitemap function.
+// An optional output file path can be passed via the command
+// line arguments; default output path is the current working directory.
+func clisitemap(cmd *cobra.Command, args []string) {
+	var outpath string
+	oval, err := cmd.Flags().GetString("out")
+	if err != nil {
+		log.Printf("-- Error parsing output directory flag: %s\n", err.Error())
+	} else if oval != "" {
+		outpath = oval
+		log.Printf("-- Using output directory '%s'\n", outpath)
+	}
+
+	mksitemap(args, outpath)
 }
