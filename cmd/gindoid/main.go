@@ -76,10 +76,11 @@ The command accepts GIN repositories of format "GIN:owner/repository", yaml file
 
 The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkindex,
+		Run:                   cliindex,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[4].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[5] = &cobra.Command{
 		Use:   "make-sitemap <xml file>...",
 		Short: "Generate the urls.txt google sitemap file from one or more DataCite XML files",

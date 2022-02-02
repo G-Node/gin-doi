@@ -8,7 +8,7 @@ import (
 // from provided XML files or URLs.
 func mkall(cmd *cobra.Command, args []string) {
 	// generate root landing page file
-	mkindex(cmd, args)
+	cliindex(cmd, args)
 	// generate sitemap file
 	clisitemap(cmd, args)
 	// generate keyword pages
