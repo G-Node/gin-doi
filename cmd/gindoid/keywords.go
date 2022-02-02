@@ -54,6 +54,11 @@ func mkkeywords(xmlFiles []string, outpath string) {
 			DataCite: datacite,
 		}
 
+		if metadata == nil || metadata.Subjects == nil {
+			fmt.Printf("Invalid subjects, skipping file '%s'", filearg)
+			continue
+		}
+
 		for _, kw := range *metadata.Subjects {
 			kw = KeywordPath(kw)
 			datasets := keywordMap[kw]
@@ -86,8 +91,10 @@ func mkkeywords(xmlFiles []string, outpath string) {
 			continue
 		}
 		defer fp.Close()
+
 		data := make(map[string]interface{})
 		data["Keyword"] = kw
+
 		// Sort by date, lex order, which for ISO date strings should work fine
 		sort.Slice(datasets, func(i, j int) bool {
 			return datasets[i].Dates[0].Value > datasets[j].Dates[0].Value
