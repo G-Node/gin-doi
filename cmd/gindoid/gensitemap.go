@@ -76,6 +76,15 @@ func mksitemap(xmlFiles []string, outpath string) {
 			DataCite: datacite,
 		}
 
+		if len(metadata.Titles) < 1 {
+			log.Printf("Could not parse DOI title, skipping '%s'\n", filearg)
+			continue
+		}
+		if len(metadata.Dates) < 1 {
+			log.Printf("Could not parse DOI date issued, skipping '%s'\n", filearg)
+			continue
+		}
+
 		// required to sort list
 		curr := doiitem{
 			Title:     metadata.Titles[0],
