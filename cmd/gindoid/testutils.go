@@ -27,7 +27,7 @@ const validTestDataciteXML = `<?xml version="1.0" encoding="UTF-8"?>
     <rights rightsURI="https://opensource.org/licenses/BSD-3-Clause/">BSD-3-Clause</rights>
   </rightsList>
   <subjects>
-    <subject>Test keyword</subject>
+    <subject>Test_keyword</subject>
   </subjects>
   <relatedIdentifiers>
     <relatedIdentifier relatedIdentifierType="URL" relationType="IsVariantFormOf">https://doi.gin.g-node.org/10.12751/g-node.noex1st/10.12751_g-node.noex1st.zip</relatedIdentifier>
