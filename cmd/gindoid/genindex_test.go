@@ -54,7 +54,7 @@ func TestMKIndex(t *testing.T) {
 	// setup temp directory
 	targetpath, err := ioutil.TempDir("", "test_cli_index")
 	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
+		t.Fatalf("temp dir creation failed: %s", err.Error())
 	}
 	defer os.RemoveAll(targetpath)
 
@@ -108,6 +108,21 @@ func TestMKIndex(t *testing.T) {
 		t.Fatalf("Encountered unexpected number of files: %d/0", len(fi))
 	}
 
+	// test save exit, no file created on invalid url
+	testEmptyXML := fmt.Sprintf("%s/empty-xml", server.URL)
+	cmd.SetArgs([]string{clioption, fmt.Sprintf("-o%s", targetpath), testEmptyXML})
+	err = cmd.Execute()
+	if err != nil {
+		t.Fatalf("Error on empty XML file URL: %s", err.Error())
+	}
+	fi, err = ioutil.ReadDir(targetpath)
+	if err != nil {
+		t.Fatalf("Error on reading target dir: %s", err.Error())
+	}
+	if len(fi) != 0 {
+		t.Fatalf("Encountered unexpected number of files: %d/0", len(fi))
+	}
+
 	// test save exit, no file created on non-xml datacite content
 	testNonXML := fmt.Sprintf("%s/non-xml", server.URL)
 	cmd.SetArgs([]string{clioption, fmt.Sprintf("-o%s", targetpath), testNonXML})
@@ -128,13 +143,13 @@ func TestMKIndex(t *testing.T) {
 	cmd.SetArgs([]string{clioption, fmt.Sprintf("-o%s", targetpath), testXML, testXML})
 	err = cmd.Execute()
 	if err != nil {
-		t.Fatalf("Error on invalid file URL: %s", err.Error())
+		t.Fatalf("Error on valid file URL: %s", err.Error())
 	}
 
 	_, err = os.Stat(targetFile)
 	if errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("Could not find input file at: %s", targetFile)
+		t.Fatalf("Missing output file: %s", targetFile)
 	} else if err != nil {
-		t.Fatalf("Unexpected error writing output file: %s", err.Error())
+		t.Fatalf("Error writing output file: %s", err.Error())
 	}
 }

@@ -56,6 +56,12 @@ const validTestDataciteXML = `<?xml version="1.0" encoding="UTF-8"?>
 </resource>
 `
 
+const emptyTestDataciteXML = `<?xml version="1.0" encoding="UTF-8"?>
+<resource xmlns="http://datacite.org/schema/kernel-4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.3/metadata.xsd">
+  <version>1.0</version>
+</resource>
+`
+
 // serveDataciteXMLserver provides a local test server for Datacite xml handling
 func serveDataciteXMLserver() *httptest.Server {
 	mux := http.NewServeMux()
@@ -69,6 +75,13 @@ func serveDataciteXMLserver() *httptest.Server {
 	mux.HandleFunc("/xml", func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 		_, err := rw.Write([]byte(validTestDataciteXML))
+		if err != nil {
+			fmt.Printf("could not write valid response: %q", err.Error())
+		}
+	})
+	mux.HandleFunc("/empty-xml", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, err := rw.Write([]byte(emptyTestDataciteXML))
 		if err != nil {
 			fmt.Printf("could not write valid response: %q", err.Error())
 		}
