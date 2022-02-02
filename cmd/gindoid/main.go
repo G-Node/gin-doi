@@ -52,12 +52,14 @@ The command accepts file paths and URLs (mixing allowed) and will generate one H
 
 The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each unique keyword found in the XML files. Each page lists (and links to) all datasets that use the keyword.
 
-Previously generated pages are overwritten, so this command only makes sense if using all published XML files to generate complete listings.`,
+Previously generated pages are overwritten, so this command only makes sense if using all published XML files to generate complete listings.
+Using the optional '-o' argument an alternative output path can be specified.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkkeywords,
+		Run:                   clikeywords,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[2].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[3] = &cobra.Command{
 		Use:   "make-xml <yml file>...",
 		Short: "Generate the doi.xml file from one or more DataCite YAML files",
@@ -74,7 +76,8 @@ The command accepts GIN repositories of format "GIN:owner/repository", yaml file
 		Short: "Generate the index.html file from one or more DataCite XML files",
 		Long: `Generate the index.html file from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.
+Using the optional '-o' argument an alternative output path can be specified.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   cliindex,
 		Version:               verstr,
@@ -86,7 +89,8 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 		Short: "Generate the urls.txt google sitemap file from one or more DataCite XML files",
 		Long: `Generate the urls.txt google sitemap file from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.
+Using the optional '-o' argument an alternative output path can be specified.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   clisitemap,
 		Version:               verstr,
@@ -100,7 +104,8 @@ The command accepts file paths and URLs (mixing allowed) and will generate one i
 
 The command accepts file paths and URLs (mixing allowed) of DOI XML files 
 and will generate the root landing HTML page, the google sitemap urls.txt file, 
-the keywords html pages and all DOI html landing pages from the XML files.`,
+the keywords html pages and all DOI html landing pages from the XML files.
+Using the optional '-o' argument an alternative output path can be specified.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkall,
 		Version:               verstr,
