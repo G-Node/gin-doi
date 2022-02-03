@@ -52,7 +52,7 @@ func TestMKkeywords(t *testing.T) {
 		t.Fatalf("Could not parse server URL: %q", serverURL)
 	}
 
-	// test save exit, no file created on invalid url
+	// test safe exit, no file created on invalid url
 	testInvalidURL := fmt.Sprintf("%s/not-available", server.URL)
 	cmd.SetArgs([]string{clioption, fmt.Sprintf("-o%s", targetpath), testInvalidURL})
 	err = cmd.Execute()
@@ -67,7 +67,7 @@ func TestMKkeywords(t *testing.T) {
 		t.Fatalf("Encountered unexpected number of files: %d/0", len(fi))
 	}
 
-	// test save exit, no file created on invalid url
+	// test safe exit, no file created on invalid url
 	testEmptyXML := fmt.Sprintf("%s/empty-xml", server.URL)
 	cmd.SetArgs([]string{clioption, fmt.Sprintf("-o%s", targetpath), testEmptyXML})
 	err = cmd.Execute()
@@ -82,7 +82,7 @@ func TestMKkeywords(t *testing.T) {
 		t.Fatalf("Encountered unexpected number of files: %d/0", len(fi))
 	}
 
-	// test save exit, no file created on non-xml datacite content
+	// test safe exit, no file created on non-xml datacite content
 	testNonXML := fmt.Sprintf("%s/non-xml", server.URL)
 	cmd.SetArgs([]string{clioption, fmt.Sprintf("-o%s", targetpath), testNonXML})
 	err = cmd.Execute()
