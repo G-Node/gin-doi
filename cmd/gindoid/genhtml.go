@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/G-Node/libgin/libgin"
@@ -12,10 +14,10 @@ import (
 
 // mkhtml reads the provided XML files or URLs and generates the HTML landing
 // page for each.
-func mkhtml(cmd *cobra.Command, args []string) {
-	fmt.Printf("Generating %d pages\n", len(args))
+func mkhtml(xmlFiles []string, outpath string) {
+	fmt.Printf("Generating %d pages\n", len(xmlFiles))
 	var success int
-	for idx, filearg := range args {
+	for idx, filearg := range xmlFiles {
 		fmt.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
 		var err error
@@ -68,16 +70,18 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		fname := fmt.Sprintf("%s/index.html", metadata.Identifier.ID)
+		dname := filepath.Join(outpath, metadata.Identifier.ID)
+		fname := filepath.Join(outpath, metadata.Identifier.ID, "index.html")
 		// If no DOI was found in the file do not create directory and
 		// fall back to the argument number.
 		if metadata.Identifier.ID == "" {
 			fmt.Println("WARNING: Couldn't determine DOI. Using generic filename.")
-			fname = fmt.Sprintf("%03d-index.html", idx)
-		} else if err = os.MkdirAll(metadata.Identifier.ID, 0777); err != nil {
+			fname = filepath.Join(outpath, fmt.Sprintf("%03d-index.html", idx))
+		} else if err = os.MkdirAll(dname, 0777); err != nil {
 			fmt.Printf("WARNING: Could not create directory: %q", err.Error())
-			fname = fmt.Sprintf("%s-index.html", metadata.Identifier.ID)
+			fname = filepath.Join(outpath, fmt.Sprintf("%s-index.html", metadata.Identifier.ID))
 		}
+
 		if err := createLandingPage(metadata, fname, ""); err != nil {
 			fmt.Printf("Failed to render landing page for %q: %s\n", filearg, err.Error())
 			continue
@@ -88,5 +92,22 @@ func mkhtml(cmd *cobra.Command, args []string) {
 		success++
 	}
 
-	fmt.Printf("%d/%d jobs completed successfully\n", success, len(args))
+	fmt.Printf("%d/%d jobs completed successfully\n", success, len(xmlFiles))
+}
+
+// clihtml handles command line arguments and passes them
+// to the mkhtml function.
+// An optional output file path can be passed via the command
+// line arguments; default output path is the current working directory.
+func clihtml(cmd *cobra.Command, args []string) {
+	var outpath string
+	oval, err := cmd.Flags().GetString("out")
+	if err != nil {
+		log.Printf("-- Error parsing output directory flag: %s\n", err.Error())
+	} else if oval != "" {
+		outpath = oval
+		log.Printf("-- Using output directory '%s'\n", outpath)
+	}
+
+	mkhtml(args, outpath)
 }

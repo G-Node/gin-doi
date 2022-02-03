@@ -14,5 +14,5 @@ func mkall(cmd *cobra.Command, args []string) {
 	// generate keyword pages
 	clikeywords(cmd, args)
 	// generate html dataset landing pages
-	mkhtml(cmd, args)
+	clihtml(cmd, args)
 }
