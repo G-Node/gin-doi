@@ -39,6 +39,17 @@ func mkhtml(cmd *cobra.Command, args []string) {
 			DataCite: datacite,
 		}
 
+		// check missing titles and rightslist; initialize empty
+		// and notify without failing to avoid broken html files.
+		if len(metadata.Titles) < 1 {
+			metadata.Titles = []string{""}
+			fmt.Printf("Warning: no titles found in file %q\n", filearg)
+		}
+		if len(metadata.RightsList) < 1 {
+			metadata.RightsList = []libgin.Rights{{Name: "", URL: ""}}
+			fmt.Printf("Warning: no Rights found in file %q\n", filearg)
+		}
+
 		// find URLs in RelatedIdentifiers
 		for _, relid := range metadata.RelatedIdentifiers {
 			switch u := strings.ToLower(relid.Identifier); {
