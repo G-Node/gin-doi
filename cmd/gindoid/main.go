@@ -39,8 +39,12 @@ func setUpCommands(verstr string) *cobra.Command {
 		Short: "Generate the HTML landing page from one or more DataCite XML files",
 		Long: `Generate the HTML landing page from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each XML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the page is still generated with the available information.
-Using the optional '-o' argument an alternative output path can be specified.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one 
+HTML page for each XML file found. If the page generation requires information that 
+is missing from the XML file (e.g., archive file size, repository URLs), the program 
+will attempt to retrieve the metadata by querying the online resources. 
+If that fails, a warning is printed and the page is still generated with the available 
+information.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   clihtml,
 		Version:               verstr,
@@ -52,10 +56,12 @@ Using the optional '-o' argument an alternative output path can be specified.`,
 		Short: "Generate keyword index pages",
 		Long: `Generate keyword index pages.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each unique keyword found in the XML files. Each page lists (and links to) all datasets that use the keyword.
+The command accepts file paths and URLs (mixing allowed) and will generate one HTML page 
+for each unique keyword found in the XML files. Each page lists (and links to) all 
+datasets that use the keyword.
 
-Previously generated pages are overwritten, so this command only makes sense if using all published XML files to generate complete listings.
-Using the optional '-o' argument an alternative output path can be specified.`,
+Previously generated pages are overwritten, so this command only makes sense if using 
+all published XML files to generate complete listings.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   clikeywords,
 		Version:               verstr,
@@ -67,7 +73,13 @@ Using the optional '-o' argument an alternative output path can be specified.`,
 		Short: "Generate the doi.xml file from one or more DataCite YAML files",
 		Long: `Generate the doi.xml file from one or more DataCite YAML files.
 
-The command accepts GIN repositories of format "GIN:owner/repository", yaml file paths and URLs to yaml files (mixing allowed) and will generate one XML file for each YAML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the file is still generated with the available information. Contextual information like size or date have to be added manually.`,
+The command accepts GIN repositories of format "GIN:owner/repository", yaml file paths 
+and URLs to yaml files (mixing allowed) and will generate one XML file for each 
+YAML file found. If the page generation requires information that is missing from 
+the XML file (e.g., archive file size, repository URLs), the program will attempt 
+to retrieve the metadata by querying the online resources. If that fails, a warning 
+is printed and the file is still generated with the available information. 
+Contextual information like size or date have to be added manually.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkxml,
 		Version:               verstr,
@@ -75,11 +87,11 @@ The command accepts GIN repositories of format "GIN:owner/repository", yaml file
 	}
 	cmds[4] = &cobra.Command{
 		Use:   "make-index <xml file>...",
-		Short: "Generate the index.html file from one or more DataCite XML files",
-		Long: `Generate the index.html file from one or more DataCite XML files.
+		Short: "Generate the index.html list file from one or more DataCite XML files",
+		Long: `Generate the index.html list file from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.
-Using the optional '-o' argument an alternative output path can be specified.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one 
+DOI listing index HTML page containing the information of all XML files provided.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   cliindex,
 		Version:               verstr,
@@ -91,8 +103,9 @@ Using the optional '-o' argument an alternative output path can be specified.`,
 		Short: "Generate the urls.txt google sitemap file from one or more DataCite XML files",
 		Long: `Generate the urls.txt google sitemap file from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.
-Using the optional '-o' argument an alternative output path can be specified.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one 
+google sitemap file named 'urls.txt' containing the DOI links found in the Datacite 
+XML files provided.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   clisitemap,
 		Version:               verstr,
@@ -106,8 +119,7 @@ Using the optional '-o' argument an alternative output path can be specified.`,
 
 The command accepts file paths and URLs (mixing allowed) of DOI XML files 
 and will generate the root landing HTML page, the google sitemap urls.txt file, 
-the keywords html pages and all DOI html landing pages from the XML files.
-Using the optional '-o' argument an alternative output path can be specified.`,
+the keywords html pages and all DOI html landing pages from the XML files.`,
 		Args:                  cobra.MinimumNArgs(1),
 		Run:                   mkall,
 		Version:               verstr,
@@ -122,10 +134,10 @@ Using the optional '-o' argument an alternative output path can be specified.`,
 The command will create a markdown file containing a DOI dataset registration checklist.
 By default all variables will contain placeholder text and the file will be placed at the
 executing path.
-Using the optional '-o' argument an alternative output path can be specified.
-Using the optional '-c' argument a yaml config file can be specified to automatically
+
+Using the optional '-c' argument, a yaml config file can be specified to automatically
 replace the default variable values. If a config file is specified, the service will 
-additionally try to fetch dataset 'title' and 'authors' from the corresponding gin repository.`,
+additionally try to fetch dataset 'title' and 'authors' from the corresponding GIN repository.`,
 		Args:                  cobra.MinimumNArgs(0),
 		Run:                   mkchecklistcli,
 		Version:               verstr,
