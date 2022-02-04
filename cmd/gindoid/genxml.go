@@ -80,6 +80,12 @@ func mkxml(ymlFiles []string, outpath string) {
 			fmt.Printf("DOI file contains validation issues: %s\n", strings.Join(msgs, "; "))
 		}
 
+		// avoid panic on missing license
+		if dataciteContent.License == nil {
+			dataciteContent.License = &libgin.License{}
+			fmt.Print("DOI file does not provide a License\n")
+		}
+
 		datacite := libgin.NewDataCiteFromYAML(dataciteContent)
 
 		// Create storage directory
