@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,6 +63,12 @@ func mkxml(ymlFiles []string, outpath string) {
 			continue
 		}
 
+		// skip empty files
+		if string(contents) == "" {
+			fmt.Printf("File %q is empty, skipping\n", filearg)
+			continue
+		}
+
 		dataciteContent, err := readRepoYAML(contents)
 		if err != nil {
 			fmt.Printf("DOI file invalid: %s\n", err.Error())
@@ -122,10 +127,10 @@ func clixml(cmd *cobra.Command, args []string) {
 	var outpath string
 	oval, err := cmd.Flags().GetString("out")
 	if err != nil {
-		log.Printf("-- Error parsing output directory flag: %s\n", err.Error())
+		fmt.Printf("-- Error parsing output directory flag: %s\n", err.Error())
 	} else if oval != "" {
 		outpath = oval
-		log.Printf("-- Using output directory '%s'\n", outpath)
+		fmt.Printf("-- Using output directory '%s'\n", outpath)
 	}
 
 	mkxml(args, outpath)
