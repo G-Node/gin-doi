@@ -43,7 +43,7 @@ func TestMKhtml(t *testing.T) {
 	}
 
 	// create local test XML file server
-	server := serveDataciteXMLserver()
+	server := serveDataciteServer()
 	defer server.Close()
 
 	// check local test server works

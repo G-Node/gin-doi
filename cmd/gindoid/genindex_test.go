@@ -83,8 +83,8 @@ func TestMKIndex(t *testing.T) {
 		t.Fatalf("Encountered unexpected number of files: %d/0", len(fi))
 	}
 
-	// create local test XML file server
-	server := serveDataciteXMLserver()
+	// create local test file server
+	server := serveDataciteServer()
 	defer server.Close()
 
 	// check local test server works

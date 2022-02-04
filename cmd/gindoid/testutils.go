@@ -62,8 +62,8 @@ const emptyTestDataciteXML = `<?xml version="1.0" encoding="UTF-8"?>
 </resource>
 `
 
-// serveDataciteXMLserver provides a local test server for Datacite xml handling
-func serveDataciteXMLserver() *httptest.Server {
+// serveDataciteserver provides a local test server for Datacite xml handling
+func serveDataciteServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/non-xml", func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
