@@ -43,6 +43,8 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 
 	// Check authors
 	warnings = authorWarnings(job.Metadata.YAMLData, warnings)
+	// Check author IDs
+	warnings = authorIDWarnings(job.Metadata.YAMLData, warnings)
 
 	// The 80 character limit is arbitrary, but if the abstract is very short, it's worth a check
 	if absLen := len(job.Metadata.YAMLData.Description); absLen < 80 {
@@ -80,9 +82,6 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 	var dupID = make(map[string]string)
 	idprefix := map[string]bool{"orcid:": true, "researcherid:": true}
 
-	orcidURL := "https://pub.orcid.org/v3.0/"
-	researcherURL := "http://publons.com/researcher/"
-
 	for idx, auth := range yada.Authors {
 		if auth.ID == "" {
 			continue
@@ -110,8 +109,26 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 		} else {
 			dupID[lowerID] = label
 		}
+	}
 
+	return warnings
+}
+
+// authorIDWarnings checks author IDs against their host services
+// and returns warnings in case they can not be retrieved.
+func authorIDWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
+	// This code has been removed from authorWarnings since it checks against
+	// the live services of ORCID and publons and might be removed or
+	// specifically handled if any issues arise in the future.
+	orcidURL := "https://pub.orcid.org/v3.0/"
+	researcherURL := "http://publons.com/researcher/"
+
+	for idx, auth := range yada.Authors {
+		if auth.ID == "" {
+			continue
+		}
 		// Warn on ID entries not found at the ID service
+		lowerID := strings.ToLower(auth.ID)
 		splitIDlist := strings.Split(auth.ID, ":")
 		if len(splitIDlist) == 2 {
 			splitID := strings.TrimSpace(splitIDlist[1])
@@ -120,7 +137,7 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 			invalResID := strings.HasPrefix(lowerID, "researcherid") && !URLexists(fmt.Sprintf("%s%s", researcherURL, splitID))
 
 			if invalORCID || invalResID {
-				warnings = append(warnings, fmt.Sprintf("Author %s ID was not found at the ID service: %s", label, auth.ID))
+				warnings = append(warnings, fmt.Sprintf("Author %d (%s) ID was not found at the ID service: %s", idx, auth.LastName, auth.ID))
 			}
 		}
 	}

@@ -305,24 +305,6 @@ func TestAuthorWarnings(t *testing.T) {
 		t.Fatalf("Expected empty researcherid value message: %v", checkwarn[0])
 	}
 
-	// Check warning on false author ID entries
-	yada.Authors[0].ID = "orcid:x000-0001-2345-6789"
-	checkwarn = authorWarnings(yada, warnings)
-	if len(checkwarn) != 1 {
-		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
-	}
-	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
-		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
-	}
-	yada.Authors[0].ID = "researcherID:x-1234-5678"
-	checkwarn = authorWarnings(yada, warnings)
-	if len(checkwarn) != 1 {
-		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
-	}
-	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
-		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
-	}
-
 	// Check warning on duplicate ORCID, researchID
 	yada.Authors[0].ID = "orcid:0000-0001-6744-1159"
 	auth = yada.Authors
@@ -349,6 +331,45 @@ func TestAuthorWarnings(t *testing.T) {
 	checkwarn = authorWarnings(yada, warnings)
 	if len(checkwarn) != 0 {
 		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+}
+
+func TestAuthorIDWarnings(t *testing.T) {
+	var warnings []string
+	yada := &libgin.RepositoryYAML{}
+
+	// Check no author warning on empty struct or empty Author
+	checkwarn := authorIDWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+
+	var auth []libgin.Author
+	auth = append(auth, libgin.Author{})
+	yada.Authors = auth
+
+	checkwarn = authorIDWarnings(yada, warnings)
+	if len(checkwarn) != 0 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+
+	// Check warning on false author ID entries
+	yada.Authors[0].ID = "orcid:x000-0001-2345-6789"
+	checkwarn = authorIDWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
+		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
+	}
+
+	yada.Authors[0].ID = "researcherID:x-1234-5678"
+	checkwarn = authorIDWarnings(yada, warnings)
+	if len(checkwarn) != 1 {
+		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
+	}
+	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
+		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
 	}
 }
 
