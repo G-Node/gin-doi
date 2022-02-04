@@ -6,7 +6,8 @@ import (
 	"net/http/httptest"
 )
 
-const invalidTestDataciteXML = `sometext`
+const empty = ``
+const plainText = `plaintext`
 const validTestDataciteXML = `<?xml version="1.0" encoding="UTF-8"?>
 <resource xmlns="http://datacite.org/schema/kernel-4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://datacite.org/schema/kernel-4 http://schema.datacite.org/meta/kernel-4.3/metadata.xsd">
   <identifier identifierType="DOI">10.12751/g-node.noex1st</identifier>
@@ -62,12 +63,33 @@ const emptyTestDataciteXML = `<?xml version="1.0" encoding="UTF-8"?>
 </resource>
 `
 
+const validTestDataciteYML = `
+authors:
+  -
+    firstname: "aaa"
+    lastname: "MadamA"
+    affiliation: "Department of Test simple author"
+
+# A title to describe the published resource.
+title: "Doi test"
+
+# Do not edit or remove the following line
+templateversion: 1.2
+`
+
 // serveDataciteserver provides a local test server for Datacite xml handling
 func serveDataciteServer() *httptest.Server {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/empty", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, err := rw.Write([]byte(empty))
+		if err != nil {
+			fmt.Printf("could not write valid response: %q", err.Error())
+		}
+	})
 	mux.HandleFunc("/non-xml", func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
-		_, err := rw.Write([]byte(invalidTestDataciteXML))
+		_, err := rw.Write([]byte(plainText))
 		if err != nil {
 			fmt.Printf("Could not write invalid response: %q", err.Error())
 		}
@@ -82,6 +104,13 @@ func serveDataciteServer() *httptest.Server {
 	mux.HandleFunc("/empty-xml", func(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 		_, err := rw.Write([]byte(emptyTestDataciteXML))
+		if err != nil {
+			fmt.Printf("could not write valid response: %q", err.Error())
+		}
+	})
+	mux.HandleFunc("/dc-yml", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, err := rw.Write([]byte(validTestDataciteYML))
 		if err != nil {
 			fmt.Printf("could not write valid response: %q", err.Error())
 		}
