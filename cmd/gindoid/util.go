@@ -455,9 +455,20 @@ func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 }
 
 // FormatCitation returns the formatted citation string for a given dataset.
+// Returns an empty string if the input is not fully initialized.
 func FormatCitation(md *libgin.RepositoryMetadata) string {
+	if md == nil || md.DataCite == nil {
+		log.Printf("FormatCitation: encountered libgin.RepositoryMetadata nil pointer: %v", md)
+		return ""
+	}
+
 	authors := FormatAuthorList(md)
-	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", authors, md.Year, md.Titles[0], md.Identifier.ID)
+	var title string
+	if len(md.Titles) > 0 {
+		title = md.Titles[0]
+	}
+
+	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", authors, md.Year, title, md.Identifier.ID)
 }
 
 // FormatIssuedDate returns the issued date of the dataset in the format DD Mon.
