@@ -92,9 +92,10 @@ func mkxml(ymlFiles []string, outpath string) {
 		if repoName == "" {
 			repoName = fmt.Sprintf("index-%03d", idx)
 		}
-		fname := filepath.Join(repoName, "doi.xml")
-		if err = os.MkdirAll(repoName, 0777); err != nil {
-			fmt.Printf("WARNING: Could not create directory %s: %q", repoName, err.Error())
+		dirname := filepath.Join(outpath, repoName)
+		fname := filepath.Join(outpath, repoName, "doi.xml")
+		if err = os.MkdirAll(dirname, 0777); err != nil {
+			fmt.Printf("WARNING: Could not create directory %s: %q", dirname, err.Error())
 			fname = fmt.Sprintf("%s-doi.xml", repoName)
 		}
 
