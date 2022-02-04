@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"net/url"
 	"testing"
 
 	"github.com/G-Node/libgin/libgin"
@@ -31,8 +32,20 @@ func TestRequestPageTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to parse DOIInfo, RequestPage templates: %s", err.Error())
 	}
+
+	// create local test file server
+	server := serveDataciteServer()
+	defer server.Close()
+
+	// check local test server works
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
 	// read datacite.yml template for test
-	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	infoURL := fmt.Sprintf("%s/reference-dc-yml", server.URL)
+	infoyml, err := readFileAtURL(infoURL)
 	if err != nil {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
@@ -108,9 +121,19 @@ func TestLandingPageTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to parse DOIInfo, LandingPage templates: %s", err.Error())
 	}
+	// create local test file server
+	server := serveDataciteServer()
+	defer server.Close()
+
+	// check local test server works
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
 
 	// read datacite.yml template for test
-	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	infoURL := fmt.Sprintf("%s/reference-dc-yml", server.URL)
+	infoyml, err := readFileAtURL(infoURL)
 	if err != nil {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
@@ -136,9 +159,19 @@ func TestKeywordIndexTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to parse KeywordIndex templates: %s", err.Error())
 	}
+	// create local test file server
+	server := serveDataciteServer()
+	defer server.Close()
+
+	// check local test server works
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
 
 	// read datacite.yml template for test
-	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	infoURL := fmt.Sprintf("%s/reference-dc-yml", server.URL)
+	infoyml, err := readFileAtURL(infoURL)
 	if err != nil {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
@@ -173,8 +206,19 @@ func TestKeywordTemplate(t *testing.T) {
 		t.Fatalf("Failed to parse Keyword templates: %s", err.Error())
 	}
 
+	// create local test file server
+	server := serveDataciteServer()
+	defer server.Close()
+
+	// check local test server works
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
 	// read datacite.yml template for test
-	infoyml, err := readFileAtURL("https://gin.g-node.org/G-Node/Info/raw/master/datacite.yml")
+	infoURL := fmt.Sprintf("%s/reference-dc-yml", server.URL)
+	infoyml, err := readFileAtURL(infoURL)
 	if err != nil {
 		t.Fatalf("Failed to retrieve datacite.yml from GIN")
 	}
