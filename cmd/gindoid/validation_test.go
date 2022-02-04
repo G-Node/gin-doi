@@ -174,7 +174,7 @@ func TestLicenseWarnings(t *testing.T) {
 		t.Fatalf("Unexpected warnings(%d): %v", len(checkwarn), checkwarn)
 	}
 	if !strings.Contains(checkwarn[0], "License URL (datacite) not found: ''") {
-		t.Fatalf("Missing unkown license URL warning: %v", checkwarn)
+		t.Fatalf("Missing unknown license URL warning: %v", checkwarn)
 	}
 	if !strings.Contains(checkwarn[1], "License name (datacite) not found: ''") {
 		t.Fatalf("Missing unknown license name warning: %v", checkwarn)

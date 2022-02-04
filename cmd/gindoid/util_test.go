@@ -18,7 +18,7 @@ import (
 func TestReadFileAtPath(t *testing.T) {
 	_, err := readFileAtPath("I/do/not/exist")
 	if err == nil {
-		t.Fatal("Missing error opening non existant file.")
+		t.Fatal("Missing error opening non existent file.")
 	}
 
 	tmpDir, err := ioutil.TempDir("", "test_gindoi_licfromfile")
@@ -46,7 +46,7 @@ func TestReadFileAtPath(t *testing.T) {
 func TestReadFileAtURL(t *testing.T) {
 	_, err := readFileAtURL("https://I/do/not/exist")
 	if err == nil {
-		t.Fatal("Missing error opening non existant URL.")
+		t.Fatal("Missing error opening non existent URL.")
 	}
 
 	mux := http.NewServeMux()
@@ -245,12 +245,12 @@ func TestFormatAuthorList(t *testing.T) {
 	md := new(libgin.RepositoryMetadata)
 	authors := FormatAuthorList(md)
 	if authors != "" {
-		t.Fatalf("Expected emtpy string but got: %s", authors)
+		t.Fatalf("Expected empty string but got: %s", authors)
 	}
 	md.DataCite = &libgin.DataCite{}
 	authors = FormatAuthorList(md)
 	if authors != "" {
-		t.Fatalf("Expected emtpy string but got: %s", authors)
+		t.Fatalf("Expected empty string but got: %s", authors)
 	}
 
 	// Test single author, no comma, whitespace trim

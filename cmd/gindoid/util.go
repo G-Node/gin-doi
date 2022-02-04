@@ -565,7 +565,7 @@ func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
 }
 
 // GINServerURL is the default template function returning
-// the main GIN server URL.  This function can be overriden
+// the main GIN server URL.  This function can be overridden
 // before calling HTML template execution to provide a different
 // GIN server instance URL.
 func GINServerURL() string {
