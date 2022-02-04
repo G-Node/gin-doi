@@ -81,10 +81,11 @@ to retrieve the metadata by querying the online resources. If that fails, a warn
 is printed and the file is still generated with the available information. 
 Contextual information like size or date have to be added manually.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkxml,
+		Run:                   clixml,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[3].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[4] = &cobra.Command{
 		Use:   "make-index <xml file>...",
 		Short: "Generate the index.html list file from one or more DataCite XML files",

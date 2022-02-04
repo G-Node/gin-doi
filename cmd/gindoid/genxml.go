@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,10 +31,10 @@ func getGINDataciteURL(input string) (string, error) {
 // a direct file and generates a Datacite XML file for each.
 // Reading files from GIN requires only the repository owner and the repository name
 // of the GIN repository prefixed with GIN in the format "GIN:[owner]/[repository]"
-func mkxml(cmd *cobra.Command, args []string) {
-	fmt.Printf("Generating %d xml files\n", len(args))
+func mkxml(ymlFiles []string, outpath string) {
+	fmt.Printf("Generating %d xml files\n", len(ymlFiles))
 	var success int
-	for idx, filearg := range args {
+	for idx, filearg := range ymlFiles {
 		fmt.Printf("%3d: %s\n", idx, filearg)
 		var contents []byte
 		var err error
@@ -109,6 +110,23 @@ func mkxml(cmd *cobra.Command, args []string) {
 		success++
 	}
 
-	fmt.Printf("%d/%d jobs completed successfully\n", success, len(args))
+	fmt.Printf("%d/%d jobs completed successfully\n", success, len(ymlFiles))
 	fmt.Print("\nRemember to add the G-Node identifier and check and adjust sizes and publication dates\n")
+}
+
+// clixml handles command line arguments and passes them
+// to the mkxml function.
+// An optional output file path can be passed via the command
+// line arguments; default output path is the current working directory.
+func clixml(cmd *cobra.Command, args []string) {
+	var outpath string
+	oval, err := cmd.Flags().GetString("out")
+	if err != nil {
+		log.Printf("-- Error parsing output directory flag: %s\n", err.Error())
+	} else if oval != "" {
+		outpath = oval
+		log.Printf("-- Using output directory '%s'\n", outpath)
+	}
+
+	mkxml(args, outpath)
 }
