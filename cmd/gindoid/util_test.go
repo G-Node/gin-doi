@@ -292,3 +292,24 @@ func TestFormatAuthorList(t *testing.T) {
 		t.Fatalf("Expected formatted authors string 'NameA G, NameB, NameC GGG' but got: %s", authors)
 	}
 }
+
+func TestFormatCitation(t *testing.T) {
+	// assert no issue on blank input
+	md := new(libgin.RepositoryMetadata)
+	cit := FormatCitation(md)
+	if cit != "" {
+		t.Fatalf("Expected empty citation: %q", cit)
+	}
+
+	// author format is tested in its own function
+	md.DataCite = &libgin.DataCite{
+		Year:   1996,
+		Titles: []string{"test-title"},
+		Identifier: libgin.Identifier{
+			ID: "test-id"},
+	}
+	cit = FormatCitation(md)
+	if cit != " (1996) test-title. G-Node. https://doi.org/test-id" {
+		t.Fatalf("Expected different citation: %q", cit)
+	}
+}
