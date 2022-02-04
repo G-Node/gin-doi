@@ -38,6 +38,7 @@ func mkxml(cmd *cobra.Command, args []string) {
 		var contents []byte
 		var err error
 		var repoName string
+
 		if strings.HasPrefix(filearg, "GIN:") {
 			repostring := strings.Replace(filearg, "GIN:", "", 1)
 			ginurl, err := getGINDataciteURL(repostring)
@@ -49,12 +50,10 @@ func mkxml(cmd *cobra.Command, args []string) {
 			if len(repodata) == 2 {
 				repoName = repodata[1]
 			}
-			contents, err = readFileAtURL(ginurl)
-			if err != nil {
-				fmt.Printf("Failed to read file at %q: %s\n", ginurl, err.Error())
-				continue
-			}
-		} else if isURL(filearg) {
+			filearg = ginurl
+		}
+
+		if isURL(filearg) {
 			contents, err = readFileAtURL(filearg)
 		} else {
 			contents, err = readFileAtPath(filearg)
@@ -89,15 +88,14 @@ func mkxml(cmd *cobra.Command, args []string) {
 
 		fp, err := os.Create(fname)
 		if err != nil {
-			// XML Creation failed; return with error
-			fmt.Printf("Failed to create the XML metadata file: %s", err)
+			fmt.Printf("Failed to create the metadata XML file: %s", err)
 			continue
 		}
 		defer fp.Close()
 
 		data, err := datacite.Marshal()
 		if err != nil {
-			fmt.Printf("Failed to render the XML metadata file: %s", err)
+			fmt.Printf("Failed to render the metadata XML file: %s", err)
 			continue
 		}
 		_, err = fp.Write([]byte(data))
