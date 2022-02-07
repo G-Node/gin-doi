@@ -204,6 +204,13 @@ func serveDataciteServer() *httptest.Server {
 			fmt.Printf("could not write valid response: %q", err.Error())
 		}
 	})
+	mux.HandleFunc("/test/src/master/.gitmodules", func(rw http.ResponseWriter, req *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, err := rw.Write([]byte("OK"))
+		if err != nil {
+			fmt.Printf("could not write valid response: %q", err.Error())
+		}
+	})
 
 	return httptest.NewServer(mux)
 }

@@ -343,3 +343,33 @@ func TestURLexists(t *testing.T) {
 		t.Fatal("Expected true on valid URL")
 	}
 }
+
+func TestHasGitModules(t *testing.T) {
+	// Start local test server
+	server := serveDataciteServer()
+	// Close the server when test finishes
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
+	// test non-existing URL
+	uex := HasGitModules("i/do/not", "exist")
+	if uex {
+		t.Fatal("Expected false on non-existing URL")
+	}
+
+	// test invalid URL
+	uex = HasGitModules(server.URL, "not/there")
+	if uex {
+		t.Fatal("Expected false on invalid URL")
+	}
+
+	// test valid URL
+	uex = HasGitModules(server.URL, "test")
+	if !uex {
+		t.Fatal("Expected true on valid URL")
+	}
+}
