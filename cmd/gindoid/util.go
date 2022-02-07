@@ -130,6 +130,7 @@ func EscXML(txt string) string {
 
 // ReferenceDescription creates a string representation of a reference for use in the XML description tag.
 // This is a utility function for the doi.xml template.
+// This function appears to be unused.
 func ReferenceDescription(ref libgin.Reference) string {
 	var namecitation string
 	if ref.Name != "" && ref.Citation != "" {
@@ -147,6 +148,7 @@ func ReferenceDescription(ref libgin.Reference) string {
 
 // ReferenceSource splits the source type from a reference string of the form <source>:<ID>
 // This is a utility function for the doi.xml template.
+// This function appears to be unused.
 func ReferenceSource(ref libgin.Reference) string {
 	idparts := strings.SplitN(ref.ID, ":", 2)
 	if len(idparts) != 2 {
@@ -159,6 +161,7 @@ func ReferenceSource(ref libgin.Reference) string {
 
 // ReferenceID splits the ID from a reference string of the form <source>:<ID>
 // This is a utility function for the doi.xml template.
+// This function appears to be unused.
 func ReferenceID(ref libgin.Reference) string {
 	idparts := strings.SplitN(ref.ID, ":", 2)
 	if len(idparts) != 2 {
