@@ -313,3 +313,33 @@ func TestFormatCitation(t *testing.T) {
 		t.Fatalf("Expected different citation: %q", cit)
 	}
 }
+
+func TestURLexists(t *testing.T) {
+	// Start local test server
+	server := serveDataciteServer()
+	// Close the server when test finishes
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
+	// test non-existing URL
+	uex := URLexists("i/do/not/exist")
+	if uex {
+		t.Fatal("Expected false on non-existing URL")
+	}
+
+	// test invalid URL
+	uex = URLexists(fmt.Sprintf("%s/not-there", server.URL))
+	if uex {
+		t.Fatal("Expected false on invalid URL")
+	}
+
+	// test valid URL
+	uex = URLexists(fmt.Sprintf("%s/xml", server.URL))
+	if !uex {
+		t.Fatal("Expected true on valid URL")
+	}
+}
