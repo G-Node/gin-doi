@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -12,12 +13,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func mkkeywords(cmd *cobra.Command, args []string) {
+func mkkeywords(xmlFiles []string, outpath string) {
 	// map keywords to DOIs
 	keywordMap := make(map[string][]*libgin.RepositoryMetadata)
 
 	fmt.Println("Reading files")
-	for idx, filearg := range args {
+	for idx, filearg := range xmlFiles {
 		var contents []byte
 		var err error
 		if isURL(filearg) {
@@ -53,13 +54,18 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 			DataCite: datacite,
 		}
 
+		if metadata == nil || metadata.Subjects == nil {
+			fmt.Printf("Invalid subjects, skipping file '%s'", filearg)
+			continue
+		}
+
 		for _, kw := range *metadata.Subjects {
 			kw = KeywordPath(kw)
 			datasets := keywordMap[kw]
 			datasets = append(datasets, metadata)
 			keywordMap[kw] = datasets
 		}
-		fmt.Printf(" %d/%d\r", idx+1, len(args))
+		fmt.Printf(" %d/%d\r", idx+1, len(xmlFiles))
 	}
 
 	fmt.Printf("\nFound %d keywords\n", len(keywordMap))
@@ -71,20 +77,24 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 			continue
 		}
 		// use a "keywords" root directory
-		err = os.MkdirAll(fmt.Sprintf("keywords/%s", kw), 0777)
+		rootpath := filepath.Join(outpath, "keywords", kw)
+		err = os.MkdirAll(rootpath, 0777)
 		if err != nil {
 			log.Printf("Could not create the keyword page dir: %s", err.Error())
 			continue
 		}
 
-		fp, err := os.Create(fmt.Sprintf("keywords/%s/index.html", kw))
+		idxfp := filepath.Join(outpath, "keywords", kw, "index.html")
+		fp, err := os.Create(idxfp)
 		if err != nil {
 			log.Printf("Could not create the keyword page file: %s", err.Error())
 			continue
 		}
 		defer fp.Close()
+
 		data := make(map[string]interface{})
 		data["Keyword"] = kw
+
 		// Sort by date, lex order, which for ISO date strings should work fine
 		sort.Slice(datasets, func(i, j int) bool {
 			return datasets[i].Dates[0].Value > datasets[j].Dates[0].Value
@@ -121,7 +131,8 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 	if err != nil {
 		return
 	}
-	fp, err := os.Create("keywords/index.html")
+	kwidxpath := filepath.Join(outpath, "keywords", "index.html")
+	fp, err := os.Create(kwidxpath)
 	if err != nil {
 		log.Printf("Could not create the keyword list page file: %s", err.Error())
 		return
@@ -131,4 +142,21 @@ func mkkeywords(cmd *cobra.Command, args []string) {
 	if err := tmpl.Execute(fp, data); err != nil {
 		log.Printf("Error rendering keyword list page: %s", err.Error())
 	}
+}
+
+// clikeywords handles command line arguments and passes them
+// to the mkkeywords function.
+// An optional output file path can be passed via the command
+// line arguments; default output path is the current working directory.
+func clikeywords(cmd *cobra.Command, args []string) {
+	var outpath string
+	oval, err := cmd.Flags().GetString("out")
+	if err != nil {
+		log.Printf("-- Error parsing output directory flag: %s\n", err.Error())
+	} else if oval != "" {
+		outpath = oval
+		log.Printf("-- Using output directory '%s'\n", outpath)
+	}
+
+	mkkeywords(args, outpath)
 }

@@ -39,58 +39,80 @@ func setUpCommands(verstr string) *cobra.Command {
 		Short: "Generate the HTML landing page from one or more DataCite XML files",
 		Long: `Generate the HTML landing page from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each XML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the page is still generated with the available information.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one 
+HTML page for each XML file found. If the page generation requires information that 
+is missing from the XML file (e.g., archive file size, repository URLs), the program 
+will attempt to retrieve the metadata by querying the online resources. 
+If that fails, a warning is printed and the page is still generated with the available 
+information.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkhtml,
+		Run:                   clihtml,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[1].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[2] = &cobra.Command{
 		Use:   "make-keyword-pages <xml file>...",
 		Short: "Generate keyword index pages",
 		Long: `Generate keyword index pages.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one HTML page for each unique keyword found in the XML files. Each page lists (and links to) all datasets that use the keyword.
+The command accepts file paths and URLs (mixing allowed) and will generate one HTML page 
+for each unique keyword found in the XML files. Each page lists (and links to) all 
+datasets that use the keyword.
 
-Previously generated pages are overwritten, so this command only makes sense if using all published XML files to generate complete listings.`,
+Previously generated pages are overwritten, so this command only makes sense if using 
+all published XML files to generate complete listings.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkkeywords,
+		Run:                   clikeywords,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[2].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[3] = &cobra.Command{
 		Use:   "make-xml <yml file>...",
 		Short: "Generate the doi.xml file from one or more DataCite YAML files",
 		Long: `Generate the doi.xml file from one or more DataCite YAML files.
 
-The command accepts GIN repositories of format "GIN:owner/repository", yaml file paths and URLs to yaml files (mixing allowed) and will generate one XML file for each YAML file found. If the page generation requires information that is missing from the XML file (e.g., archive file size, repository URLs), the program will attempt to retrieve the metadata by querying the online resources. If that fails, a warning is printed and the file is still generated with the available information. Contextual information like size or date have to be added manually.`,
+The command accepts GIN repositories of format "GIN:owner/repository", yaml file paths 
+and URLs to yaml files (mixing allowed) and will generate one XML file for each 
+YAML file found. If the page generation requires information that is missing from 
+the XML file (e.g., archive file size, repository URLs), the program will attempt 
+to retrieve the metadata by querying the online resources. If that fails, a warning 
+is printed and the file is still generated with the available information. 
+Contextual information like size or date have to be added manually.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkxml,
+		Run:                   clixml,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[3].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[4] = &cobra.Command{
 		Use:   "make-index <xml file>...",
-		Short: "Generate the index.html file from one or more DataCite XML files",
-		Long: `Generate the index.html file from one or more DataCite XML files.
+		Short: "Generate the index.html list file from one or more DataCite XML files",
+		Long: `Generate the index.html list file from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one 
+DOI listing index HTML page containing the information of all XML files provided.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mkindex,
+		Run:                   cliindex,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[4].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[5] = &cobra.Command{
 		Use:   "make-sitemap <xml file>...",
 		Short: "Generate the urls.txt google sitemap file from one or more DataCite XML files",
 		Long: `Generate the urls.txt google sitemap file from one or more DataCite XML files.
 
-The command accepts file paths and URLs (mixing allowed) and will generate one index HTML page containing the information of all XML files found.`,
+The command accepts file paths and URLs (mixing allowed) and will generate one 
+google sitemap file named 'urls.txt' containing the DOI links found in the Datacite 
+XML files provided.`,
 		Args:                  cobra.MinimumNArgs(1),
-		Run:                   mksitemap,
+		Run:                   clisitemap,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[5].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[6] = &cobra.Command{
 		Use:   "make-all <xml file>...",
 		Short: "Generate all html files and the google sitemap file.",
@@ -104,6 +126,7 @@ the keywords html pages and all DOI html landing pages from the XML files.`,
 		Version:               verstr,
 		DisableFlagsInUseLine: true,
 	}
+	cmds[6].Flags().StringP("out", "o", "", "[OPTIONAL] output file directory; must exist")
 	cmds[7] = &cobra.Command{
 		Use:   "make-checklist",
 		Short: "Generate a DOI registration checklist file.",
@@ -112,10 +135,10 @@ the keywords html pages and all DOI html landing pages from the XML files.`,
 The command will create a markdown file containing a DOI dataset registration checklist.
 By default all variables will contain placeholder text and the file will be placed at the
 executing path.
-Using the optional '-o' argument an alternative output path can be specified.
-Using the optional '-c' argument a yaml config file can be specified to automatically
+
+Using the optional '-c' argument, a yaml config file can be specified to automatically
 replace the default variable values. If a config file is specified, the service will 
-additionally try to fetch dataset 'title' and 'authors' from the corresponding gin repository.`,
+additionally try to fetch dataset 'title' and 'authors' from the corresponding GIN repository.`,
 		Args:                  cobra.MinimumNArgs(0),
 		Run:                   mkchecklistcli,
 		Version:               verstr,
