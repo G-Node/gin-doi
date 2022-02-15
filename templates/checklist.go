@@ -37,6 +37,10 @@ const ChecklistFile = `# Part 1 - pre registration
 - on the DOI server ({{ .CL.Doiserver }}) make sure all information has been properly downloaded 
   to the staging directory and all annex files are unlocked and the content is present:
     -[ ] {{ .CL.Dirdoiprep }}/annexcheck {{ .SemiDOIDirpath }}
+    - identify "normal" git annex issues e.g. locked or missing annex content
+    -[ ] cd {{ .SemiDOICleanup }}/{{ .RepoLower }}
+    -[ ] gin git annex find --locked
+    -[ ] gin git annex find --not --in=here
     -[ ] find {{ .SemiDOICleanup }} -type l -print
     -[ ] find {{ .SemiDOICleanup }} -type f -size -100c -print0 | xargs -0 grep -i annex.objects
     -[ ] grep annex.objects $(find {{ .SemiDOICleanup }} -type f -size -100c -print)
@@ -45,6 +49,10 @@ const ChecklistFile = `# Part 1 - pre registration
          file does not contain all required data. Run the next steps - the script will
          download all missing information and upload to the DOI fork. When recreating the
          zip file, all files will be manually unlocked first.
+    - approximate the required zip size via the git annex file size and the repository size
+    -[ ] gin git annex info --fast .
+    -[ ] du -chL --exclude=.git* .
+    -[ ] ls -lahrt  {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}/
     - check the DOI directory content
       -[ ] zip file created in {{ .CL.Dirdoi }}/10.12751/g-node.{{ .CL.Regid }}
       -[ ] check zip file content
@@ -129,6 +137,10 @@ const ChecklistFile = `# Part 1 - pre registration
 -[ ] check downloaded data; if any of the checks fail, the DOI fork has to be deleted and the 
      process repeated after the issue has been addressed
     -[ ] {{ .CL.Dirdoiprep }}/annexcheck {{ .CL.Dirdoiprep }}/{{ .CL.Repo }}
+    - identify "normal" git annex issues e.g. locked or missing annex content
+    -[ ] cd {{ .CL.Dirdoiprep }}/{{ .CL.Repo }}
+    -[ ] gin git annex find --locked
+    -[ ] gin git annex find --not --in=here
     -[ ] find {{ .CL.Dirdoiprep }}/{{ .CL.Repo }} -type l -print
     -[ ] find {{ .CL.Dirdoiprep }}/{{ .CL.Repo }} -type f -size -100c -print0 | xargs -0 grep -i annex.objects
     -[ ] grep annex.objects $(find {{ .CL.Dirdoiprep }}/{{ .CL.Repo }} -type f -size -100c -print)
@@ -140,6 +152,12 @@ const ChecklistFile = `# Part 1 - pre registration
 -[ ] create DOI zip file
     - screen -r {{ .FullDOIScreenID }}
     - sudo ./makezip {{ .RepoLower }} > {{ .Ziplog }}
+
+- approximate the required zip size via the git annex file size and the repository size and compare to the created zip size
+    -[ ] cd {{ .CL.Dirdoiprep }}/{{ .CL.Repo }}
+    -[ ] gin git annex info --fast .
+    -[ ] du -chL --exclude=.git* .
+    -[ ] ls -lahrt {{ .CL.Dirdoiprep }}/{{ .CL.Repo }}/*.zip
 
 -[ ] make sure there is no zip file in the target directory left 
      from the previous registration process.
