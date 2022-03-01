@@ -566,3 +566,18 @@ func annexCMD(annexargs ...string) (string, string, error) {
 
 	return string(stdout), string(stderr), err
 }
+
+// annexAvailable checks whether annex is available to the gin client library.
+// The function returns false with no error, if the annex command execution
+// ends with the git message that 'annex' is not a git command.
+// It will return false and the error message on any different error.
+func annexAvailable() (bool, error) {
+	_, stderr, err := annexCMD("version")
+	if err != nil {
+		if strings.Contains(stderr, "'annex' is not a git command") {
+			return false, nil
+		}
+		return false, fmt.Errorf("%s, %s", stderr, err.Error())
+	}
+	return true, nil
+}
