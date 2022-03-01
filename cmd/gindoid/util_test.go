@@ -373,3 +373,34 @@ func TestHasGitModules(t *testing.T) {
 		t.Fatal("Expected true on valid URL")
 	}
 }
+
+func TestRemoteGitCMD(t *testing.T) {
+	// check annex is available to the test; stop the test otherwise
+	hasAnnex, err := annexAvailable()
+	if err != nil {
+		t.Fatalf("Error checking git annex: %q", err.Error())
+	} else if !hasAnnex {
+		t.Skipf("Annex is not available, skipping test...\n")
+	}
+
+	targetpath := t.TempDir()
+
+	// check running git command from non existing path
+	_, _, err = remoteGitCMD("/I/do/no/exist", false, "version")
+	if err == nil {
+		t.Fatal("expected error on non existing directory")
+	} else if !strings.Contains(err.Error(), "") {
+		t.Fatalf("expected path not found error but got %q", err.Error())
+	}
+
+	// check running git command
+	stdout, stderr, err := remoteGitCMD(targetpath, false, "version")
+	if err != nil {
+		t.Fatalf("%q, %q, %q", err.Error(), stderr, stdout)
+	}
+	// check running git annex command
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "version")
+	if err != nil {
+		t.Fatalf("%q, %q, %q", err.Error(), stderr, stdout)
+	}
+}
