@@ -497,3 +497,100 @@ func TestMissingAnnexContent(t *testing.T) {
 		t.Fatalf("missing annex content did not identify missing content: %t %q", ismissing, misslist)
 	}
 }
+
+func TestLockedAnnexContent(t *testing.T) {
+	// check annex is available to the test; stop the test otherwise
+	hasAnnex, err := annexAvailable()
+	if err != nil {
+		t.Fatalf("Error checking git annex: %q", err.Error())
+	} else if !hasAnnex {
+		t.Skipf("Annex is not available, skipping test...\n")
+	}
+
+	targetpath := t.TempDir()
+
+	// test non existing directory error
+	islocked, locklist, err := lockedAnnexContent("/home/not/exist")
+	if err == nil {
+		t.Fatalf("non existing directory should return an error (locked %t) %q", islocked, locklist)
+	} else if islocked || locklist != "" {
+		t.Fatalf("unexpected locked files (locked %t) %q", islocked, locklist)
+	}
+
+	// test non git directory error
+	islocked, locklist, err = lockedAnnexContent(targetpath)
+	if err == nil {
+		t.Fatalf("non git directory should return an error (locked %t) %q", islocked, locklist)
+	} else if islocked || locklist != "" {
+		t.Fatalf("unexpected locked files (locked %t) %q", islocked, locklist)
+	}
+
+	// initialize git directory
+	stdout, stderr, err := remoteGitCMD(targetpath, false, "init")
+	if err != nil {
+		t.Fatalf("could not initialize git repo: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test git non annex dir error
+	islocked, locklist, err = lockedAnnexContent(targetpath)
+	if err == nil {
+		t.Fatalf("non git annex directory should return an error (locked %t) %q", islocked, locklist)
+	} else if islocked || locklist != "" {
+		t.Fatalf("unexpected locked files (locked %t) %q", islocked, locklist)
+	}
+
+	// initialize annex
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "init")
+	if err != nil {
+		t.Fatalf("could not init annex: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test git annex dir no error on empty directory
+	islocked, locklist, err = lockedAnnexContent(targetpath)
+	if err != nil {
+		t.Fatalf("git annex directory should not return an error (locked %t) %s\n%s", islocked, locklist, err.Error())
+	} else if islocked || locklist != "" {
+		t.Fatalf("unexpected locked files (locked %t) %q", islocked, locklist)
+	}
+
+	// check no locked annex files status
+	// create annex data file
+	fname := "datafile.txt"
+	fpath := filepath.Join(targetpath, fname)
+	err = ioutil.WriteFile(fpath, []byte("some data"), 0777)
+	if err != nil {
+		t.Fatalf("Error creating annex data file %q", err.Error())
+	}
+	// add file to the annex; note that this will also lock the file by annex default
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "add", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex add file\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+	// uninit annex file so the cleanup can happen but ignore any further issues
+	// the temp folder will get cleaned up eventually anyway.
+	defer remoteGitCMD(targetpath, true, "uninit", fpath)
+
+	// check no locked annex content
+	islocked, locklist, err = lockedAnnexContent(targetpath)
+	if err != nil {
+		t.Fatalf("locked annex content check should not return any issue (locked %t) %s\n%s", islocked, locklist, err.Error())
+	} else if !islocked || locklist == "" {
+		t.Fatalf("unexpected unlocked content (locked %t) %q", islocked, locklist)
+	} else if !strings.Contains(locklist, fname) {
+		t.Fatalf("locked annex content did not identify locked content: %t %q", islocked, locklist)
+	}
+
+	// unlock annex file content
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "unlock", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex lock content\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+
+	// check unlocked annex content
+	islocked, locklist, err = lockedAnnexContent(targetpath)
+	if err != nil {
+		t.Fatalf("unlocked annex content check should not return any issue (locked %t) %s\n%s", islocked, locklist, err.Error())
+	} else if islocked || locklist != "" {
+		t.Fatalf("unexpected locked content (locked %t) %q", islocked, locklist)
+	}
+}
