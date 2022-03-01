@@ -130,6 +130,34 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	return err
 }
 
+func annexContentCheck(repopath string) error {
+	// check if there is missing or locked annex content
+	log.Printf("Checking missing and locked annex content of repo at %q", repopath)
+	hasmissing, misslist, err := missingAnnexContent(repopath)
+	if err != nil {
+		log.Printf("Error on missing annex content check: %q", err.Error())
+	}
+	haslocked, locklist, err := lockedAnnexContent(repopath)
+	if err != nil {
+		log.Printf("Error on locked annex content check: %q", err.Error())
+	}
+	var annexIssues string
+	if hasmissing {
+		splitmis := strings.Split(strings.TrimSpace(misslist), "\n")
+		annexIssues = fmt.Sprintf("found missing annex content in %d files\n", len(splitmis))
+	}
+	if haslocked {
+		splitlock := strings.Split(strings.TrimSpace(locklist), "\n")
+		annexIssues += fmt.Sprintf("found locked annex content in %d files\n", len(splitlock))
+	}
+	// annex issues found; log, do not create zip file and return
+	if annexIssues != "" {
+		log.Printf("Skip zip, annex content issues have been identified (missing %t, locked %t)", hasmissing, haslocked)
+		return fmt.Errorf("annex content issues have been identified, skipping zip creation\n%s", annexIssues)
+	}
+	return nil
+}
+
 // cloneAndZip clones the source repository into a temporary directory under
 // preppath, zips the contents at the targetpath, and returns the archive filename
 // and its size in bytes.
