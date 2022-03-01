@@ -603,3 +603,21 @@ func remoteGitCMD(gitdir string, useannex bool, gitcmd ...string) (string, strin
 
 	return string(stdout), string(stderr), err
 }
+
+func missingAnnexContent(gitdir string) (bool, string, error) {
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return false, "", fmt.Errorf("path not found %q", gitdir)
+	}
+	// command should not return with an error or with any stderr content
+	// If stdout is empty, there is no missing content. If it is not empty,
+	// the number of lines correspond to the number of files with missing content.
+	stdout, stderr, err := remoteGitCMD(gitdir, true, "find", "--not", "--in=here")
+	if err != nil {
+		return false, "", err
+	} else if string(stderr) != "" {
+		return false, "", fmt.Errorf("git annex error: %s", string(stderr))
+	} else if string(stdout) == "" {
+		return false, "", nil
+	}
+	return true, string(stdout), nil
+}
