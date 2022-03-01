@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	gingit "github.com/G-Node/gin-cli/git"
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 )
@@ -554,4 +555,14 @@ func HasGitModules(ginurl string, repo string) bool {
 	log.Printf("HasGitModules: checking url %s", moduleurl)
 
 	return URLexists(moduleurl)
+}
+
+// annexCMD runs the passed git annex command arguments.
+// The command returns stdout and stderr as strings and any error that might occur.
+func annexCMD(annexargs ...string) (string, string, error) {
+	log.Printf("Running annex command: %s\n", annexargs)
+	cmd := gingit.AnnexCommand(annexargs...)
+	stdout, stderr, err := cmd.OutputError()
+
+	return string(stdout), string(stderr), err
 }
