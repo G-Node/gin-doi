@@ -581,3 +581,25 @@ func annexAvailable() (bool, error) {
 	}
 	return true, nil
 }
+
+// remoteGitCMD runs a git command for a given directory
+// If the useannex flag is set to true, the executed command
+// will be a git annex command instead of a regular git command.
+func remoteGitCMD(gitdir string, useannex bool, gitcmd ...string) (string, string, error) {
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return "", "", fmt.Errorf("path not found %q", gitdir)
+	}
+
+	cmdstr := append([]string{"git", "-C", gitdir}, gitcmd...)
+	cmd := gingit.Command("version")
+	cmd.Args = cmdstr
+	if useannex {
+		cmdstr = append([]string{"git", "-C", gitdir, "annex"}, gitcmd...)
+		cmd = gingit.AnnexCommand("version")
+		cmd.Args = cmdstr
+	}
+	fmt.Printf("using command: %v, %v\n", gitcmd, cmdstr)
+	stdout, stderr, err := cmd.OutputError()
+
+	return string(stdout), string(stderr), err
+}
