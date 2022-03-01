@@ -594,3 +594,103 @@ func TestLockedAnnexContent(t *testing.T) {
 		t.Fatalf("unexpected locked content (locked %t) %q", islocked, locklist)
 	}
 }
+
+func TestAnnexSize(t *testing.T) {
+	// check annex is available to the test; stop the test otherwise
+	hasAnnex, err := annexAvailable()
+	if err != nil {
+		t.Fatalf("Error checking git annex: %q", err.Error())
+	} else if !hasAnnex {
+		t.Skipf("Annex is not available, skipping test...\n")
+	}
+
+	targetpath := t.TempDir()
+
+	// test non existing directory error
+	reposize, err := annexSize("/home/not/exist")
+	if err == nil {
+		t.Fatalf("non existing directory should return an error %q", reposize)
+	} else if reposize != "" {
+		t.Fatalf("unexpected return value %q", reposize)
+	}
+
+	// test non git directory error
+	reposize, err = annexSize(targetpath)
+	if err == nil {
+		t.Fatalf("non git directory should return an error %q", reposize)
+	} else if reposize != "" {
+		t.Fatalf("unexpected return value %q", reposize)
+	}
+
+	// initialize git directory
+	stdout, stderr, err := remoteGitCMD(targetpath, false, "init")
+	if err != nil {
+		t.Fatalf("could not initialize git repo: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test git non annex dir error
+	reposize, err = annexSize(targetpath)
+	if err == nil {
+		t.Fatalf("non git annex directory should return an error %q", reposize)
+	} else if reposize != "" {
+		t.Fatalf("unexpected return value %q", reposize)
+	}
+
+	// initialize annex
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "init")
+	if err != nil {
+		t.Fatalf("could not init annex: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test git annex dir no error on empty directory
+	reposize, err = annexSize(targetpath)
+	if err != nil {
+		t.Fatalf("git annex directory should not return an error %q\n%v", reposize, err)
+	} else if reposize == "" {
+		t.Fatalf("unexpected return value %q", reposize)
+	} else if !strings.Contains(reposize, "0 bytes") {
+		t.Fatalf("unexpected return value %q", reposize)
+	}
+
+	// create annex data file
+	fname := "datafile.txt"
+	fpath := filepath.Join(targetpath, fname)
+	err = ioutil.WriteFile(fpath, []byte("some data"), 0777)
+	if err != nil {
+		t.Fatalf("Error creating annex data file %q", err.Error())
+	}
+	// add file to the annex; note that this will also lock the file by annex default
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "add", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex add file\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+	// uninit annex file so the cleanup can happen but ignore any further issues
+	// the temp folder will get cleaned up eventually anyway.
+	defer remoteGitCMD(targetpath, true, "uninit", fpath)
+
+	// check reposize
+	reposize, err = annexSize(targetpath)
+	if err != nil {
+		t.Fatalf("unexpected error on annexSize %q %q", err.Error(), reposize)
+	} else if reposize == "" {
+		t.Fatalf("unexpected return value %q", reposize)
+	} else if !strings.Contains(reposize, "9 bytes") {
+		t.Fatalf("expected return value '9 bytes' but got %q", reposize)
+	}
+
+	// reposize should remain unchanged on unlocking files
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "unlock", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex lock content\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+
+	// check unlocked annex content
+	reposize, err = annexSize(targetpath)
+	if err != nil {
+		t.Fatalf("unexpected error on annexSize %q %q", err.Error(), reposize)
+	} else if reposize == "" {
+		t.Fatalf("unexpected return value %q", reposize)
+	} else if !strings.Contains(reposize, "9 bytes") {
+		t.Fatalf("expected return value '9 bytes' but got %q", reposize)
+	}
+}
