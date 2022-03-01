@@ -161,6 +161,8 @@ func annexContentCheck(repopath string) error {
 // cloneAndZip clones the source repository into a temporary directory under
 // preppath, zips the contents at the targetpath, and returns the archive filename
 // and its size in bytes.
+// If the cloned repository shows missing or locked annex content, the zip file
+// is not created.
 func cloneAndZip(repopath string, jobname string, preppath string, targetpath string, conf *Configuration) (string, int64, error) {
 	log.Print("Start clone and zip")
 	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
@@ -181,6 +183,15 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	repoparts := strings.SplitN(repopath, "/", 2)
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(preppath, reponame)
+
+	// Check if there is locked or missing annex content. A returned error
+	// contains the details of the locked or missing content. Zip creation is
+	// skipped in this instance to save time and the error is passed to the
+	// calling function.
+	err := annexContentCheck(repodir)
+	if err != nil {
+		return "", -1, err
+	}
 
 	log.Printf("Preparing zip file for %s", jobname)
 	// use DOI with / replacement for zip filename
