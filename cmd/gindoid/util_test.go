@@ -404,3 +404,96 @@ func TestRemoteGitCMD(t *testing.T) {
 		t.Fatalf("%q, %q, %q", err.Error(), stderr, stdout)
 	}
 }
+
+func TestMissingAnnexContent(t *testing.T) {
+	// check annex is available to the test; stop the test otherwise
+	hasAnnex, err := annexAvailable()
+	if err != nil {
+		t.Fatalf("Error checking git annex: %q", err.Error())
+	} else if !hasAnnex {
+		t.Skipf("Annex is not available, skipping test...\n")
+	}
+
+	targetpath := t.TempDir()
+
+	// test non existing directory error
+	_, _, err = missingAnnexContent("/home/not/exist")
+	if err == nil {
+		t.Fatal("non existing directory should return an error")
+	}
+
+	// test non git directory error
+	ismissing, misslist, err := missingAnnexContent(targetpath)
+	if err == nil {
+		t.Fatalf("non git directory should return an error\nmissing: %t\n%q", ismissing, misslist)
+	}
+
+	// initialize git directory
+	stdout, stderr, err := remoteGitCMD(targetpath, false, "init")
+	if err != nil {
+		t.Fatalf("could not initialize git repo: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test git non annex dir error
+	ismissing, misslist, err = missingAnnexContent(targetpath)
+	if err == nil {
+		t.Fatalf("non git annex directory should return an error\nmissing: %t\n%q", ismissing, misslist)
+	}
+
+	// initialize annex
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "init")
+	if err != nil {
+		t.Fatalf("could not init annex: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test git annex dir no error
+	ismissing, misslist, err = missingAnnexContent(targetpath)
+	if err != nil {
+		t.Fatalf("git annex directory should not return an error\n%s\n%s\n%t", err.Error(), misslist, ismissing)
+	}
+
+	// check no missing annex files status
+	// create annex data file
+	fname := "datafile.txt"
+	fpath := filepath.Join(targetpath, fname)
+	err = ioutil.WriteFile(fpath, []byte("some data"), 0777)
+	if err != nil {
+		t.Fatalf("Error creating annex data file %q", err.Error())
+	}
+	// add file to the annex
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "add", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex add file\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+	// uninit annex file so the cleanup can happen but ignore any further issues
+	// the temp folder will get cleaned up eventually anyway.
+	defer remoteGitCMD(targetpath, true, "uninit", fpath)
+
+	stdout, stderr, err = remoteGitCMD(targetpath, false, "commit", "-m", "'add annex file'")
+	if err != nil {
+		t.Fatalf("error on git commit file\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+	// check no missing annex content
+	ismissing, misslist, err = missingAnnexContent(targetpath)
+	if err != nil {
+		t.Fatalf("missing annex content check should not return any issue\n%s\n%s\nmissing %t", err.Error(), misslist, ismissing)
+	} else if ismissing || misslist != "" {
+		t.Fatalf("unexpected missing content found: %t, %q", ismissing, misslist)
+	}
+
+	// drop annex file content; use --force since the file content is in no other annex repo and annex thoughtfully complains
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "drop", "--force", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex drop content\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+
+	// check missing annex content
+	ismissing, misslist, err = missingAnnexContent(targetpath)
+	if err != nil {
+		t.Fatalf("missing annex content check should not return any issue\n%s\n%t\n%s", err.Error(), ismissing, misslist)
+	} else if !ismissing || misslist == "" {
+		t.Fatalf("missing annex content check should return missing files\n%t\n%s\n", ismissing, misslist)
+	} else if !strings.Contains(misslist, fname) {
+		t.Fatalf("missing annex content did not identify missing content: %t %q", ismissing, misslist)
+	}
+}
