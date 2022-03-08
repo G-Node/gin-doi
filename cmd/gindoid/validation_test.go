@@ -247,6 +247,100 @@ func TestLicenseWarnings(t *testing.T) {
 	}
 }
 
+func TestContentSizeWarning(t *testing.T) {
+	warnings := []string{}
+	md := &libgin.RepositoryMetadata{}
+
+	// check nothing added on non-existing directory
+	warnings = contentSizeWarning("/tmp/I/dont/exist", md, warnings)
+	if len(warnings) != 0 {
+		t.Fatalf("invalid dir: expected empty warning list but got: %q", warnings)
+	}
+
+	// check nothing added on non-git repository
+	// check annex is available to the test; stop the test otherwise
+	hasAnnex, err := annexAvailable()
+	if err != nil {
+		t.Fatalf("Error checking git annex: %q", err.Error())
+	} else if !hasAnnex {
+		t.Skipf("Annex is not available, skipping test...\n")
+	}
+
+	targetpath := t.TempDir()
+
+	// test no warning on non-git dir
+	warnings = contentSizeWarning(targetpath, md, warnings)
+	if len(warnings) != 0 {
+		t.Fatalf("non git: expected empty warning list but got: %q", warnings)
+	}
+
+	// initialize git directory
+	stdout, stderr, err := remoteGitCMD(targetpath, false, "init")
+	if err != nil {
+		t.Fatalf("could not initialize git repo: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+	// initialize annex
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "init")
+	if err != nil {
+		t.Fatalf("could not init annex: %q, %q, %q", err.Error(), stdout, stderr)
+	}
+
+	// test no error on no annex files
+	warnings = contentSizeWarning(targetpath, md, warnings)
+	if len(warnings) != 1 {
+		t.Fatalf("no annex files: expected warning list entry but got: %q", warnings)
+	} else if !strings.Contains(warnings[0], "n/a") || !strings.Contains(warnings[0], "Annex content size") {
+		t.Fatalf("no annex files: expected warning list entry but got: %q", warnings)
+	}
+	warnings = []string{}
+
+	// create annex data file
+	fname := "datafile.txt"
+	fpath := filepath.Join(targetpath, fname)
+	err = ioutil.WriteFile(fpath, []byte("some data"), 0777)
+	if err != nil {
+		t.Fatalf("Error creating annex data file %q", err.Error())
+	}
+	// add file to the annex; note that this will also lock the file by annex default
+	stdout, stderr, err = remoteGitCMD(targetpath, true, "add", fpath)
+	if err != nil {
+		t.Fatalf("error on git annex add file\n%s\n%s\n%s", err.Error(), stdout, stderr)
+	}
+	// uninit annex file so the cleanup can happen but ignore any further issues
+	// the temp folder will get cleaned up eventually anyway.
+	defer remoteGitCMD(targetpath, true, "uninit", fpath)
+
+	// check warning but no zipsize on empty metadata
+	warnings = contentSizeWarning(targetpath, md, warnings)
+	if len(warnings) != 1 {
+		t.Fatalf("empty metadata: expected annex size warning but got: %s", warnings)
+	} else if !strings.Contains(warnings[0], "n/a") || !strings.Contains(warnings[0], "Annex content size") {
+		t.Fatalf("empty metadata: expected empty zip size but got: %s", warnings)
+	}
+
+	// check warning on empty metadata sizes
+	warnings = []string{}
+	md.DataCite = &libgin.DataCite{}
+	warnings = contentSizeWarning(targetpath, md, warnings)
+	if len(warnings) != 1 {
+		t.Fatalf("empty metadata size: expected an annex size warning but got: %s", warnings)
+	}
+	if !strings.Contains(warnings[0], "n/a") || !strings.Contains(warnings[0], "Annex content size") {
+		t.Fatalf("empty metadata size: expected empty zip size but got: %s", warnings)
+	}
+
+	// check zip size and warning append
+	zipsize := "zipsize12"
+	md.DataCite.Sizes = &[]string{zipsize}
+	warnings = contentSizeWarning(targetpath, md, warnings)
+	if len(warnings) != 2 {
+		t.Fatalf("valid entry: unexpected number of warnings: %q", warnings)
+	}
+	if !strings.Contains(warnings[1], zipsize) {
+		t.Fatalf("valid entry: missing zip size entry: %q", warnings[1])
+	}
+}
+
 func TestAuthorWarnings(t *testing.T) {
 	var warnings []string
 	yada := &libgin.RepositoryYAML{}
