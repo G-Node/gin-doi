@@ -761,3 +761,44 @@ func TestUnlockAnnexClone(t *testing.T) {
 	targetpath := filepath.Join(targetroot, fmt.Sprintf("%s_unlocked", reponame))
 	defer remoteGitCMD(targetpath, true, "uninit", fpath)
 }
+
+func TestAcceptedAnnexSize(t *testing.T) {
+	// check empty string
+	if acceptedAnnexSize("") {
+		t.Fatal("True on empty string")
+	}
+
+	// check non-splitable string
+	if acceptedAnnexSize("100kilobytes") {
+		t.Fatal("True on invalid string")
+	}
+
+	// check unsupported 'unit'
+	if acceptedAnnexSize("10.4 petabytes") {
+		t.Fatal("True on unsupported unit petabytes")
+	}
+
+	// check supported units
+	if !acceptedAnnexSize("10.4 bytes") {
+		t.Fatal("False on bytes")
+	}
+	if !acceptedAnnexSize("10.4 kilobytes") {
+		t.Fatal("False on kilobytes")
+	}
+	if !acceptedAnnexSize("10.4 megabytes") {
+		t.Fatal("False on megabytes")
+	}
+
+	// check supported unit and supported size
+	if !acceptedAnnexSize("10.4 gigabytes") {
+		t.Fatal("False on allowed gigabytes")
+	}
+
+	// check supported unit and unsupported size
+	if acceptedAnnexSize("100.1 gigabytes") {
+		t.Fatal("True on unsupported size")
+	}
+	if acceptedAnnexSize("1 terabytes") {
+		t.Fatal("True on terabyte")
+	}
+}
