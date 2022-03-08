@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -660,4 +661,64 @@ func annexSize(gitdir string) (string, error) {
 		return "", nil
 	}
 	return strings.TrimSpace(splitsizes[1]), nil
+}
+
+func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error) {
+	clonename := fmt.Sprintf("%s_unlocked", reponame)
+	clonedir := filepath.Join(gitcloneroot, clonename)
+	log.Printf("[Annex unlock] cloning %s to dir %s", gitrepodir, clonedir)
+
+	// Clone annex repository to specified clone directory
+	// Git clone outputs everything to stderr
+	stdout, stderr, err := remoteGitCMD(gitcloneroot, false, "clone", gitrepodir, clonename)
+	if err != nil {
+		return "", fmt.Errorf("error cloning annex repo %s: %q, %q", gitrepodir, err.Error(), stderr)
+	}
+	log.Printf("[Annex unlock] clone done: %q, %q", stdout, stderr)
+
+	// Make sure the git user credentials have been set; otherwise git annex copy will fail
+	_, stderr, err = remoteGitCMD(clonedir, false, "config", "user.name", "GIN-DOI-service-user")
+	if err != nil {
+		return "", fmt.Errorf("error setting git user for repo %s: %q, %q", gitrepodir, err.Error(), stderr)
+	}
+	_, stderr, err = remoteGitCMD(clonedir, false, "config", "user.email", "gin@g-node.org")
+	if err != nil {
+		return "", fmt.Errorf("error setting git email for repo %s: %q, %q", gitrepodir, err.Error(), stderr)
+	}
+
+	// Copy annex content to clone directory
+	stdout, stderr, err = remoteGitCMD(clonedir, true, "copy", "--all", "--from=origin")
+	if err != nil {
+		return "", fmt.Errorf("error on local annex (%s) content copy: %q, %q", clonedir, err.Error(), stderr)
+	} else if stderr != "" {
+		return "", fmt.Errorf("error output on local annex (%s) content copy: %q", clonedir, stderr)
+	}
+	log.Printf("[Annex unlock] local copy finished %q", stdout)
+
+	// re-check missing annex content in clone directory; should be false
+	hasmissing, missinglist, err := missingAnnexContent(clonedir)
+	if err != nil {
+		return "", fmt.Errorf("error checking missing annex after local copy (%s): %q", clonedir, err.Error())
+	} else if hasmissing {
+		return "", fmt.Errorf("missing annex content after local copy (%s): %q", clonedir, missinglist)
+	}
+
+	// unlock all locked annex files in clone directory
+	stdout, stderr, err = remoteGitCMD(clonedir, true, "unlock")
+	if err != nil {
+		return "", fmt.Errorf("error unlocking files on local copy (%s): %q, %q", clonedir, err.Error(), stderr)
+	} else if stderr != "" {
+		return "", fmt.Errorf("error unlocking files on local copy (%s): %q", clonedir, stderr)
+	}
+	log.Printf("[Annex unlock] Files unlocked in clone directory: %q", stdout)
+
+	// re-check locked content
+	haslocked, lockedlist, err := lockedAnnexContent(clonedir)
+	if err != nil {
+		return "", fmt.Errorf("error checking locked content on local copy: %q", err.Error())
+	} else if haslocked || lockedlist != "" {
+		return "", fmt.Errorf("found locked content after unlocking: %q", lockedlist)
+	}
+
+	return clonedir, nil
 }
