@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -721,4 +722,53 @@ func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error)
 	}
 
 	return clonedir, nil
+}
+
+func acceptedAnnexSize(annexSize string) bool {
+	// acceptedGigaSize might be moved outside to become a server setting
+	acceptedGigaSize := 100.0
+
+	sizesplit := strings.Split(annexSize, " ")
+	if len(sizesplit) != 2 {
+		log.Printf("[acceptedAnnexSize] could not parse input (%s)", annexSize)
+		return false
+	}
+	// add check if sizesplit[0] is contained in accepted order
+	// since the base unit "byte" is contained in all larger units, this
+	// has to be checked specifically
+	checkUnit := strings.TrimSpace(sizesplit[1])
+	var acceptedunit bool
+	if checkUnit == "byte" || checkUnit == "bytes" {
+		acceptedunit = true
+	} else {
+		checkaccepted := []string{"kilobyte", "megabyte", "gigabyte", "terabyte"}
+		for _, check := range checkaccepted {
+			if strings.Contains(sizesplit[1], check) {
+				log.Printf("[acceptedAnnexSize] %q, %q", sizesplit[1], check)
+				acceptedunit = true
+			}
+		}
+	}
+
+	if !acceptedunit {
+		log.Printf("[acceptedAnnexSize] Unsupported size unit (%s)", annexSize)
+		return false
+	}
+
+	// make sure singular and plural are both accepted
+	if strings.Contains(sizesplit[1], "terabyte") {
+		log.Printf("[acceptedAnnexSize] Size above allowed limit (%s)", annexSize)
+		return false
+	} else if strings.Contains(sizesplit[1], "gigabyte") {
+		checksize, err := strconv.ParseFloat(sizesplit[0], 32)
+		if err != nil {
+			log.Printf("[acceptedAnnexSize] Could not parse repo size (%s) %q", annexSize, err.Error())
+			return false
+		}
+		if checksize > acceptedGigaSize {
+			log.Printf("[acceptedAnnexSize] Size above allowed limit (%s)", annexSize)
+			return false
+		}
+	}
+	return true
 }
