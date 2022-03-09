@@ -168,8 +168,14 @@ func handleLockedAnnex(preppath, repodir, reponame string) (string, error) {
 // cloneAndZip clones the source repository into a temporary directory under
 // preppath, zips the contents at the targetpath, and returns the archive filename
 // and its size in bytes.
-// If the cloned repository shows missing or locked annex content, the zip file
-// is not created.
+// If the cloned repository contains missing annex content, the zip file is not created and
+// the function returns an appropriate error.
+// If the cloned repository contains locked annex content and the size of the repository
+// content is below a specific threshold, a secondary repository clone is created
+// and the zip file is created from this repository to ensure the originally locked content
+// is included. If the content size is above the size threshold or if any issue arises
+// during the cloning process, the zip file creation is skipped and the function
+// returns with an appropriate error.
 func cloneAndZip(repopath string, jobname string, preppath string, targetpath string, conf *Configuration) (string, int64, error) {
 	log.Print("Start clone and zip")
 	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
@@ -191,13 +197,46 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(preppath, reponame)
 
-	// Check if there is locked or missing annex content. A returned error
-	// contains the details of the locked or missing content. Zip creation is
-	// skipped in this instance to save time and the error is passed to the
-	// calling function.
-	err := annexContentCheck(repodir)
+	// Check for missing or locked annex content. Log any errors that
+	// occur during the checks, but continue to allow a zip creation attempt.
+	log.Printf("Checking missing and locked annex content of repo at %q", repodir)
+	hasmissing, misslist, err := missingAnnexContent(repodir)
 	if err != nil {
-		return "", -1, err
+		log.Printf("Error on missing annex content check: %q", err.Error())
+	}
+	haslocked, locklist, err := lockedAnnexContent(repodir)
+	if err != nil {
+		log.Printf("Error on locked annex content check: %q", err.Error())
+	}
+
+	// Skip the zip creation on missing annex content and also report any locked content.
+	if hasmissing {
+		splitmis := strings.Split(strings.TrimSpace(misslist), "\n")
+		annexIssues := fmt.Sprintf("missing annex content in %d files\n", len(splitmis))
+		if haslocked {
+			splitlock := strings.Split(strings.TrimSpace(locklist), "\n")
+			annexIssues += fmt.Sprintf("locked annex content in %d files\n", len(splitlock))
+		}
+
+		log.Printf("Annex content issues; skipping zip creation (missing %t, locked %t)", hasmissing, haslocked)
+		return "", -1, fmt.Errorf("annex content issues, skipping zip creation\n%s", annexIssues)
+	}
+
+	// If the repo has locked content and its size permits it,
+	// locally clone and unlock all repo files in a secondary
+	// directory. Replace the "repodir" variable with the secondary
+	// repo directory creating the zip file with all unlocked files.
+	if haslocked {
+		splitlock := strings.Split(strings.TrimSpace(locklist), "\n")
+		log.Printf("Locked content found in %d files", len(splitlock))
+
+		// overwrite the "repodir" variable with the directory of the cloned
+		// repository containing the unlocked annex content.
+		repodir, err = handleLockedAnnex(preppath, repodir, reponame)
+		if err != nil {
+			log.Printf("Skipping zip creation; %s", err.Error())
+			return "", -1, fmt.Errorf("%d locked annex files; skipping zip creation; %s", len(splitlock), err.Error())
+		}
 	}
 
 	log.Printf("Preparing zip file for %s", jobname)
