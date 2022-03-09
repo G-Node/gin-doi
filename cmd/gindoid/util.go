@@ -600,7 +600,7 @@ func remoteGitCMD(gitdir string, useannex bool, gitcmd ...string) (string, strin
 		cmd = gingit.AnnexCommand("version")
 		cmd.Args = cmdstr
 	}
-	fmt.Printf("using command: %v, %v\n", gitcmd, cmdstr)
+	log.Printf("remoteGitCMD: %v", cmdstr)
 	stdout, stderr, err := cmd.OutputError()
 
 	return string(stdout), string(stderr), err
