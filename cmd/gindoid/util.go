@@ -606,6 +606,14 @@ func remoteGitCMD(gitdir string, useannex bool, gitcmd ...string) (string, strin
 	return string(stdout), string(stderr), err
 }
 
+// missingAnnexContent checks the annex content of a provided local
+// git annex repository for missing annex file content. If locally missing
+// file content is identified, the function returns true and a list of all
+// files with missing content separated by the newline character "\n" as
+// a single string.
+// If no missing content is found, the function returns false and an empty
+// string. If any issue occurs during processing, the function will return
+// false, an empty string and an appropriate error.
 func missingAnnexContent(gitdir string) (bool, string, error) {
 	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
 		return false, "", fmt.Errorf("path not found %q", gitdir)
@@ -624,6 +632,13 @@ func missingAnnexContent(gitdir string) (bool, string, error) {
 	return true, string(stdout), nil
 }
 
+// lockedAnnexContent checks the annex content of a provided local
+// git annex repository for locked annex files. If locked files can
+// be identified, the function returns true and a list of all found
+// locked files separated by the newline character "\n" as a single string.
+// If no locked files are found, the function returns false and an empty
+// string. If any issue occurs during processing, the function will return
+// false, an empty string and an appropriate error.
 func lockedAnnexContent(gitdir string) (bool, string, error) {
 	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
 		return false, "", fmt.Errorf("path not found %q", gitdir)
@@ -642,6 +657,11 @@ func lockedAnnexContent(gitdir string) (bool, string, error) {
 	return true, string(stdout), nil
 }
 
+// annexSize parses the annex content size from a local git annex
+// repository and returns a trimmed string containing size and unit
+// in the format "[size in float] [fully spelled unit]bytes"
+// e.g. "12.2 gigabytes". If any issue occurs while parsing the
+// annex content size, the function returns with an appropriate error.
 func annexSize(gitdir string) (string, error) {
 	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
 		return "", fmt.Errorf("path not found %q", gitdir)
@@ -664,6 +684,14 @@ func annexSize(gitdir string) (string, error) {
 	return strings.TrimSpace(splitsizes[1]), nil
 }
 
+// unlockAnnexClone receives a directory of a git annex repository containing
+// locked annex content, the name of the repository and an output directory.
+// The function creates a local clone and annex file copy  of the primary
+// git annex content in the output directory and unlocks all annex files in
+// the secondary git annex repository.
+// When the process is successful, the full directory path of the secondary
+// repository is returned, otherwise the function ends with an appropriate
+// error.
 func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error) {
 	clonename := fmt.Sprintf("%s_unlocked", reponame)
 	clonedir := filepath.Join(gitcloneroot, clonename)
@@ -724,6 +752,13 @@ func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error)
 	return clonedir, nil
 }
 
+// acceptedAnnexSize parses a string containing git annex style formatted
+// repository size in the format "[size in float] [fully spelled unit]bytes"
+// e.g. "12.2 gigabytes".
+// If the string can be properly parsed, the provided unit is supported
+// and the size is below the supported threshold (currently 100.0 gigabytes)
+// the function returns true. In any other case including parsing issues,
+// the function returns false.
 func acceptedAnnexSize(annexSize string) bool {
 	// acceptedGigaSize might be moved outside to become a server setting
 	acceptedGigaSize := 100.0
