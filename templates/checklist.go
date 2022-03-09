@@ -37,6 +37,10 @@ const ChecklistFile = `# Part 1 - pre registration
 - on the DOI server ({{ .CL.Doiserver }}) make sure all information has been properly downloaded 
   to the staging directory and all annex files are unlocked and the content is present:
     -[ ] {{ .CL.Dirdoiprep }}/annexcheck {{ .SemiDOIDirpath }}
+    -[ ] if locked content has been found and unlocked by the doi-server, {{ .SemiDOICleanup }}
+         will contain a second folder named "{{ .RepoLower }}_unlocked". The zip file was created
+         with the content of this repository which should contain only unlocked files.
+         DO NOT USE the "unlocked" folder to upload to the DOI fork later on.
     - identify "normal" git annex issues e.g. locked or missing annex content
     -[ ] cd {{ .SemiDOICleanup }}/{{ .RepoLower }}
     -[ ] gin git annex find --locked
