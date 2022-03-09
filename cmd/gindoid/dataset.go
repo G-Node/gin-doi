@@ -130,32 +130,39 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	return err
 }
 
-func annexContentCheck(repopath string) error {
-	// check if there is missing or locked annex content
-	log.Printf("Checking missing and locked annex content of repo at %q", repopath)
-	hasmissing, misslist, err := missingAnnexContent(repopath)
+// handleLockedAnnex receives the preparation directory, the directory of
+// a git annex repository containing locked annex content and the name
+// of said repository.
+// It checks whether the total annex file contant size is below a specified
+// size threshold. If this is the case the git annex repository is cloned
+// in to a secondary local directory in the preparation directory and all
+// locked annex content is unlocked and the function returns the full
+// path to the secondary local directory.
+// If the size is above the specified threshold or if any issue arises
+// during the clone and unlock procedure, the function stops and returns
+// an appropriate error.
+func handleLockedAnnex(preppath, repodir, reponame string) (string, error) {
+	reposize, err := annexSize(repodir)
 	if err != nil {
-		log.Printf("Error on missing annex content check: %q", err.Error())
+		return "", fmt.Errorf("error reading annex size %q", err.Error())
 	}
-	haslocked, locklist, err := lockedAnnexContent(repopath)
+
+	// check if the repo is eligible for local clone and unlock;
+	// repos above a certain size threshold should not be automatically
+	// cloned a second time locally.
+	if !acceptedAnnexSize(reposize) {
+		return "", fmt.Errorf("unsupported repo size (%s)", reposize)
+	}
+
+	// local clone and unlock of repo
+	clonepath, err := unlockAnnexClone(reponame, preppath, repodir)
 	if err != nil {
-		log.Printf("Error on locked annex content check: %q", err.Error())
+		return "", fmt.Errorf("clone/unlock error: %q", err.Error())
 	}
-	var annexIssues string
-	if hasmissing {
-		splitmis := strings.Split(strings.TrimSpace(misslist), "\n")
-		annexIssues = fmt.Sprintf("found missing annex content in %d files\n", len(splitmis))
-	}
-	if haslocked {
-		splitlock := strings.Split(strings.TrimSpace(locklist), "\n")
-		annexIssues += fmt.Sprintf("found locked annex content in %d files\n", len(splitlock))
-	}
-	// annex issues found; log, do not create zip file and return
-	if annexIssues != "" {
-		log.Printf("Skip zip, annex content issues have been identified (missing %t, locked %t)", hasmissing, haslocked)
-		return fmt.Errorf("annex content issues have been identified, skipping zip creation\n%s", annexIssues)
-	}
-	return nil
+
+	// replace directory from where to create the zip from with
+	// the cloned and unlocked repo
+	return clonepath, nil
 }
 
 // cloneAndZip clones the source repository into a temporary directory under
