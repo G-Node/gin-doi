@@ -48,6 +48,11 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.15'
+      - name: Install git annex dependency
+        run: |
+          bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+          sudo apt-get update -qq
+          sudo apt-get install git-annex-standalone
       - name: Show Go version
         run: go version
       - name: Fetch dependencies
@@ -64,6 +69,11 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: '1.15'
+      - name: Install git annex dependency
+        run: |
+          bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+          sudo apt-get update -qq
+          sudo apt-get install git-annex-standalone
       - name: Fetch dependencies
         run: |
           go get -d ./...
