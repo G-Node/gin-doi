@@ -408,8 +408,8 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	for stat := range downloadchan {
 		log.Print(stat)
 		if stat.Err != nil {
-			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
-			return stat.Err
+			log.Printf("Repository cloning failed during annex get: %s, %s", stat.FileName, stat.Err)
+			return fmt.Errorf("annex content of %q: %q", stat.FileName, stat.Err)
 		}
 	}
 
@@ -421,8 +421,8 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	for stat := range downloadchan {
 		log.Print(stat)
 		if stat.Err != nil {
-			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
-			return stat.Err
+			log.Printf("Repository cloning failed during annex get: %s, %s", stat.FileName, stat.Err)
+			return fmt.Errorf("annex content of %q: %q", stat.FileName, stat.Err)
 		}
 	}
 	return nil
