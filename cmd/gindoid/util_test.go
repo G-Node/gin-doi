@@ -778,6 +778,11 @@ func TestAcceptedAnnexSize(t *testing.T) {
 		t.Fatal("True on unsupported unit petabytes")
 	}
 
+	// check non parseable size with threshold unit gigabytes
+	if acceptedAnnexSize("doesnotconverttofloat gigabytes") {
+		t.Fatal("True on non-parsable size")
+	}
+
 	// check supported units
 	if !acceptedAnnexSize("10.4 bytes") {
 		t.Fatal("False on bytes")
