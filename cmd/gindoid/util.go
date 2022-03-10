@@ -672,14 +672,12 @@ func annexSize(gitdir string) (string, error) {
 		return "", err
 	} else if string(stderr) != "" {
 		return "", fmt.Errorf("git annex error: %s", string(stderr))
-	} else if string(stdout) == "" {
-		return "", nil
 	}
 
 	// annex should return the total size of files in the working tree
 	splitsizes := strings.Split(stdout, "size of annexed files in working tree: ")
 	if len(splitsizes) != 2 {
-		return "", nil
+		return "", fmt.Errorf("could not properly parse annex size: %q", stdout)
 	}
 	return strings.TrimSpace(splitsizes[1]), nil
 }
