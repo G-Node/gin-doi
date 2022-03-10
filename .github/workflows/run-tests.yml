@@ -53,6 +53,8 @@ jobs:
           bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
           sudo apt-get update -qq
           sudo apt-get install git-annex-standalone
+          git version
+          git annex version
       - name: Show Go version
         run: go version
       - name: Fetch dependencies
@@ -74,6 +76,8 @@ jobs:
           bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
           sudo apt-get update -qq
           sudo apt-get install git-annex-standalone
+          git version
+          git annex version
       - name: Fetch dependencies
         run: |
           go get -d ./...
