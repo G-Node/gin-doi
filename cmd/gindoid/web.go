@@ -313,6 +313,21 @@ func startDOIRegistration(w http.ResponseWriter, r *http.Request, jobQueue chan 
 		return
 	}
 
+	// Permit DOI references without prefix without updating the libgin library;
+	// this code snippet can be removed if the corresponding libgin function
+	// (libgin.DataCite.AddReference) is updated and a new library version is released.
+	// This handling takes care of references containing only DOI URLs as well
+	// as improperly formatted DOI references entries that end with a proper DOI URL
+	// e.g: 'id: "doi:  https://doi.org/some-doi"'.
+	doiSplit := "https://doi.org/"
+	for idx, ref := range repoMetadata.References {
+		if strings.Contains(ref.ID, doiSplit) {
+			log.Printf("Updating DOI reference ID %q", ref.ID)
+			doiID := strings.Split(ref.ID, doiSplit)
+			repoMetadata.References[idx].ID = fmt.Sprintf("doi:%s", doiID[1])
+		}
+	}
+
 	regJob.Metadata.YAMLData = repoMetadata
 	regJob.Metadata.DataCite = libgin.NewDataCiteFromYAML(repoMetadata)
 	regJob.Metadata.Identifier.ID = doi

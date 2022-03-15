@@ -128,47 +128,6 @@ func EscXML(txt string) string {
 	return buf.String()
 }
 
-// ReferenceDescription creates a string representation of a reference for use in the XML description tag.
-// This is a utility function for the doi.xml template.
-func ReferenceDescription(ref libgin.Reference) string {
-	var namecitation string
-	if ref.Name != "" && ref.Citation != "" {
-		namecitation = ref.Name + " " + ref.Citation
-	} else {
-		namecitation = ref.Name + ref.Citation
-	}
-
-	if !strings.HasSuffix(namecitation, ".") {
-		namecitation += "."
-	}
-	refDesc := fmt.Sprintf("%s: %s (%s)", ref.RefType, namecitation, ref.ID)
-	return EscXML(refDesc)
-}
-
-// ReferenceSource splits the source type from a reference string of the form <source>:<ID>
-// This is a utility function for the doi.xml template.
-func ReferenceSource(ref libgin.Reference) string {
-	idparts := strings.SplitN(ref.ID, ":", 2)
-	if len(idparts) != 2 {
-		// Malformed ID (no colon)
-		// No source type
-		return ""
-	}
-	return EscXML(idparts[0])
-}
-
-// ReferenceID splits the ID from a reference string of the form <source>:<ID>
-// This is a utility function for the doi.xml template.
-func ReferenceID(ref libgin.Reference) string {
-	idparts := strings.SplitN(ref.ID, ":", 2)
-	if len(idparts) != 2 {
-		// Malformed ID (no colon)
-		// No source type
-		return EscXML(idparts[0])
-	}
-	return EscXML(idparts[1])
-}
-
 // GetGINURL returns the full URL to the configured GIN server. If it's
 // configured with a non-standard port, the port number is included.
 func GetGINURL(conf *Configuration) string {
@@ -455,9 +414,20 @@ func FormatReferences(md *libgin.RepositoryMetadata) []libgin.Reference {
 }
 
 // FormatCitation returns the formatted citation string for a given dataset.
+// Returns an empty string if the input is not fully initialized.
 func FormatCitation(md *libgin.RepositoryMetadata) string {
+	if md == nil || md.DataCite == nil {
+		log.Printf("FormatCitation: encountered libgin.RepositoryMetadata nil pointer: %v", md)
+		return ""
+	}
+
 	authors := FormatAuthorList(md)
-	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", authors, md.Year, md.Titles[0], md.Identifier.ID)
+	var title string
+	if len(md.Titles) > 0 {
+		title = md.Titles[0]
+	}
+
+	return fmt.Sprintf("%s (%d) %s. G-Node. https://doi.org/%s", authors, md.Year, title, md.Identifier.ID)
 }
 
 // FormatIssuedDate returns the issued date of the dataset in the format DD Mon.
@@ -554,7 +524,7 @@ func OldVersionLink(md *libgin.RepositoryMetadata) template.HTML {
 }
 
 // GINServerURL is the default template function returning
-// the main GIN server URL.  This function can be overriden
+// the main GIN server URL.  This function can be overridden
 // before calling HTML template execution to provide a different
 // GIN server instance URL.
 func GINServerURL() string {

@@ -20,7 +20,7 @@ func TestMKall(t *testing.T) {
 	cmd := setUpCommands("")
 
 	// only check the CLI option with one valid file,
-	// the detailled tests should be handled via testing
+	// the detailed tests should be handled via testing
 	// the subcommands.
 
 	// create local test file server

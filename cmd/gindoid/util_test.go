@@ -18,7 +18,7 @@ import (
 func TestReadFileAtPath(t *testing.T) {
 	_, err := readFileAtPath("I/do/not/exist")
 	if err == nil {
-		t.Fatal("Missing error opening non existant file.")
+		t.Fatal("Missing error opening non existent file.")
 	}
 
 	tmpDir, err := ioutil.TempDir("", "test_gindoi_licfromfile")
@@ -46,7 +46,7 @@ func TestReadFileAtPath(t *testing.T) {
 func TestReadFileAtURL(t *testing.T) {
 	_, err := readFileAtURL("https://I/do/not/exist")
 	if err == nil {
-		t.Fatal("Missing error opening non existant URL.")
+		t.Fatal("Missing error opening non existent URL.")
 	}
 
 	mux := http.NewServeMux()
@@ -245,12 +245,12 @@ func TestFormatAuthorList(t *testing.T) {
 	md := new(libgin.RepositoryMetadata)
 	authors := FormatAuthorList(md)
 	if authors != "" {
-		t.Fatalf("Expected emtpy string but got: %s", authors)
+		t.Fatalf("Expected empty string but got: %s", authors)
 	}
 	md.DataCite = &libgin.DataCite{}
 	authors = FormatAuthorList(md)
 	if authors != "" {
-		t.Fatalf("Expected emtpy string but got: %s", authors)
+		t.Fatalf("Expected empty string but got: %s", authors)
 	}
 
 	// Test single author, no comma, whitespace trim
@@ -290,5 +290,86 @@ func TestFormatAuthorList(t *testing.T) {
 	authors = FormatAuthorList(md)
 	if authors != "NameA G, NameB, NameC GGG" {
 		t.Fatalf("Expected formatted authors string 'NameA G, NameB, NameC GGG' but got: %s", authors)
+	}
+}
+
+func TestFormatCitation(t *testing.T) {
+	// assert no issue on blank input
+	md := new(libgin.RepositoryMetadata)
+	cit := FormatCitation(md)
+	if cit != "" {
+		t.Fatalf("Expected empty citation: %q", cit)
+	}
+
+	// author format is tested in its own function
+	md.DataCite = &libgin.DataCite{
+		Year:   1996,
+		Titles: []string{"test-title"},
+		Identifier: libgin.Identifier{
+			ID: "test-id"},
+	}
+	cit = FormatCitation(md)
+	if cit != " (1996) test-title. G-Node. https://doi.org/test-id" {
+		t.Fatalf("Expected different citation: %q", cit)
+	}
+}
+
+func TestURLexists(t *testing.T) {
+	// Start local test server
+	server := serveDataciteServer()
+	// Close the server when test finishes
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
+	// test non-existing URL
+	uex := URLexists("i/do/not/exist")
+	if uex {
+		t.Fatal("Expected false on non-existing URL")
+	}
+
+	// test invalid URL
+	uex = URLexists(fmt.Sprintf("%s/not-there", server.URL))
+	if uex {
+		t.Fatal("Expected false on invalid URL")
+	}
+
+	// test valid URL
+	uex = URLexists(fmt.Sprintf("%s/xml", server.URL))
+	if !uex {
+		t.Fatal("Expected true on valid URL")
+	}
+}
+
+func TestHasGitModules(t *testing.T) {
+	// Start local test server
+	server := serveDataciteServer()
+	// Close the server when test finishes
+	defer server.Close()
+
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Could not parse server URL: %q", serverURL)
+	}
+
+	// test non-existing URL
+	uex := HasGitModules("i/do/not", "exist")
+	if uex {
+		t.Fatal("Expected false on non-existing URL")
+	}
+
+	// test invalid URL
+	uex = HasGitModules(server.URL, "not/there")
+	if uex {
+		t.Fatal("Expected false on invalid URL")
+	}
+
+	// test valid URL
+	uex = HasGitModules(server.URL, "test")
+	if !uex {
+		t.Fatal("Expected true on valid URL")
 	}
 }

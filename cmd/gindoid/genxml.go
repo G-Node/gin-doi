@@ -86,6 +86,21 @@ func mkxml(ymlFiles []string, outpath string) {
 			fmt.Print("DOI file does not provide a License\n")
 		}
 
+		// Permit DOI references without prefix without updating the libgin library;
+		// this code snippet can be removed if the corresponding libgin function
+		// (libgin.DataCite.AddReference) is updated and a new library version is released.
+		// This handling takes care of references containing only DOI URLs as well
+		// as improperly formatted DOI references entries that end with a proper DOI URL
+		// e.g: 'id: "doi:  https://doi.org/some-doi"'.
+		doiSplit := "https://doi.org/"
+		for idx, ref := range dataciteContent.References {
+			if strings.Contains(ref.ID, doiSplit) {
+				fmt.Printf("Updating DOI reference ID %q\n", ref.ID)
+				doiID := strings.Split(ref.ID, doiSplit)
+				dataciteContent.References[idx].ID = fmt.Sprintf("doi:%s", doiID[1])
+			}
+		}
+
 		datacite := libgin.NewDataCiteFromYAML(dataciteContent)
 
 		// Create storage directory
