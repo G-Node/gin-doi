@@ -754,12 +754,12 @@ func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error)
 // repository size in the format "[size in float] [fully spelled unit]bytes"
 // e.g. "12.2 gigabytes".
 // If the string can be properly parsed, the provided unit is supported
-// and the size is below the supported threshold (currently 100.0 gigabytes)
+// and the size is below the supported threshold (currently 250.0 gigabytes)
 // the function returns true. In any other case including parsing issues,
 // the function returns false.
 func acceptedAnnexSize(annexSize string) bool {
 	// acceptedGigaSize might be moved outside to become a server setting
-	acceptedGigaSize := 100.0
+	acceptedGigaSize := 250.0
 
 	sizesplit := strings.Split(annexSize, " ")
 	if len(sizesplit) != 2 {

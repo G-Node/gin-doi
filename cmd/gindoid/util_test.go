@@ -800,7 +800,7 @@ func TestAcceptedAnnexSize(t *testing.T) {
 	}
 
 	// check supported unit and unsupported size
-	if acceptedAnnexSize("100.1 gigabytes") {
+	if acceptedAnnexSize("250.1 gigabytes") {
 		t.Fatal("True on unsupported size")
 	}
 	if acceptedAnnexSize("1 terabytes") {
