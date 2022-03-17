@@ -392,6 +392,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	}
 	log.Printf("Cloning %s to directory %s", URI, destdir)
 
+	// git clone repository
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
 	for stat := range clonechan {
@@ -402,6 +403,28 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 		}
 	}
 
+	// check server side missing git annex content
+	log.Printf("Check missing content in origin repository")
+	repoparts := strings.SplitN(URI, "/", 2)
+	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
+	repodir := filepath.Join(destdir, reponame)
+
+	if _, err := os.Stat(repodir); os.IsNotExist(err) {
+		log.Printf("path not found %q", repodir)
+	} else {
+		stdout, stderr, err := remoteGitCMD(repodir, true, "find", "--not", "--in=origin")
+		if err != nil {
+			log.Printf("Error checking missing annex content: %q", err.Error())
+		} else if stderr != "" {
+			log.Printf("git annex error checking missing content: %q", stderr)
+		} else if stdout != "" {
+			splitmis := strings.Split(strings.TrimSpace(stdout), "\n")
+			log.Printf("Server repo is missing annex content in %d files", len(splitmis))
+			return fmt.Errorf("\nmissing annex content in %d files; skipping annex content download and zip creation", len(splitmis))
+		}
+	}
+
+	// git annex get-content
 	log.Print("Primary annex content download")
 	downloadchan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.GetContent(nil, downloadchan)
