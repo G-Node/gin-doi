@@ -13,6 +13,7 @@ func TestParseConfigVars(t *testing.T) {
 	defport := uint16(10443)
 	defqueue := 100
 	defwork := 3
+	defcutoff := 250.0
 
 	// test no error on basic load
 	err := parseconfigvars(&cfg)
@@ -99,6 +100,28 @@ func TestParseConfigVars(t *testing.T) {
 		t.Fatalf("Unexpected maxworkers error: %q", err.Error())
 	} else if cfg.MaxWorkers != 5 {
 		t.Fatalf("Unexpected maxworkers value: %d", cfg.MaxWorkers)
+	}
+
+	// check cutoff size entry handling
+	if err = os.Setenv("lockedcutoffsize", "abc"); err != nil {
+		t.Fatalf("Error setting 'cutoff': %q", err.Error())
+	}
+	err = parseconfigvars(&cfg)
+	if err != nil {
+		t.Fatalf("Unexpected cutoff error: %q", err.Error())
+	} else if cfg.LockedContentCutoffSize != defcutoff {
+		t.Fatalf("Unexpected cutoff default value: %.1f", cfg.LockedContentCutoffSize)
+	}
+
+	// valid entry
+	if err = os.Setenv("lockedcutoffsize", "5"); err != nil {
+		t.Fatalf("Error re-setting 'cutoff': %q", err.Error())
+	}
+	err = parseconfigvars(&cfg)
+	if err != nil {
+		t.Fatalf("Unexpected cutoff error: %q", err.Error())
+	} else if cfg.LockedContentCutoffSize != 5 {
+		t.Fatalf("Unexpected cutoff value: %.1f", cfg.LockedContentCutoffSize)
 	}
 
 	// test no panic on unset variables
