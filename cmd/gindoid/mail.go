@@ -25,12 +25,10 @@ const (
 	DEFAULTTO = "gin@g-node.org"
 )
 
-// notifyAdmin prepares an email notification for new jobs and then calls the
-// sendMail function to send it. Also opens an issue on the XMLRepo if set.
-// If fullinfo is 'false', only errors and warnings are sent in the
-// notification.
-func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool, commithash string) error {
+// notifyAdminContent prepares and returns body and subject of the DOI registration email and GIN issue.
+func notifyAdminContent(job *RegistrationJob, errors, warnings []string, fullinfo bool, commithash string) (string, string) {
 	urljoin := func(a, b string) string {
+		log.Printf("%s; %s", a, b)
 		fallback := fmt.Sprintf("%s/%s (fallback URL join)", a, b)
 		base, err := url.Parse(a)
 		if err != nil {
@@ -43,28 +41,29 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool,
 		return base.ResolveReference(suffix).String()
 	}
 
-	doi := job.Metadata.Identifier.ID
-
-	conf := job.Config
 	repopath := job.Metadata.SourceRepository
-	user := job.Metadata.RequestingUser
-	username := user.Username
-	realname := user.RealName
-	useremail := user.Email
-	xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
-	doitarget := urljoin(conf.Storage.StoreURL, doi)
-	repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
-	hashurl := fmt.Sprintf("[%s](%s/commits/master)", commithash, repourl)
-
 	subject := fmt.Sprintf("New DOI registration request: %s", repopath)
-
-	namestr := username
-	if realname != "" {
-		namestr = fmt.Sprintf("%s (%s)", namestr, realname)
-	}
 
 	body := ""
 	if fullinfo {
+		conf := job.Config
+		doi := job.Metadata.Identifier.ID
+
+		doitarget := urljoin(conf.Storage.StoreURL, doi)
+
+		xmlurl := fmt.Sprintf("%s/%s/doi.xml", conf.Storage.XMLURL, doi)
+		repourl := fmt.Sprintf("%s/%s", GetGINURL(conf), repopath)
+		hashurl := fmt.Sprintf("[%s](%s/commits/master)", commithash, repourl)
+
+		user := job.Metadata.RequestingUser
+		username := user.Username
+		realname := user.RealName
+		useremail := user.Email
+		namestr := username
+		if realname != "" {
+			namestr = fmt.Sprintf("%s (%s)", namestr, realname)
+		}
+
 		infofmt := `A new DOI registration request has been received.
 
 - Repository: %s [%s]
@@ -93,14 +92,25 @@ func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool,
 		}
 	}
 
-	// the full info is only requested as the initial notification email.
+	// The full info is only requested for the initial notification email.
 	// If it is not the initial notification and there are no errors or warnings,
-	// send a notification that the DOI has been prepared without issues.
+	// provide a notification that the DOI has been prepared without issues.
 	if !fullinfo && len(errors)+len(warnings) == 0 {
 		body = "Repository cloning and ZIP creation are finished; no issues have been found.\n"
 	}
 
 	body = fmt.Sprintf("%s%s%s", body, errorlist, warninglist)
+
+	return body, subject
+}
+
+// notifyAdmin prepares an email notification for new jobs and then calls the
+// sendMail function to send it. Also opens an issue on the XMLRepo if set.
+// If fullinfo is 'false', only errors and warnings are sent in the
+// notification.
+func notifyAdmin(job *RegistrationJob, errors, warnings []string, fullinfo bool, commithash string) error {
+	conf := job.Config
+	body, subject := notifyAdminContent(job, errors, warnings, fullinfo, commithash)
 
 	recipients := make([]string, 0)
 	// Recipient list is read every time a sendMail() is called.
