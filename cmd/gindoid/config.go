@@ -56,6 +56,10 @@ type Configuration struct {
 		// format host:/path/)
 		XMLURL string
 	}
+	// LockedContentCutoffSize defines the git annex size above which a repository
+	// containing locked annex files is no longer handled by the server.
+	// The size number always refers to gigabytes.
+	LockedContentCutoffSize float64
 }
 
 // parseconfigvars loads all DOI server config vars from the
@@ -99,6 +103,14 @@ func parseconfigvars(cfg *Configuration) error {
 	}
 
 	cfg.Port = uint16(port)
+
+	cutsize, err := strconv.ParseFloat(libgin.ReadConfDefault("lockedcutoffsize", "250.0"), 64)
+	if err != nil {
+		log.Printf("Error while parsing locked content cutoff size flag: %s", err.Error())
+		log.Printf("Using default %.1f", 250.0)
+		cutsize = 250.0
+	}
+	cfg.LockedContentCutoffSize = cutsize
 
 	return nil
 }
