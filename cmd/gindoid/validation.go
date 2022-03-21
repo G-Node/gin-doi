@@ -72,7 +72,37 @@ func collectWarnings(job *RegistrationJob) (warnings []string) {
 		warnings = append(warnings, fmt.Sprintf("ResourceType is %q (expected Dataset)", job.Metadata.YAMLData.ResourceType))
 	}
 
+	// identify annex content size to compare to the created zip file size
+	jobname := job.Metadata.Identifier.ID
+	preppath := filepath.Join(job.Config.Storage.PreparationDirectory, jobname)
+	repopath := job.Metadata.SourceRepository
+	repoparts := strings.SplitN(repopath, "/", 2)
+	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
+	repodir := filepath.Join(preppath, reponame)
+
+	warnings = contentSizeWarning(repodir, job.Metadata, warnings)
+
 	return
+}
+
+// contentSizeWarning reports the annex size of a git annex dataset.
+// It adds a notice including annex size and if available
+// the zip file size from the job metadata to a provided list of warnings.
+// If the annex size cannot be assertained, the incident is logged,
+// but no warning is added.
+func contentSizeWarning(repodir string, md *libgin.RepositoryMetadata, warnings []string) []string {
+	asize, err := annexSize(repodir)
+	if err != nil {
+		log.Printf("[sizeNotice] Error: could not identify annex size: %q", err.Error())
+	} else {
+		zipsize := "n/a"
+		if md.DataCite != nil && md.Sizes != nil && len(*md.Sizes) > 0 {
+			zipsize = (*md.Sizes)[0]
+		}
+		warnings = append(warnings, fmt.Sprintf("Annex content size (%s) vs zip size (%s)", asize, zipsize))
+	}
+
+	return warnings
 }
 
 // authorWarnings checks datacite authors for validity and returns

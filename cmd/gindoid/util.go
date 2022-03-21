@@ -11,10 +11,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	gingit "github.com/G-Node/gin-cli/git"
 	gdtmpl "github.com/G-Node/gin-doi/templates"
 	"github.com/G-Node/libgin/libgin"
 )
@@ -554,4 +557,251 @@ func HasGitModules(ginurl string, repo string) bool {
 	log.Printf("HasGitModules: checking url %s", moduleurl)
 
 	return URLexists(moduleurl)
+}
+
+// annexCMD runs the passed git annex command arguments.
+// The command returns stdout and stderr as strings and any error that might occur.
+func annexCMD(annexargs ...string) (string, string, error) {
+	log.Printf("Running annex command: %s\n", annexargs)
+	cmd := gingit.AnnexCommand(annexargs...)
+	stdout, stderr, err := cmd.OutputError()
+
+	return string(stdout), string(stderr), err
+}
+
+// annexAvailable checks whether annex is available to the gin client library.
+// The function returns false with no error, if the annex command execution
+// ends with the git message that 'annex' is not a git command.
+// It will return false and the error message on any different error.
+func annexAvailable() (bool, error) {
+	_, stderr, err := annexCMD("version")
+	if err != nil {
+		if strings.Contains(stderr, "'annex' is not a git command") {
+			return false, nil
+		}
+		return false, fmt.Errorf("%s, %s", stderr, err.Error())
+	}
+	return true, nil
+}
+
+// remoteGitCMD runs a git command for a given directory
+// If the useannex flag is set to true, the executed command
+// will be a git annex command instead of a regular git command.
+func remoteGitCMD(gitdir string, useannex bool, gitcmd ...string) (string, string, error) {
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return "", "", fmt.Errorf("path not found %q", gitdir)
+	}
+
+	cmdstr := append([]string{"git", "-C", gitdir}, gitcmd...)
+	cmd := gingit.Command("version")
+	cmd.Args = cmdstr
+	if useannex {
+		cmdstr = append([]string{"git", "-C", gitdir, "annex"}, gitcmd...)
+		cmd = gingit.AnnexCommand("version")
+		cmd.Args = cmdstr
+	}
+	log.Printf("remoteGitCMD: %v", cmdstr)
+	stdout, stderr, err := cmd.OutputError()
+
+	return string(stdout), string(stderr), err
+}
+
+// missingAnnexContent checks the annex content of a provided local
+// git annex repository for missing annex file content. If locally missing
+// file content is identified, the function returns true and a list of all
+// files with missing content separated by the newline character "\n" as
+// a single string.
+// If no missing content is found, the function returns false and an empty
+// string. If any issue occurs during processing, the function will return
+// false, an empty string and an appropriate error.
+func missingAnnexContent(gitdir string) (bool, string, error) {
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return false, "", fmt.Errorf("path not found %q", gitdir)
+	}
+	// command should not return with an error or with any stderr content
+	// If stdout is empty, there is no missing content. If it is not empty,
+	// the number of lines correspond to the number of files with missing content.
+	stdout, stderr, err := remoteGitCMD(gitdir, true, "find", "--not", "--in=here")
+	if err != nil {
+		return false, "", err
+	} else if string(stderr) != "" {
+		return false, "", fmt.Errorf("git annex error: %s", string(stderr))
+	} else if string(stdout) == "" {
+		return false, "", nil
+	}
+	return true, string(stdout), nil
+}
+
+// lockedAnnexContent checks the annex content of a provided local
+// git annex repository for locked annex files. If locked files can
+// be identified, the function returns true and a list of all found
+// locked files separated by the newline character "\n" as a single string.
+// If no locked files are found, the function returns false and an empty
+// string. If any issue occurs during processing, the function will return
+// false, an empty string and an appropriate error.
+func lockedAnnexContent(gitdir string) (bool, string, error) {
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return false, "", fmt.Errorf("path not found %q", gitdir)
+	}
+	// command should not return with an error or with any stderr content
+	// If stdout is empty, there is no locked content. If it is not empty,
+	// the number of lines correspond to the number of files with locked content.
+	stdout, stderr, err := remoteGitCMD(gitdir, true, "find", "--locked")
+	if err != nil {
+		return false, "", err
+	} else if string(stderr) != "" {
+		return false, "", fmt.Errorf("git annex error: %s", string(stderr))
+	} else if string(stdout) == "" {
+		return false, "", nil
+	}
+	return true, string(stdout), nil
+}
+
+// annexSize parses the annex content size from a local git annex
+// repository and returns a trimmed string containing size and unit
+// in the format "[size in float] [fully spelled unit]bytes"
+// e.g. "12.2 gigabytes". If any issue occurs while parsing the
+// annex content size, the function returns with an appropriate error.
+func annexSize(gitdir string) (string, error) {
+	if _, err := os.Stat(gitdir); os.IsNotExist(err) {
+		return "", fmt.Errorf("path not found %q", gitdir)
+	}
+	// command should not return with an error or with any stderr content
+	stdout, stderr, err := remoteGitCMD(gitdir, true, "info", "--fast", ".")
+	if err != nil {
+		return "", err
+	} else if string(stderr) != "" {
+		return "", fmt.Errorf("git annex error: %s", string(stderr))
+	}
+
+	// annex should return the total size of files in the working tree
+	splitsizes := strings.Split(stdout, "size of annexed files in working tree: ")
+	if len(splitsizes) != 2 {
+		return "", fmt.Errorf("could not properly parse annex size: %q", stdout)
+	}
+	return strings.TrimSpace(splitsizes[1]), nil
+}
+
+// unlockAnnexClone receives a directory of a git annex repository containing
+// locked annex content, the name of the repository and an output directory.
+// The function creates a local clone and annex file copy  of the primary
+// git annex content in the output directory and unlocks all annex files in
+// the secondary git annex repository.
+// When the process is successful, the full directory path of the secondary
+// repository is returned, otherwise the function ends with an appropriate
+// error.
+func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error) {
+	clonename := fmt.Sprintf("%s_unlocked", reponame)
+	clonedir := filepath.Join(gitcloneroot, clonename)
+	log.Printf("unlockAnnex: cloning %s to dir %s", gitrepodir, clonedir)
+
+	// Clone annex repository to specified clone directory
+	// Git clone outputs everything to stderr
+	stdout, stderr, err := remoteGitCMD(gitcloneroot, false, "clone", gitrepodir, clonename)
+	if err != nil {
+		return "", fmt.Errorf("error cloning annex repo %s: %q, %q", gitrepodir, err.Error(), stderr)
+	}
+	log.Printf("unlockAnnex: clone done: %q, %q", stdout, stderr)
+
+	// Make sure the git user credentials have been set; otherwise git annex copy will fail
+	_, stderr, err = remoteGitCMD(clonedir, false, "config", "user.name", "GIN-DOI-service-user")
+	if err != nil {
+		return "", fmt.Errorf("error setting git user for repo %s: %q, %q", gitrepodir, err.Error(), stderr)
+	}
+	_, stderr, err = remoteGitCMD(clonedir, false, "config", "user.email", "gin@g-node.org")
+	if err != nil {
+		return "", fmt.Errorf("error setting git email for repo %s: %q, %q", gitrepodir, err.Error(), stderr)
+	}
+
+	// Copy annex content to clone directory
+	stdout, stderr, err = remoteGitCMD(clonedir, true, "copy", "--all", "--from=origin")
+	if err != nil {
+		return "", fmt.Errorf("error on local annex (%s) content copy: %q, %q", clonedir, err.Error(), stderr)
+	} else if stderr != "" {
+		return "", fmt.Errorf("error output on local annex (%s) content copy: %q", clonedir, stderr)
+	}
+	log.Printf("unlockAnnex: local copy finished %q", stdout)
+
+	// re-check missing annex content in clone directory; should be false
+	hasmissing, missinglist, err := missingAnnexContent(clonedir)
+	if err != nil {
+		return "", fmt.Errorf("error checking missing annex after local copy (%s): %q", clonedir, err.Error())
+	} else if hasmissing {
+		return "", fmt.Errorf("missing annex content after local copy (%s): %q", clonedir, missinglist)
+	}
+
+	// unlock all locked annex files in clone directory
+	stdout, stderr, err = remoteGitCMD(clonedir, true, "unlock")
+	if err != nil {
+		return "", fmt.Errorf("error unlocking files on local copy (%s): %q, %q", clonedir, err.Error(), stderr)
+	} else if stderr != "" {
+		return "", fmt.Errorf("error unlocking files on local copy (%s): %q", clonedir, stderr)
+	}
+	log.Printf("unlockAnnex: Files unlocked in clone directory: %q", stdout)
+
+	// re-check locked content
+	haslocked, lockedlist, err := lockedAnnexContent(clonedir)
+	if err != nil {
+		return "", fmt.Errorf("error checking locked content on local copy: %q", err.Error())
+	} else if haslocked || lockedlist != "" {
+		return "", fmt.Errorf("found locked content after unlocking: %q", lockedlist)
+	}
+
+	return clonedir, nil
+}
+
+// acceptedAnnexSize parses a string containing git annex style formatted
+// repository size in the format "[size in float] [fully spelled unit]bytes"
+// e.g. "12.2 gigabytes".
+// If the string can be properly parsed, the provided unit is supported
+// and the size is below the supported threshold (currently 250.0 gigabytes)
+// the function returns true. In any other case including parsing issues,
+// the function returns false.
+func acceptedAnnexSize(annexSize string) bool {
+	// acceptedGigaSize might be moved outside to become a server setting
+	acceptedGigaSize := 250.0
+
+	sizesplit := strings.Split(annexSize, " ")
+	if len(sizesplit) != 2 {
+		log.Printf("[acceptedAnnexSize] could not parse input (%s)", annexSize)
+		return false
+	}
+	// add check if sizesplit[0] is contained in accepted order
+	// since the base unit "byte" is contained in all larger units, this
+	// has to be checked specifically
+	checkUnit := strings.TrimSpace(sizesplit[1])
+	var acceptedunit bool
+	if checkUnit == "byte" || checkUnit == "bytes" {
+		acceptedunit = true
+	} else {
+		checkaccepted := []string{"kilobyte", "megabyte", "gigabyte", "terabyte"}
+		for _, check := range checkaccepted {
+			if strings.Contains(sizesplit[1], check) {
+				log.Printf("[acceptedAnnexSize] %q, %q", sizesplit[1], check)
+				acceptedunit = true
+			}
+		}
+	}
+
+	if !acceptedunit {
+		log.Printf("[acceptedAnnexSize] Unsupported size unit (%s)", annexSize)
+		return false
+	}
+
+	// make sure singular and plural are both accepted
+	if strings.Contains(sizesplit[1], "terabyte") {
+		log.Printf("[acceptedAnnexSize] Size above allowed limit (%s)", annexSize)
+		return false
+	} else if strings.Contains(sizesplit[1], "gigabyte") {
+		checksize, err := strconv.ParseFloat(sizesplit[0], 32)
+		if err != nil {
+			log.Printf("[acceptedAnnexSize] Could not parse repo size (%s) %q", annexSize, err.Error())
+			return false
+		}
+		if checksize > acceptedGigaSize {
+			log.Printf("[acceptedAnnexSize] Size above allowed limit (%s)", annexSize)
+			return false
+		}
+	}
+	return true
 }

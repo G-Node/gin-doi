@@ -130,9 +130,52 @@ func createRegisteredDataset(job *RegistrationJob) error {
 	return err
 }
 
+// handleLockedAnnex receives the preparation directory, the directory of
+// a git annex repository containing locked annex content and the name
+// of said repository.
+// It checks whether the total annex file contant size is below a specified
+// size threshold. If this is the case the git annex repository is cloned
+// in to a secondary local directory in the preparation directory and all
+// locked annex content is unlocked and the function returns the full
+// path to the secondary local directory.
+// If the size is above the specified threshold or if any issue arises
+// during the clone and unlock procedure, the function stops and returns
+// an appropriate error.
+func handleLockedAnnex(preppath, repodir, reponame string) (string, error) {
+	reposize, err := annexSize(repodir)
+	if err != nil {
+		return "", fmt.Errorf("error reading annex size %q", err.Error())
+	}
+
+	// check if the repo is eligible for local clone and unlock;
+	// repos above a certain size threshold should not be automatically
+	// cloned a second time locally.
+	if !acceptedAnnexSize(reposize) {
+		return "", fmt.Errorf("unsupported repo size (%s)", reposize)
+	}
+
+	// local clone and unlock of repo
+	clonepath, err := unlockAnnexClone(reponame, preppath, repodir)
+	if err != nil {
+		return "", fmt.Errorf("clone/unlock error: %q", err.Error())
+	}
+
+	// replace directory from where to create the zip from with
+	// the cloned and unlocked repo
+	return clonepath, nil
+}
+
 // cloneAndZip clones the source repository into a temporary directory under
 // preppath, zips the contents at the targetpath, and returns the archive filename
 // and its size in bytes.
+// If the cloned repository contains missing annex content, the zip file is not created and
+// the function returns an appropriate error.
+// If the cloned repository contains locked annex content and the size of the repository
+// content is below a specific threshold, a secondary repository clone is created
+// and the zip file is created from this repository to ensure the originally locked content
+// is included. If the content size is above the size threshold or if any issue arises
+// during the cloning process, the zip file creation is skipped and the function
+// returns with an appropriate error.
 func cloneAndZip(repopath string, jobname string, preppath string, targetpath string, conf *Configuration) (string, int64, error) {
 	log.Print("Start clone and zip")
 	// Clone at preppath (will create subdirectories '[doi-org-id]/[doi-jobname]/[reponame]')
@@ -153,6 +196,48 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 	repoparts := strings.SplitN(repopath, "/", 2)
 	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
 	repodir := filepath.Join(preppath, reponame)
+
+	// Check for missing or locked annex content. Log any errors that
+	// occur during the checks, but continue to allow a zip creation attempt.
+	log.Printf("Checking missing and locked annex content of repo at %q", repodir)
+	hasmissing, misslist, err := missingAnnexContent(repodir)
+	if err != nil {
+		log.Printf("Error on missing annex content check: %q", err.Error())
+	}
+	haslocked, locklist, err := lockedAnnexContent(repodir)
+	if err != nil {
+		log.Printf("Error on locked annex content check: %q", err.Error())
+	}
+
+	// Skip the zip creation on missing annex content and also report any locked content.
+	if hasmissing {
+		splitmis := strings.Split(strings.TrimSpace(misslist), "\n")
+		annexIssues := fmt.Sprintf("missing annex content in %d files\n", len(splitmis))
+		if haslocked {
+			splitlock := strings.Split(strings.TrimSpace(locklist), "\n")
+			annexIssues += fmt.Sprintf("locked annex content in %d files\n", len(splitlock))
+		}
+
+		log.Printf("Annex content issues; skipping zip creation (missing %t, locked %t)", hasmissing, haslocked)
+		return "", -1, fmt.Errorf("annex content issues, skipping zip creation\n%s", annexIssues)
+	}
+
+	// If the repo has locked content and its size permits it,
+	// locally clone and unlock all repo files in a secondary
+	// directory. Replace the "repodir" variable with the secondary
+	// repo directory creating the zip file with all unlocked files.
+	if haslocked {
+		splitlock := strings.Split(strings.TrimSpace(locklist), "\n")
+		log.Printf("Locked content found in %d files", len(splitlock))
+
+		// overwrite the "repodir" variable with the directory of the cloned
+		// repository containing the unlocked annex content.
+		repodir, err = handleLockedAnnex(preppath, repodir, reponame)
+		if err != nil {
+			log.Printf("Skipping zip creation; %s", err.Error())
+			return "", -1, fmt.Errorf("%d locked annex files; skipping zip creation; %s", len(splitlock), err.Error())
+		}
+	}
 
 	log.Printf("Preparing zip file for %s", jobname)
 	// use DOI with / replacement for zip filename
@@ -307,6 +392,7 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	}
 	log.Printf("Cloning %s to directory %s", URI, destdir)
 
+	// git clone repository
 	clonechan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.CloneRepo(strings.ToLower(URI), clonechan)
 	for stat := range clonechan {
@@ -317,14 +403,36 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 		}
 	}
 
+	// check server side missing git annex content
+	log.Printf("Check missing content in origin repository")
+	repoparts := strings.SplitN(URI, "/", 2)
+	reponame := strings.ToLower(repoparts[1]) // clone directory is always lowercase
+	repodir := filepath.Join(destdir, reponame)
+
+	if _, err := os.Stat(repodir); os.IsNotExist(err) {
+		log.Printf("path not found %q", repodir)
+	} else {
+		stdout, stderr, err := remoteGitCMD(repodir, true, "find", "--not", "--in=origin")
+		if err != nil {
+			log.Printf("Error checking missing annex content: %q", err.Error())
+		} else if stderr != "" {
+			log.Printf("git annex error checking missing content: %q", stderr)
+		} else if stdout != "" {
+			splitmis := strings.Split(strings.TrimSpace(stdout), "\n")
+			log.Printf("Server repo is missing annex content in %d files", len(splitmis))
+			return fmt.Errorf("\nmissing annex content in %d files; skipping annex content download and zip creation", len(splitmis))
+		}
+	}
+
+	// git annex get-content
 	log.Print("Primary annex content download")
 	downloadchan := make(chan git.RepoFileStatus)
 	go conf.GIN.Session.GetContent(nil, downloadchan)
 	for stat := range downloadchan {
 		log.Print(stat)
 		if stat.Err != nil {
-			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
-			return stat.Err
+			log.Printf("Repository cloning failed during annex get: %s, %s", stat.FileName, stat.Err)
+			return fmt.Errorf("annex content of %q: %q", stat.FileName, stat.Err)
 		}
 	}
 
@@ -336,8 +444,8 @@ func cloneRepo(URI string, destdir string, conf *Configuration) error {
 	for stat := range downloadchan {
 		log.Print(stat)
 		if stat.Err != nil {
-			log.Printf("Repository cloning failed during annex get: %s", stat.Err)
-			return stat.Err
+			log.Printf("Repository cloning failed during annex get: %s, %s", stat.FileName, stat.Err)
+			return fmt.Errorf("annex content of %q: %q", stat.FileName, stat.Err)
 		}
 	}
 	return nil
