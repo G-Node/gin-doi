@@ -177,6 +177,20 @@ func TestLoadconfig(t *testing.T) {
 		t.Fatalf("Error setting 'confdir': %q", err.Error())
 	}
 
+	// check error on invalid port
+	if err = os.Setenv("port", "abc"); err != nil {
+		t.Fatalf("Error setting 'port': %q", err.Error())
+	}
+	_, err = loadconfig()
+	if err == nil {
+		t.Fatal("Expected error on invalid port entry")
+	} else if err != nil && !strings.Contains(err.Error(), "invalid syntax") {
+		t.Fatalf("Unexpected port error: %q", err.Error())
+	}
+	if err = os.Setenv("port", "12"); err != nil {
+		t.Fatalf("Error setting 'port': %q", err.Error())
+	}
+
 	// check 'ginurl' env var
 	_, err = loadconfig()
 	if err == nil {
