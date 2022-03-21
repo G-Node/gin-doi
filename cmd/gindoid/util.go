@@ -757,9 +757,9 @@ func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error)
 // and the size is below the supported threshold (currently 250.0 gigabytes)
 // the function returns true. In any other case including parsing issues,
 // the function returns false.
-func acceptedAnnexSize(annexSize string) bool {
+func acceptedAnnexSize(annexSize string, cutoff float64) bool {
 	// acceptedGigaSize might be moved outside to become a server setting
-	acceptedGigaSize := 250.0
+	acceptedGigaSize := cutoff
 
 	sizesplit := strings.Split(annexSize, " ")
 	if len(sizesplit) != 2 {

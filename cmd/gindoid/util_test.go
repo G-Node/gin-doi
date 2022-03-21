@@ -764,46 +764,46 @@ func TestUnlockAnnexClone(t *testing.T) {
 
 func TestAcceptedAnnexSize(t *testing.T) {
 	// check empty string
-	if acceptedAnnexSize("") {
+	if acceptedAnnexSize("", 250) {
 		t.Fatal("True on empty string")
 	}
 
 	// check non-splitable string
-	if acceptedAnnexSize("100kilobytes") {
+	if acceptedAnnexSize("100kilobytes", 250) {
 		t.Fatal("True on invalid string")
 	}
 
 	// check unsupported 'unit'
-	if acceptedAnnexSize("10.4 petabytes") {
+	if acceptedAnnexSize("10.4 petabytes", 250) {
 		t.Fatal("True on unsupported unit petabytes")
 	}
 
 	// check non parseable size with threshold unit gigabytes
-	if acceptedAnnexSize("doesnotconverttofloat gigabytes") {
+	if acceptedAnnexSize("doesnotconverttofloat gigabytes", 250) {
 		t.Fatal("True on non-parsable size")
 	}
 
 	// check supported units
-	if !acceptedAnnexSize("10.4 bytes") {
+	if !acceptedAnnexSize("10.4 bytes", 250) {
 		t.Fatal("False on bytes")
 	}
-	if !acceptedAnnexSize("10.4 kilobytes") {
+	if !acceptedAnnexSize("10.4 kilobytes", 250) {
 		t.Fatal("False on kilobytes")
 	}
-	if !acceptedAnnexSize("10.4 megabytes") {
+	if !acceptedAnnexSize("10.4 megabytes", 250) {
 		t.Fatal("False on megabytes")
 	}
 
 	// check supported unit and supported size
-	if !acceptedAnnexSize("10.4 gigabytes") {
+	if !acceptedAnnexSize("10.4 gigabytes", 250) {
 		t.Fatal("False on allowed gigabytes")
 	}
 
 	// check supported unit and unsupported size
-	if acceptedAnnexSize("250.1 gigabytes") {
+	if acceptedAnnexSize("250.1 gigabytes", 250) {
 		t.Fatal("True on unsupported size")
 	}
-	if acceptedAnnexSize("1 terabytes") {
+	if acceptedAnnexSize("1 terabytes", 250) {
 		t.Fatal("True on terabyte")
 	}
 }
