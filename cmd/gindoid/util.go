@@ -134,6 +134,11 @@ func EscXML(txt string) string {
 // GetGINURL returns the full URL to the configured GIN server. If it's
 // configured with a non-standard port, the port number is included.
 func GetGINURL(conf *Configuration) string {
+	// something went wrong, but do not panic
+	if conf.GIN.Session == nil {
+		log.Println("Missing GIN session, return empty GINURL")
+		return ""
+	}
 	address := conf.GIN.Session.WebAddress()
 	// get scheme
 	schemeSepIdx := strings.Index(address, "://")
