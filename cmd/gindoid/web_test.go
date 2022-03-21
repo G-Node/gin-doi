@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"html/template"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -47,5 +49,18 @@ func TestInjectDynamicGINURL(t *testing.T) {
 	}
 	if checkurl != b.String() {
 		t.Fatalf("Error dynamic URL; got: '%s'", b.String())
+	}
+}
+
+func TestRenderResult(t *testing.T) {
+	cfg := Configuration{}
+	resData := reqResultData{}
+	w := httptest.NewRecorder()
+
+	renderResult(w, &resData, &cfg)
+
+	content := w.Body.Bytes()
+	if !strings.Contains(string(content), "DOI request failed") {
+		t.Fatal("Did not retrieve DOI request fail page")
 	}
 }
