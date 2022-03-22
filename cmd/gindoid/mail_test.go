@@ -45,7 +45,7 @@ func TestNotifyAdminContent(t *testing.T) {
 	if subj != subjbase {
 		t.Fatalf("Unexpected subject: %q", subj)
 	}
-	if !strings.Contains(body, erritem) || !strings.Contains(body, errbody){
+	if !strings.Contains(body, erritem) || !strings.Contains(body, errbody) {
 		t.Fatalf("Error missing in body: %q", body)
 	} else if strings.Contains(body, warnbody) {
 		t.Fatalf("Unexpected warning in body: %q", body)
@@ -74,7 +74,7 @@ func TestNotifyAdminContent(t *testing.T) {
 	}
 	if !strings.Contains(body, warnitem) || !strings.Contains(body, warnbody) || !strings.Contains(body, "2.") {
 		t.Fatalf("Warning missing in body: %q", body)
-	} else if !strings.Contains(body, erritem) || !strings.Contains(body, errbody){
+	} else if !strings.Contains(body, erritem) || !strings.Contains(body, errbody) {
 		t.Fatalf("Error missing in body: %q", body)
 	}
 
