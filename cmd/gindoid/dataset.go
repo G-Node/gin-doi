@@ -141,7 +141,7 @@ func createRegisteredDataset(job *RegistrationJob) error {
 // If the size is above the specified threshold or if any issue arises
 // during the clone and unlock procedure, the function stops and returns
 // an appropriate error.
-func handleLockedAnnex(preppath, repodir, reponame string) (string, error) {
+func handleLockedAnnex(preppath, repodir, reponame string, cutoff float64) (string, error) {
 	reposize, err := annexSize(repodir)
 	if err != nil {
 		return "", fmt.Errorf("error reading annex size %q", err.Error())
@@ -150,7 +150,7 @@ func handleLockedAnnex(preppath, repodir, reponame string) (string, error) {
 	// check if the repo is eligible for local clone and unlock;
 	// repos above a certain size threshold should not be automatically
 	// cloned a second time locally.
-	if !acceptedAnnexSize(reposize) {
+	if !acceptedAnnexSize(reposize, cutoff) {
 		return "", fmt.Errorf("unsupported repo size (%s)", reposize)
 	}
 
@@ -232,7 +232,7 @@ func cloneAndZip(repopath string, jobname string, preppath string, targetpath st
 
 		// overwrite the "repodir" variable with the directory of the cloned
 		// repository containing the unlocked annex content.
-		repodir, err = handleLockedAnnex(preppath, repodir, reponame)
+		repodir, err = handleLockedAnnex(preppath, repodir, reponame, conf.LockedContentCutoffSize)
 		if err != nil {
 			log.Printf("Skipping zip creation; %s", err.Error())
 			return "", -1, fmt.Errorf("%d locked annex files; skipping zip creation; %s", len(splitlock), err.Error())

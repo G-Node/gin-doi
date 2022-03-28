@@ -56,24 +56,16 @@ type Configuration struct {
 		// format host:/path/)
 		XMLURL string
 	}
+	// LockedContentCutoffSize defines the git annex size above which a repository
+	// containing locked annex files is no longer handled by the server.
+	// The size number always refers to gigabytes.
+	LockedContentCutoffSize float64
 }
 
-// loadconfig reads all the configuration variables (from the environment).
-func loadconfig() (*Configuration, error) {
-	cfg := Configuration{}
-
-	// NOTE: Temporary workaround. GIN Client internals need a bit of a
-	// redesign to support in-memory configurations.
-	confdir := libgin.ReadConf("configdir")
-	confdir, err := filepath.Abs(confdir)
-	if err != nil {
-		return nil, err
-	}
-	err = os.Setenv("GIN_CONFIG_DIR", confdir)
-	if err != nil {
-		log.Printf("Could not set GIN_CONFIG_DIR env: %q", err.Error())
-	}
-
+// parseconfigvars loads all DOI server config vars from the
+// OS environment and handles default values and necessary
+// type conversions.
+func parseconfigvars(cfg *Configuration) error {
 	cfg.DOIBase = libgin.ReadConf("doibase")
 
 	cfg.Email.Server = libgin.ReadConf("mailserver")
@@ -107,13 +99,46 @@ func loadconfig() (*Configuration, error) {
 	portstr := libgin.ReadConfDefault("port", "10443")
 	port, err := strconv.ParseUint(portstr, 10, 16)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cfg.Port = uint16(port)
 
-	// Set up GIN client configuration (for cloning)
+	cutsize, err := strconv.ParseFloat(libgin.ReadConfDefault("lockedcutoffsize", "250.0"), 64)
+	if err != nil {
+		log.Printf("Error while parsing locked content cutoff size flag: %s", err.Error())
+		log.Printf("Using default %.1f", 250.0)
+		cutsize = 250.0
+	}
+	cfg.LockedContentCutoffSize = cutsize
 
+	return nil
+}
+
+// loadconfig reads all the configuration variables (from the environment).
+// It also creates and provides a gin client session to the specified
+// gin server.
+func loadconfig() (*Configuration, error) {
+	cfg := Configuration{}
+
+	// NOTE: Temporary workaround. GIN Client internals need a bit of a
+	// redesign to support in-memory configurations.
+	confdir := libgin.ReadConf("configdir")
+	confdir, err := filepath.Abs(confdir)
+	if err != nil {
+		return nil, err
+	}
+	err = os.Setenv("GIN_CONFIG_DIR", confdir)
+	if err != nil {
+		log.Printf("Could not set GIN_CONFIG_DIR env: %q", err.Error())
+	}
+
+	err = parseconfigvars(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up GIN client configuration (for cloning)
 	ginurl := libgin.ReadConf("ginurl")
 	giturl := libgin.ReadConf("giturl")
 	log.Printf("gin: %s -- git: %s", ginurl, giturl)

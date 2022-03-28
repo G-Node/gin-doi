@@ -134,6 +134,11 @@ func EscXML(txt string) string {
 // GetGINURL returns the full URL to the configured GIN server. If it's
 // configured with a non-standard port, the port number is included.
 func GetGINURL(conf *Configuration) string {
+	// something went wrong, but do not panic
+	if conf.GIN.Session == nil {
+		log.Println("Missing GIN session, return empty GINURL")
+		return ""
+	}
 	address := conf.GIN.Session.WebAddress()
 	// get scheme
 	schemeSepIdx := strings.Index(address, "://")
@@ -757,9 +762,9 @@ func unlockAnnexClone(reponame, gitcloneroot, gitrepodir string) (string, error)
 // and the size is below the supported threshold (currently 250.0 gigabytes)
 // the function returns true. In any other case including parsing issues,
 // the function returns false.
-func acceptedAnnexSize(annexSize string) bool {
+func acceptedAnnexSize(annexSize string, cutoff float64) bool {
 	// acceptedGigaSize might be moved outside to become a server setting
-	acceptedGigaSize := 250.0
+	acceptedGigaSize := cutoff
 
 	sizesplit := strings.Split(annexSize, " ")
 	if len(sizesplit) != 2 {
