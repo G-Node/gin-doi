@@ -148,10 +148,9 @@ func authorWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 // and returns warnings in case they can not be retrieved.
 func authorIDWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 	// This code has been removed from authorWarnings since it checks against
-	// the live services of ORCID and publons and might be removed or
-	// specifically handled if any issues arise in the future.
+	// the ORCID live service and might be removed or specifically handled
+	// if any issues arise in the future.
 	orcidURL := "https://pub.orcid.org/v3.0/"
-	researcherURL := "http://publons.com/researcher/"
 
 	for idx, auth := range yada.Authors {
 		if auth.ID == "" {
@@ -164,9 +163,7 @@ func authorIDWarnings(yada *libgin.RepositoryYAML, warnings []string) []string {
 			splitID := strings.TrimSpace(splitIDlist[1])
 
 			invalORCID := strings.HasPrefix(lowerID, "orcid") && !URLexists(fmt.Sprintf("%s%s", orcidURL, splitID))
-			invalResID := strings.HasPrefix(lowerID, "researcherid") && !URLexists(fmt.Sprintf("%s%s", researcherURL, splitID))
-
-			if invalORCID || invalResID {
+			if invalORCID {
 				warnings = append(warnings, fmt.Sprintf("Author %d (%s) ID was not found at the ID service: %s", idx, auth.LastName, auth.ID))
 			}
 		}
