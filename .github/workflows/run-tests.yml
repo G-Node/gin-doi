@@ -24,16 +24,34 @@ jobs:
         run: |
           gofmt -s -l .
           if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
+      # staticcheck and errcheck should be optional, issues should
+      # be displayed to raise awareness but not fail the build.
+      # There is an ongoing discussion whether github actions
+      # will support such a feature which it currently does not.
+      # Check https://github.com/actions/toolkit/issues/399
+      # Until further notice errcheck and temporarily staticcheck
+      # will be run but will not fail the build on error.
+      # The "Secondary linter" step icon will show whether errcheck
+      # or staticcheck were successful or not.
       - name: Run staticcheck
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
         continue-on-error: true
+      - name: staticcheck warning
+        if: steps.composer-run.outcome != 'success'
+        run: echo "- staticcheck encountered issues" >> $GITHUB_STEP_SUMMARY
       - name: Run errcheck
         run: |
           go install github.com/kisielk/errcheck@latest
           errcheck ./...
         continue-on-error: true
+      - name: errcheck warning
+        if: steps.composer-run.outcome != 'success'
+        run: echo "- errcheck encountered issues" >> $GITHUB_STEP_SUMMARY
+      - name: Secondary linter success
+        if: steps.composer-run.outcome == 'success'
+        run: echo "Run successful"
 
   tests:
     runs-on: [ubuntu-latest]
