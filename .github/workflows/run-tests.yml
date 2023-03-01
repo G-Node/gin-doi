@@ -26,16 +26,15 @@ jobs:
           if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
       - name: Run staticcheck
         run: |
-          go get honnef.co/go/tools/cmd/staticcheck
+          go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
-        # github actions discussion could make warnings like
-        # these visible eventually without failing the build.
-        # Check https://github.com/actions/toolkit/issues/399
+        continue-on-error: true
       - name: Run errcheck
         run: |
-          go get github.com/kisielk/errcheck
+          go install github.com/kisielk/errcheck@latest
           errcheck ./...
         continue-on-error: true
+
   tests:
     runs-on: [ubuntu-latest]
     steps:
