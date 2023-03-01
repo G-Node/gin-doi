@@ -76,6 +76,7 @@ jobs:
         run: go build ./cmd/gindoid
       - name: Run tests
         run: go test ./...
+
   run-coverall:
     runs-on: [ubuntu-latest]
     steps:
@@ -94,7 +95,8 @@ jobs:
       - name: Fetch dependencies
         run: |
           go get -d ./...
-          go get github.com/mattn/goveralls
+      - name: Install goveralls
+        run: go install github.com/mattn/goveralls@latest
       - name: Create test coverage
         run: go test -covermode atomic -coverprofile=covprofile ./...
       - name: Send coverage
