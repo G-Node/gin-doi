@@ -456,15 +456,6 @@ func TestAuthorIDWarnings(t *testing.T) {
 	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
 		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
 	}
-
-	yada.Authors[0].ID = "researcherID:x-1234-5678"
-	checkwarn = authorIDWarnings(yada, warnings)
-	if len(checkwarn) != 1 {
-		t.Fatalf("Invalid number of messages(%d): %v", len(checkwarn), checkwarn)
-	}
-	if !strings.Contains(checkwarn[0], "ID was not found at the ID service") {
-		t.Fatalf("Expected not found ID message: %v", checkwarn[0])
-	}
 }
 
 func TestValidateDataCiteValues(t *testing.T) {

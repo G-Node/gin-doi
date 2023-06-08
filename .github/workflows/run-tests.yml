@@ -13,41 +13,56 @@ jobs:
   linters:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup go 1.15
-        uses: actions/setup-go@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup go 1.20
+        uses: actions/setup-go@v3
         with:
-          go-version: '1.15'
+          go-version: '1.20'
       - name: Run go vet
         run: go vet ./...
       - name: Run gofmt
         run: |
           gofmt -s -l .
           if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then exit 1; fi
-      - name: Run golint
-        run: |
-          go get golang.org/x/lint/golint
-          golint ./...
+      # staticcheck and errcheck should be optional, issues should
+      # be displayed to raise awareness but not fail the build.
+      # There is an ongoing discussion whether github actions
+      # will support such a feature which it currently does not.
+      # Check https://github.com/actions/toolkit/issues/399
+      # Until further notice errcheck and temporarily staticcheck
+      # will be run but will not fail the build on error.
+      # The "Secondary linter" step icon will show whether errcheck
+      # or staticcheck were successful or not.
       - name: Run staticcheck
         run: |
-          go get honnef.co/go/tools/cmd/staticcheck
+          go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
-        # github actions discussion could make warnings like
-        # these visible eventually without failing the build.
-        # Check https://github.com/actions/toolkit/issues/399
+        continue-on-error: true
+      - name: staticcheck warning
+        if: steps.composer-run.outcome != 'success'
+        run: echo "- staticcheck encountered issues" >> $GITHUB_STEP_SUMMARY
       - name: Run errcheck
         run: |
-          go get github.com/kisielk/errcheck
+          go install github.com/kisielk/errcheck@latest
           errcheck ./...
         continue-on-error: true
+      - name: errcheck warning
+        if: steps.composer-run.outcome != 'success'
+        run: echo "- errcheck encountered issues" >> $GITHUB_STEP_SUMMARY
+      - name: Secondary linter success
+        if: steps.composer-run.outcome == 'success'
+        run: echo "Run successful"
+
   tests:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup Go 1.15
-        uses: actions/setup-go@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup Go 1.20
+        uses: actions/setup-go@v3
         with:
-          go-version: '1.15'
+          go-version: '1.20'
       - name: Install git annex dependency
         run: |
           bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
@@ -63,14 +78,16 @@ jobs:
         run: go build ./cmd/gindoid
       - name: Run tests
         run: go test ./...
+
   run-coverall:
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: Use golang version 1.15
-        uses: actions/setup-go@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Use golang version 1.20
+        uses: actions/setup-go@v3
         with:
-          go-version: '1.15'
+          go-version: '1.20'
       - name: Install git annex dependency
         run: |
           bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
@@ -81,10 +98,35 @@ jobs:
       - name: Fetch dependencies
         run: |
           go get -d ./...
-          go get github.com/mattn/goveralls
+      - name: Install goveralls
+        run: go install github.com/mattn/goveralls@latest
       - name: Create test coverage
         run: go test -covermode atomic -coverprofile=covprofile ./...
       - name: Send coverage
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: goveralls -coverprofile=covprofile -service=github
+
+  run-codecov:
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Use golang version 1.20
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20'
+      - name: Install git annex dependency
+        run: |
+          bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+          sudo apt-get update -qq
+          sudo apt-get install git-annex-standalone
+          git version
+          git annex version
+      - name: Fetch dependencies
+        run: |
+          go get -v -d ./...
+      - name: Run coverage
+        run: go test -covermode=atomic -coverprofile=coverage.txt ./...
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
